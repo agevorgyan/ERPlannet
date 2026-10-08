@@ -1,0 +1,43 @@
+{
+  "app_name": "ERPlannet",
+  "auth": {
+    "login": "Login",
+    "logout": "Logout",
+    "email": "Email",
+    "password": "Password",
+    "failed": "These credentials do not match our records.",
+    "throttle": "Too many login attempts. Please try again in :seconds seconds."
+  },
+  "modules": {
+    "crm": "CRM & Customers",
+    "sales": "Sales & Orders",
+    "products": "Products & Catalog",
+    "warehouse": "Warehouse & Inventory",
+    "procurement": "Procurement",
+    "production": "Production & Recipes",
+    "delivery": "Delivery Management",
+    "finance": "Finance & Accounting",
+    "marketing": "Marketing & Campaigns",
+    "reports": "Reports & Analytics",
+    "quality": "Quality Assurance (ISO 22000)",
+    "settings": "Settings"
+  },
+  "billing": {
+    "plan": "Subscription Plan",
+    "subscription": "Subscription",
+    "active": "Active",
+    "trialing": "Trialing",
+    "suspended": "Suspended",
+    "upgrade": "Upgrade Plan",
+    "quota_exceeded": "Usage quota exceeded. Please upgrade your plan."
+  },
+  "actions": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "filter": "Filter",
+    "export": "Export"
+  }
+}
