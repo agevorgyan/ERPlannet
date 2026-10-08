@@ -53,7 +53,15 @@ class PermissionsSeeder extends Seeder
             ['code' => 'quality.inspections.view', 'module' => 'quality', 'name' => 'View Quality Inspections'],
             ['code' => 'quality.inspections.manage', 'module' => 'quality', 'name' => 'Perform & Manage Quality Inspections'],
 
-            // Delivery
+            // Point of Sale (POS)
+            ['code' => 'pos.terminals.view', 'module' => 'pos', 'name' => 'View POS Terminals'],
+            ['code' => 'pos.terminals.manage', 'module' => 'pos', 'name' => 'Manage POS Terminals'],
+            ['code' => 'pos.sessions.manage', 'module' => 'pos', 'name' => 'Open & Close POS Sessions'],
+            ['code' => 'pos.checkout', 'module' => 'pos', 'name' => 'Perform POS Checkout'],
+
+            // Delivery & Fleet
+            ['code' => 'delivery.drivers.manage', 'module' => 'delivery', 'name' => 'Manage Delivery Drivers'],
+            ['code' => 'delivery.shipments.manage', 'module' => 'delivery', 'name' => 'Manage Shipments & Dispatch'],
             ['code' => 'delivery.orders.view', 'module' => 'delivery', 'name' => 'View Deliveries'],
             ['code' => 'delivery.orders.dispatch', 'module' => 'delivery', 'name' => 'Dispatch Deliveries'],
 

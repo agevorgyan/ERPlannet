@@ -17,7 +17,14 @@ use App\Domain\IAM\Models\User;
 use App\Domain\Manufacturing\Models\ProductionOrder;
 use App\Domain\Manufacturing\Models\ProductionOrderItem;
 use App\Domain\Manufacturing\Models\Recipe;
+use App\Domain\Delivery\Models\DeliveryDriver;
+use App\Domain\Delivery\Models\DeliveryProof;
+use App\Domain\Delivery\Models\DeliveryShipment;
 use App\Domain\Manufacturing\Models\RecipeItem;
+use App\Domain\Payments\Models\PaymentTransaction;
+use App\Domain\POS\Models\PosCashMovement;
+use App\Domain\POS\Models\PosSession;
+use App\Domain\POS\Models\PosTerminal;
 use App\Domain\Procurement\Models\PurchaseOrder;
 use App\Domain\Procurement\Models\PurchaseOrderItem;
 use App\Domain\Procurement\Models\Supplier;
@@ -912,6 +919,174 @@ class DemoTenantSeeder extends Seeder
                 'actual_value' => 'Մաքուր / Չի հայտնաբերվել',
                 'unit' => 'ստուգում',
                 'is_passed' => true,
+            ]
+        );
+
+        // 17. Phase 4: POS Terminals
+        $posKentron = PosTerminal::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'code' => 'POS-KENTRON-01'],
+            [
+                'branch_id' => $branchMain->id,
+                'warehouse_id' => $whMain->id,
+                'name' => 'Kentron Main Front Desk #1',
+                'device_uid' => 'POS-DEV-KTN-01',
+                'is_active' => true,
+            ]
+        );
+
+        $posKomitas = PosTerminal::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'code' => 'POS-KOMITAS-01'],
+            [
+                'branch_id' => $branchKomitas->id,
+                'warehouse_id' => $whMain->id,
+                'name' => 'Komitas Store Cash Desk #1',
+                'device_uid' => 'POS-DEV-KMT-01',
+                'is_active' => true,
+            ]
+        );
+
+        // 18. Phase 4: POS Shift Session & Cash Movement
+        $posSession = PosSession::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'session_number' => "SES-{$year}-000001"],
+            [
+                'pos_terminal_id' => $posKentron->id,
+                'cashier_id' => $owner->id,
+                'status' => 'open',
+                'opening_cash' => 25000.00,
+                'opened_at' => now()->startOfDay()->addHours(8),
+                'notes' => 'Առավոտյան հերթափոխի բացում (Morning shift opening float)',
+            ]
+        );
+
+        PosCashMovement::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'pos_session_id' => $posSession->id, 'reason' => 'Մանրադրամի համալրում (Cash float top-up)'],
+            [
+                'user_id' => $owner->id,
+                'type' => 'cash_in',
+                'amount' => 10000.00,
+            ]
+        );
+
+        // 19. Phase 4: Completed POS Order with Receipt
+        $posOrder = Order::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'receipt_number' => "REC-{$year}-000001"],
+            [
+                'order_number' => "ORD-{$year}-000003",
+                'branch_id' => $branchMain->id,
+                'pos_terminal_id' => $posKentron->id,
+                'pos_session_id' => $posSession->id,
+                'customer_id' => $customer->id,
+                'status' => 'delivered',
+                'source' => 'pos',
+                'delivery_type' => 'pickup',
+                'subtotal' => 4500.00,
+                'discount' => 0.00,
+                'delivery_fee' => 0.00,
+                'tax' => 0.00,
+                'total' => 4500.00,
+                'currency' => 'AMD',
+                'payment_status' => 'paid',
+                'placed_at' => now()->subHours(2),
+                'delivered_at' => now()->subHours(2),
+            ]
+        );
+
+        OrderItem::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'order_id' => $posOrder->id, 'product_id' => $p1->id],
+            [
+                'product_name' => 'Թոնրի Մատնաքաշ Ավանդական',
+                'product_sku' => 'BREAD-MATNAKASH',
+                'quantity' => 5.0,
+                'unit_price' => 300.00,
+                'discount' => 0.00,
+                'total' => 1500.00,
+                'created_at' => now()->subHours(2),
+            ]
+        );
+
+        OrderItem::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'order_id' => $posOrder->id, 'product_id' => $p2->id],
+            [
+                'product_name' => 'Լոռի Պանիր (Տնական)',
+                'product_sku' => 'CHEESE-LORI',
+                'quantity' => 1.0,
+                'unit_price' => 3000.00,
+                'discount' => 0.00,
+                'total' => 3000.00,
+                'created_at' => now()->subHours(2),
+            ]
+        );
+
+        PaymentTransaction::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'order_id' => $posOrder->id, 'transaction_id' => "TX-TELCELL-{$year}-001"],
+            [
+                'pos_session_id' => $posSession->id,
+                'gateway' => 'telcell',
+                'payment_method' => 'qr',
+                'amount' => 4500.00,
+                'currency' => 'AMD',
+                'status' => 'successful',
+                'gateway_response' => ['method' => 'telcell_wallet', 'rrn' => '9876543210'],
+                'paid_at' => now()->subHours(2),
+            ]
+        );
+
+        // 20. Phase 4: Delivery Fleet Drivers
+        $driver1 = DeliveryDriver::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'phone' => '+37498112233'],
+            [
+                'user_id' => $owner->id,
+                'first_name' => 'Դավիթ',
+                'last_name' => 'Սահակյան',
+                'vehicle_type' => 'car',
+                'license_plate' => '36AA123',
+                'status' => 'available',
+                'is_active' => true,
+            ]
+        );
+
+        $driver2 = DeliveryDriver::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'phone' => '+37494445566'],
+            [
+                'first_name' => 'Նարեկ',
+                'last_name' => 'Դանիելյան',
+                'vehicle_type' => 'motorcycle',
+                'license_plate' => '77BB456',
+                'status' => 'on_delivery',
+                'is_active' => true,
+            ]
+        );
+
+        // 21. Phase 4: Delivery Shipment & Proof of Delivery (POD)
+        $shipment = DeliveryShipment::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'shipment_number' => "DLV-{$year}-000001"],
+            [
+                'order_id' => $order1->id,
+                'delivery_driver_id' => $driver2->id,
+                'status' => 'delivered',
+                'delivery_address' => 'Երևան, Սայաթ-Նովա պող. 10, բն. 18',
+                'recipient_name' => 'Մարիամ Պողոսյան',
+                'recipient_phone' => '+37493223344',
+                'scheduled_slot_start' => now()->subHours(3),
+                'scheduled_slot_end' => now()->subHours(1),
+                'cod_amount' => 12400.00,
+                'cod_collected' => 12400.00,
+                'dispatched_at' => now()->subHours(3),
+                'delivered_at' => now()->subHours(2),
+                'notes' => 'Առաքումն ավարտված է հաճախորդի ստորագրությամբ (POD)',
+            ]
+        );
+
+        DeliveryProof::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'delivery_shipment_id' => $shipment->id],
+            [
+                'received_by_name' => 'Մարիամ Պողոսյան',
+                'signature_url' => 'https://storage.erplannet.am/proofs/sig-dlv-001.png',
+                'photo_url' => 'https://storage.erplannet.am/proofs/photo-dlv-001.jpg',
+                'latitude' => 40.1811,
+                'longitude' => 44.5136,
+                'delivered_at' => now()->subHours(2),
+                'notes' => 'Առձեռն հանձնում / Կանխիկ վճարում տեղում',
             ]
         );
     }

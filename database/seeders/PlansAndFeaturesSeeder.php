@@ -17,6 +17,7 @@ class PlansAndFeaturesSeeder extends Seeder
             ['code' => 'feature.inventory_multi_warehouse', 'name' => 'Multi-Warehouse Support', 'type' => 'boolean', 'module' => 'warehouse'],
             ['code' => 'feature.batch_tracking', 'name' => 'Batch, Lot & Expiry Tracking', 'type' => 'boolean', 'module' => 'warehouse'],
             ['code' => 'feature.production', 'name' => 'Production & Recipes', 'type' => 'boolean', 'module' => 'production'],
+            ['code' => 'feature.pos', 'name' => 'Point of Sale (POS)', 'type' => 'boolean', 'module' => 'pos'],
             ['code' => 'feature.delivery', 'name' => 'Delivery Management', 'type' => 'boolean', 'module' => 'delivery'],
             ['code' => 'feature.iso22000', 'name' => 'ISO 22000 & Quality Assurance', 'type' => 'boolean', 'module' => 'quality'],
             ['code' => 'limit.users', 'name' => 'Active Users Limit', 'type' => 'limit', 'module' => 'iam'],
@@ -27,6 +28,8 @@ class PlansAndFeaturesSeeder extends Seeder
             ['code' => 'limit.recipes', 'name' => 'Recipes Limit', 'type' => 'limit', 'module' => 'production'],
             ['code' => 'limit.orders_monthly', 'name' => 'Monthly Orders Limit', 'type' => 'limit', 'module' => 'sales'],
             ['code' => 'limit.production_orders_monthly', 'name' => 'Monthly Production Orders Limit', 'type' => 'limit', 'module' => 'production'],
+            ['code' => 'limit.pos_terminals', 'name' => 'POS Terminals Limit', 'type' => 'limit', 'module' => 'pos'],
+            ['code' => 'limit.delivery_drivers', 'name' => 'Delivery Drivers Limit', 'type' => 'limit', 'module' => 'delivery'],
         ];
 
         $featureModels = [];
@@ -54,6 +57,7 @@ class PlansAndFeaturesSeeder extends Seeder
             $featureModels['feature.inventory_multi_warehouse']->id => ['value' => 'false'],
             $featureModels['feature.batch_tracking']->id => ['value' => 'false'],
             $featureModels['feature.production']->id => ['value' => 'false'],
+            $featureModels['feature.pos']->id => ['value' => 'false'],
             $featureModels['feature.delivery']->id => ['value' => 'false'],
             $featureModels['feature.iso22000']->id => ['value' => 'false'],
             $featureModels['limit.users']->id => ['value' => '3'],
@@ -64,6 +68,8 @@ class PlansAndFeaturesSeeder extends Seeder
             $featureModels['limit.recipes']->id => ['value' => '0'],
             $featureModels['limit.orders_monthly']->id => ['value' => '500'],
             $featureModels['limit.production_orders_monthly']->id => ['value' => '0'],
+            $featureModels['limit.pos_terminals']->id => ['value' => '0'],
+            $featureModels['limit.delivery_drivers']->id => ['value' => '0'],
         ]);
 
         // 3. Growth Plan
@@ -86,6 +92,7 @@ class PlansAndFeaturesSeeder extends Seeder
             $featureModels['feature.inventory_multi_warehouse']->id => ['value' => 'true'],
             $featureModels['feature.batch_tracking']->id => ['value' => 'true'],
             $featureModels['feature.production']->id => ['value' => 'true'],
+            $featureModels['feature.pos']->id => ['value' => 'true'],
             $featureModels['feature.delivery']->id => ['value' => 'true'],
             $featureModels['feature.iso22000']->id => ['value' => 'false'],
             $featureModels['limit.users']->id => ['value' => '15'],
@@ -96,6 +103,8 @@ class PlansAndFeaturesSeeder extends Seeder
             $featureModels['limit.recipes']->id => ['value' => '50'],
             $featureModels['limit.orders_monthly']->id => ['value' => '5000'],
             $featureModels['limit.production_orders_monthly']->id => ['value' => '500'],
+            $featureModels['limit.pos_terminals']->id => ['value' => '3'],
+            $featureModels['limit.delivery_drivers']->id => ['value' => '5'],
         ]);
 
         // 4. Enterprise Plan
@@ -118,6 +127,7 @@ class PlansAndFeaturesSeeder extends Seeder
             $featureModels['feature.inventory_multi_warehouse']->id => ['value' => 'true'],
             $featureModels['feature.batch_tracking']->id => ['value' => 'true'],
             $featureModels['feature.production']->id => ['value' => 'true'],
+            $featureModels['feature.pos']->id => ['value' => 'true'],
             $featureModels['feature.delivery']->id => ['value' => 'true'],
             $featureModels['feature.iso22000']->id => ['value' => 'true'],
             $featureModels['limit.users']->id => ['value' => 'unlimited'],
@@ -128,6 +138,8 @@ class PlansAndFeaturesSeeder extends Seeder
             $featureModels['limit.recipes']->id => ['value' => 'unlimited'],
             $featureModels['limit.orders_monthly']->id => ['value' => 'unlimited'],
             $featureModels['limit.production_orders_monthly']->id => ['value' => 'unlimited'],
+            $featureModels['limit.pos_terminals']->id => ['value' => 'unlimited'],
+            $featureModels['limit.delivery_drivers']->id => ['value' => 'unlimited'],
         ]);
     }
 }

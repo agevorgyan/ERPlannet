@@ -101,6 +101,10 @@ class EntitlementManager implements EntitlementManagerInterface
             $modelCount = \App\Domain\Procurement\Models\Supplier::withoutGlobalScopes()->where('tenant_id', $tenant->id)->whereNull('deleted_at')->count();
         } elseif ($featureCode === 'limit.recipes') {
             $modelCount = \App\Domain\Manufacturing\Models\Recipe::withoutGlobalScopes()->where('tenant_id', $tenant->id)->whereNull('deleted_at')->count();
+        } elseif ($featureCode === 'limit.pos_terminals') {
+            $modelCount = \App\Domain\POS\Models\PosTerminal::withoutGlobalScopes()->where('tenant_id', $tenant->id)->where('is_active', true)->count();
+        } elseif ($featureCode === 'limit.delivery_drivers') {
+            $modelCount = \App\Domain\Delivery\Models\DeliveryDriver::withoutGlobalScopes()->where('tenant_id', $tenant->id)->where('is_active', true)->count();
         }
 
         return max($usageCount, $modelCount);

@@ -4,8 +4,13 @@ use App\Domain\Billing\Models\Plan;
 use App\Domain\Branch\Models\Branch;
 use App\Domain\Catalog\Models\Product;
 use App\Domain\CRM\Models\Customer;
+use App\Domain\Delivery\Models\DeliveryDriver;
+use App\Domain\Delivery\Models\DeliveryShipment;
 use App\Domain\Manufacturing\Models\ProductionOrder;
 use App\Domain\Manufacturing\Models\Recipe;
+use App\Domain\Payments\Models\PaymentTransaction;
+use App\Domain\POS\Models\PosSession;
+use App\Domain\POS\Models\PosTerminal;
 use App\Domain\Procurement\Models\PurchaseOrder;
 use App\Domain\Procurement\Models\Supplier;
 use App\Domain\Quality\Models\QualityInspection;
@@ -36,6 +41,11 @@ Route::get('/', function (Request $request, TenantResolver $resolver) {
         'recipes_count' => Recipe::withoutGlobalScopes()->count(),
         'production_orders_count' => ProductionOrder::withoutGlobalScopes()->count(),
         'quality_inspections_count' => QualityInspection::withoutGlobalScopes()->count(),
+        'pos_terminals_count' => PosTerminal::withoutGlobalScopes()->count(),
+        'pos_sessions_count' => PosSession::withoutGlobalScopes()->count(),
+        'delivery_drivers_count' => DeliveryDriver::withoutGlobalScopes()->count(),
+        'delivery_shipments_count' => DeliveryShipment::withoutGlobalScopes()->count(),
+        'payment_transactions_count' => PaymentTransaction::withoutGlobalScopes()->count(),
         'total_revenue' => Order::withoutGlobalScopes()->sum('total'),
     ];
 
@@ -51,6 +61,11 @@ Route::get('/', function (Request $request, TenantResolver $resolver) {
     $recipes = $demoTenant ? Recipe::withoutGlobalScopes()->where('tenant_id', $demoTenant->id)->with(['product', 'items.product', 'yieldUnit'])->get() : collect();
     $productionOrders = $demoTenant ? ProductionOrder::withoutGlobalScopes()->where('tenant_id', $demoTenant->id)->with(['product', 'recipe', 'items.product', 'inspections'])->latest()->get() : collect();
     $qualityInspections = $demoTenant ? QualityInspection::withoutGlobalScopes()->where('tenant_id', $demoTenant->id)->with(['productionOrder.product', 'inspector', 'items'])->latest()->get() : collect();
+    $posTerminals = $demoTenant ? PosTerminal::withoutGlobalScopes()->where('tenant_id', $demoTenant->id)->with(['branch', 'warehouse', 'activeSession'])->get() : collect();
+    $posSessions = $demoTenant ? PosSession::withoutGlobalScopes()->where('tenant_id', $demoTenant->id)->with(['terminal', 'cashier', 'cashMovements'])->latest()->get() : collect();
+    $deliveryDrivers = $demoTenant ? DeliveryDriver::withoutGlobalScopes()->where('tenant_id', $demoTenant->id)->with('user')->get() : collect();
+    $deliveryShipments = $demoTenant ? DeliveryShipment::withoutGlobalScopes()->where('tenant_id', $demoTenant->id)->with(['driver', 'order', 'proof'])->latest()->get() : collect();
+    $paymentTransactions = $demoTenant ? PaymentTransaction::withoutGlobalScopes()->where('tenant_id', $demoTenant->id)->with('order')->latest()->get() : collect();
 
     return view('welcome', compact(
         'currentTenant',
@@ -68,6 +83,11 @@ Route::get('/', function (Request $request, TenantResolver $resolver) {
         'purchaseOrders',
         'recipes',
         'productionOrders',
-        'qualityInspections'
+        'qualityInspections',
+        'posTerminals',
+        'posSessions',
+        'deliveryDrivers',
+        'deliveryShipments',
+        'paymentTransactions'
     ));
 });

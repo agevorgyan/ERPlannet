@@ -209,45 +209,61 @@
             </div>
         </div>
 
-        <!-- Live Platform Stats (Phase 0, 1, 2 & 3) -->
-        <div class="grid grid-cols-2 md:grid-cols-5 lg:grid-cols-10 gap-3">
-            <div class="glass-panel p-3.5 rounded-xl text-center">
+        <!-- Live Platform Stats (Phase 0, 1, 2, 3 & 4) -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3">
+            <div class="glass-panel p-3 rounded-xl text-center">
                 <span class="text-xl font-bold text-white">{{ $stats['tenants_count'] }}</span>
                 <span class="block text-[11px] text-slate-400 mt-1">Tenants</span>
             </div>
-            <div class="glass-panel p-3.5 rounded-xl text-center">
+            <div class="glass-panel p-3 rounded-xl text-center">
                 <span class="text-xl font-bold text-indigo-400">{{ $stats['branches_count'] }}</span>
                 <span class="block text-[11px] text-slate-400 mt-1">Branches</span>
             </div>
-            <div class="glass-panel p-3.5 rounded-xl text-center">
+            <div class="glass-panel p-3 rounded-xl text-center">
                 <span class="text-xl font-bold text-cyan-400">{{ $stats['warehouses_count'] }}</span>
                 <span class="block text-[11px] text-slate-400 mt-1">Warehouses</span>
             </div>
-            <div class="glass-panel p-3.5 rounded-xl text-center">
-                <span class="text-xl font-bold text-teal-400">{{ $stats['suppliers_count'] }}</span>
-                <span class="block text-[11px] text-slate-400 mt-1">Suppliers</span>
-            </div>
-            <div class="glass-panel p-3.5 rounded-xl text-center">
+            <div class="glass-panel p-3 rounded-xl text-center">
                 <span class="text-xl font-bold text-purple-400">{{ $stats['products_count'] }}</span>
                 <span class="block text-[11px] text-slate-400 mt-1">Products</span>
             </div>
-            <div class="glass-panel p-3.5 rounded-xl text-center">
+            <div class="glass-panel p-3 rounded-xl text-center">
                 <span class="text-xl font-bold text-amber-400">{{ $stats['recipes_count'] }}</span>
                 <span class="block text-[11px] text-slate-400 mt-1">Recipes (BOM)</span>
             </div>
-            <div class="glass-panel p-3.5 rounded-xl text-center">
+            <div class="glass-panel p-3 rounded-xl text-center">
                 <span class="text-xl font-bold text-blue-400">{{ $stats['production_orders_count'] }}</span>
                 <span class="block text-[11px] text-slate-400 mt-1">Production</span>
             </div>
-            <div class="glass-panel p-3.5 rounded-xl text-center">
+            <div class="glass-panel p-3 rounded-xl text-center">
                 <span class="text-xl font-bold text-emerald-400">{{ $stats['quality_inspections_count'] }}</span>
                 <span class="block text-[11px] text-slate-400 mt-1">ISO 22000 QA</span>
             </div>
-            <div class="glass-panel p-3.5 rounded-xl text-center">
+            <div class="glass-panel p-3 rounded-xl text-center">
+                <span class="text-xl font-bold text-fuchsia-400">{{ $stats['pos_terminals_count'] }}</span>
+                <span class="block text-[11px] text-slate-400 mt-1">POS Terminals</span>
+            </div>
+            <div class="glass-panel p-3 rounded-xl text-center">
+                <span class="text-xl font-bold text-violet-400">{{ $stats['pos_sessions_count'] }}</span>
+                <span class="block text-[11px] text-slate-400 mt-1">POS Shifts</span>
+            </div>
+            <div class="glass-panel p-3 rounded-xl text-center">
+                <span class="text-xl font-bold text-amber-300">{{ $stats['delivery_drivers_count'] }}</span>
+                <span class="block text-[11px] text-slate-400 mt-1">Delivery Fleet</span>
+            </div>
+            <div class="glass-panel p-3 rounded-xl text-center">
+                <span class="text-xl font-bold text-sky-400">{{ $stats['delivery_shipments_count'] }}</span>
+                <span class="block text-[11px] text-slate-400 mt-1">Shipments</span>
+            </div>
+            <div class="glass-panel p-3 rounded-xl text-center">
+                <span class="text-xl font-bold text-emerald-300">{{ $stats['payment_transactions_count'] }}</span>
+                <span class="block text-[11px] text-slate-400 mt-1">Payment Tx</span>
+            </div>
+            <div class="glass-panel p-3 rounded-xl text-center">
                 <span class="text-xl font-bold text-orange-400">{{ $stats['orders_count'] }}</span>
                 <span class="block text-[11px] text-slate-400 mt-1">Sales Orders</span>
             </div>
-            <div class="glass-panel p-3.5 rounded-xl text-center">
+            <div class="glass-panel p-3 rounded-xl text-center">
                 <span class="text-xl font-bold text-rose-400">{{ number_format($stats['total_revenue'], 0) }} ֏</span>
                 <span class="block text-[11px] text-slate-400 mt-1">Revenue</span>
             </div>
@@ -567,6 +583,213 @@
             </div>
         </div>
 
+        <!-- Phase 4: Sales Channels, POS, Dispatch, Delivery Fleet & Payment Gateways Showcase -->
+        <div class="space-y-6">
+            <div class="border-b border-slate-800 pb-3 flex items-center justify-between">
+                <div>
+                    <h3 class="text-lg font-bold text-white flex items-center space-x-2">
+                        <span>🛒</span>
+                        <span>Phase 4: POS Դրամարկղ, Առաքման Պարկ (Delivery Fleet) & Վճարային Դարպասներ</span>
+                    </h3>
+                    <p class="text-xs text-slate-400 mt-0.5">
+                        Omnichannel վաճառք, դրամարկղային հերթափոխներ, արագ POS չեկեր (REC-YYYY-NNNNNN), առաքիչների դիսպետչերիզացիա (DLV-YYYY-NNNNNN) և հայկական վճարային դարպասներ (Telcell QR, Idram, Ameria)
+                    </p>
+                </div>
+                <span class="text-xs font-mono px-2.5 py-1 rounded-full bg-fuchsia-500/10 text-fuchsia-300 border border-fuchsia-500/20">
+                    POS &amp; Fleet Live
+                </span>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                <!-- 1. POS Cashier Shifts & Terminals -->
+                <div class="glass-panel rounded-2xl p-6 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h4 class="text-base font-semibold text-white flex items-center space-x-2">
+                                <span>🖥️</span>
+                                <span>POS Տերմինալներ & Հերթափոխ</span>
+                            </h4>
+                            <p class="text-xs text-slate-400">Դրամարկղ և հաշվեկշիռ ({{ $posTerminals->count() }} տերմինալ)</p>
+                        </div>
+                        <span class="text-xs font-mono px-2 py-0.5 rounded bg-fuchsia-500/10 text-fuchsia-300 border border-fuchsia-500/20">Terminals</span>
+                    </div>
+
+                    <div class="space-y-3">
+                        @foreach ($posTerminals as $term)
+                            <div class="p-3.5 rounded-xl bg-slate-900/70 border border-slate-800 space-y-2">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center space-x-2">
+                                        <span class="w-2 h-2 rounded-full {{ $term->is_active ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500' }}"></span>
+                                        <span class="font-mono text-xs font-bold text-fuchsia-400">{{ $term->code }}</span>
+                                    </div>
+                                    <span class="text-[10px] font-mono px-2 py-0.5 rounded {{ $term->activeSession ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-800 text-slate-400' }}">
+                                        {{ $term->activeSession ? 'SHIFT OPEN' : 'STANDBY' }}
+                                    </span>
+                                </div>
+                                <h5 class="text-xs font-semibold text-white">{{ $term->name }}</h5>
+                                <div class="text-[11px] text-slate-400 space-y-1">
+                                    <div class="flex justify-between">
+                                        <span>Մասնաճյուղ՝</span>
+                                        <span class="text-slate-200">{{ $term->branch?->name }}</span>
+                                    </div>
+                                    @if ($term->activeSession)
+                                        <div class="p-2 rounded bg-slate-950/80 border border-slate-800/80 space-y-1 mt-2 text-[10px]">
+                                            <div class="flex justify-between text-slate-400">
+                                                <span>Հերթափոխ՝ <span class="font-mono text-fuchsia-300">{{ $term->activeSession->session_number }}</span></span>
+                                                <span class="text-slate-300">{{ $term->activeSession->cashier?->name }}</span>
+                                            </div>
+                                            <div class="flex justify-between text-slate-400">
+                                                <span>Բացման մնացորդ՝</span>
+                                                <span class="font-mono text-emerald-400">{{ number_format($term->activeSession->opening_cash, 0) }} ֏</span>
+                                            </div>
+                                        </div>
+                                    @endif
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+
+                <!-- 2. Delivery Fleet & Live Dispatch -->
+                <div class="glass-panel rounded-2xl p-6 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h4 class="text-base font-semibold text-white flex items-center space-x-2">
+                                <span>🚚</span>
+                                <span>Առաքման Պարկ (Fleet)</span>
+                            </h4>
+                            <p class="text-xs text-slate-400">Կուրիերներ & Առաքումներ ({{ $deliveryDrivers->count() }} առաքիչ)</p>
+                        </div>
+                        <span class="text-xs font-mono px-2 py-0.5 rounded bg-sky-500/10 text-sky-300 border border-sky-500/20">Dispatch</span>
+                    </div>
+
+                    <div class="space-y-3">
+                        <!-- Drivers List -->
+                        <div class="space-y-2">
+                            <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Գործող Առաքիչներ</span>
+                            @foreach ($deliveryDrivers as $driver)
+                                <div class="p-2.5 rounded-xl bg-slate-900/70 border border-slate-800 flex items-center justify-between">
+                                    <div class="flex items-center space-x-2.5">
+                                        <div class="w-8 h-8 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sm">
+                                            {{ $driver->vehicle_type === 'motorcycle' ? '🏍️' : '🚗' }}
+                                        </div>
+                                        <div>
+                                            <div class="text-xs font-semibold text-white">{{ $driver->first_name }} {{ $driver->last_name }}</div>
+                                            <div class="text-[10px] text-slate-400 font-mono">{{ $driver->phone }} &bull; {{ $driver->license_plate ?? 'N/A' }}</div>
+                                        </div>
+                                    </div>
+                                    <span class="text-[10px] font-mono px-2 py-0.5 rounded-full {{ $driver->status === 'on_delivery' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' }}">
+                                        {{ $driver->status === 'on_delivery' ? 'Առաքման մեջ' : 'Ազատ է' }}
+                                    </span>
+                                </div>
+                            @endforeach
+                        </div>
+
+                        <!-- Live Shipments -->
+                        <div class="space-y-2 pt-2 border-t border-slate-800">
+                            <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Վերջին Առաքումներ ({{ $deliveryShipments->count() }})</span>
+                            @foreach ($deliveryShipments as $shipment)
+                                <div class="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-1.5 text-xs">
+                                    <div class="flex items-center justify-between">
+                                        <span class="font-mono text-[11px] font-bold text-sky-400">{{ $shipment->shipment_number }}</span>
+                                        <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold">
+                                            {{ strtoupper($shipment->status) }}
+                                        </span>
+                                    </div>
+                                    <div class="text-[11px] text-slate-300">
+                                        📍 {{ $shipment->delivery_address }}
+                                    </div>
+                                    <div class="flex justify-between items-center text-[10px] text-slate-400 pt-1 border-t border-slate-800/60">
+                                        <span>Ստացող՝ <strong class="text-slate-200">{{ $shipment->recipient_name }}</strong></span>
+                                        <span class="font-mono text-emerald-400 font-bold">COD: {{ number_format($shipment->cod_collected, 0) }} ֏</span>
+                                    </div>
+                                    @if ($shipment->proof)
+                                        <div class="text-[10px] text-emerald-400 flex items-center space-x-1">
+                                            <span>✓ POD Ստացված է:</span>
+                                            <span class="text-slate-300">{{ $shipment->proof->received_by_name }} ({{ $shipment->proof->delivered_at?->format('H:i') }})</span>
+                                        </div>
+                                    @endif
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. Payment Gateways & Transactions -->
+                <div class="glass-panel rounded-2xl p-6 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h4 class="text-base font-semibold text-white flex items-center space-x-2">
+                                <span>💳</span>
+                                <span>Վճարային Համակարգեր</span>
+                            </h4>
+                            <p class="text-xs text-slate-400">Հայկական և գլոբալ Gateways</p>
+                        </div>
+                        <span class="text-xs font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">Omnichannel</span>
+                    </div>
+
+                    <div class="space-y-3">
+                        <!-- Supported Gateways Grid -->
+                        <div class="grid grid-cols-2 gap-2">
+                            <div class="p-2.5 rounded-xl bg-slate-900/70 border border-amber-500/30 flex items-center space-x-2">
+                                <div class="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-300 flex items-center justify-center text-xs font-bold font-mono">TL</div>
+                                <div>
+                                    <div class="text-xs font-semibold text-white">Telcell QR</div>
+                                    <div class="text-[9px] text-emerald-400 font-mono">● Active</div>
+                                </div>
+                            </div>
+                            <div class="p-2.5 rounded-xl bg-slate-900/70 border border-orange-500/30 flex items-center space-x-2">
+                                <div class="w-7 h-7 rounded-lg bg-orange-500/20 text-orange-300 flex items-center justify-center text-xs font-bold font-mono">ID</div>
+                                <div>
+                                    <div class="text-xs font-semibold text-white">Idram Rocket</div>
+                                    <div class="text-[9px] text-emerald-400 font-mono">● Active</div>
+                                </div>
+                            </div>
+                            <div class="p-2.5 rounded-xl bg-slate-900/70 border border-blue-500/30 flex items-center space-x-2">
+                                <div class="w-7 h-7 rounded-lg bg-blue-500/20 text-blue-300 flex items-center justify-center text-xs font-bold font-mono">AM</div>
+                                <div>
+                                    <div class="text-xs font-semibold text-white">Ameria vPOS</div>
+                                    <div class="text-[9px] text-emerald-400 font-mono">● Active</div>
+                                </div>
+                            </div>
+                            <div class="p-2.5 rounded-xl bg-slate-900/70 border border-emerald-500/30 flex items-center space-x-2">
+                                <div class="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-300 flex items-center justify-center text-xs font-bold font-mono">💵</div>
+                                <div>
+                                    <div class="text-xs font-semibold text-white">Cash / COD</div>
+                                    <div class="text-[9px] text-emerald-400 font-mono">● Active</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Live Transactions -->
+                        <div class="space-y-2 pt-2 border-t border-slate-800">
+                            <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Վերջին Գործարքներ (Transactions)</span>
+                            @foreach ($paymentTransactions as $tx)
+                                <div class="p-3 rounded-xl bg-slate-900/70 border border-emerald-500/30 space-y-1 text-xs">
+                                    <div class="flex items-center justify-between">
+                                        <span class="font-mono text-xs font-bold text-emerald-400">{{ $tx->transaction_id }}</span>
+                                        <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold uppercase">
+                                            {{ $tx->status }}
+                                        </span>
+                                    </div>
+                                    <div class="flex justify-between text-slate-300 text-[11px]">
+                                        <span>Դարպաս / Մեթոդ՝</span>
+                                        <span class="font-medium text-white">{{ strtoupper($tx->gateway) }} ({{ strtoupper($tx->payment_method) }})</span>
+                                    </div>
+                                    <div class="flex justify-between items-center pt-1 border-t border-slate-800/80 text-[11px]">
+                                        <span class="text-slate-400">Գումար՝</span>
+                                        <span class="font-mono text-emerald-400 font-bold">{{ number_format($tx->amount, 0) }} {{ $tx->currency }}</span>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
         <!-- Interactive API Console (Live In-Browser Testing) -->
         <section id="api-tester" class="glass-panel rounded-2xl p-6 lg:p-8 space-y-6">
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800/80 pb-5">
@@ -662,6 +885,36 @@
                     <span class="text-xs font-semibold text-slate-200 block mb-1">15. Health Check</span>
                     <p class="text-[11px] text-slate-400">/api/v1/health</p>
                 </button>
+
+                <button onclick="fetchPosTerminals()" class="p-3 text-left rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-fuchsia-500/30 hover:border-fuchsia-500 transition group">
+                    <span class="text-xs font-semibold text-fuchsia-300 block mb-1">16. POS Terminals</span>
+                    <p class="text-[11px] text-slate-400">/pos/terminals</p>
+                </button>
+
+                <button onclick="fetchCurrentPosSession()" class="p-3 text-left rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-violet-500/30 hover:border-violet-500 transition group">
+                    <span class="text-xs font-semibold text-violet-300 block mb-1">17. Current Shift</span>
+                    <p class="text-[11px] text-slate-400">/pos/sessions/current</p>
+                </button>
+
+                <button onclick="testPosCheckout()" class="p-3 text-left rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-emerald-500/30 hover:border-emerald-500 transition group">
+                    <span class="text-xs font-semibold text-emerald-300 block mb-1">18. POS Fast Checkout</span>
+                    <p class="text-[11px] text-slate-400">/pos/checkout (Receipt)</p>
+                </button>
+
+                <button onclick="fetchDeliveryDrivers()" class="p-3 text-left rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-sky-500/30 hover:border-sky-500 transition group">
+                    <span class="text-xs font-semibold text-sky-300 block mb-1">19. Fleet Drivers</span>
+                    <p class="text-[11px] text-slate-400">/delivery/drivers</p>
+                </button>
+
+                <button onclick="fetchDeliveryShipments()" class="p-3 text-left rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-sky-500/30 hover:border-sky-500 transition group">
+                    <span class="text-xs font-semibold text-sky-300 block mb-1">20. Shipments (POD)</span>
+                    <p class="text-[11px] text-slate-400">/delivery/shipments</p>
+                </button>
+
+                <button onclick="testTelcellPayment()" class="p-3 text-left rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-amber-500/30 hover:border-amber-500 transition group">
+                    <span class="text-xs font-semibold text-amber-300 block mb-1">21. Telcell QR Payment</span>
+                    <p class="text-[11px] text-slate-400">/orders/{id}/payments</p>
+                </button>
             </div>
 
             <!-- Response Console Output -->
@@ -677,7 +930,7 @@
                     </div>
                 </div>
                 <div class="relative">
-                    <pre id="response-output" class="p-4 rounded-xl bg-slate-950 border border-slate-800 text-xs font-mono text-emerald-300 max-h-96 overflow-y-auto whitespace-pre-wrap">{ "info": "ERPlannet Multi-Tenant API (Phase 0, 1 & 2) Ready. Click any button above." }</pre>
+                    <pre id="response-output" class="p-4 rounded-xl bg-slate-950 border border-slate-800 text-xs font-mono text-emerald-300 max-h-96 overflow-y-auto whitespace-pre-wrap">{ "info": "ERPlannet Multi-Tenant API (Phase 0, 1, 2, 3 & 4) Ready. Click any button above." }</pre>
                 </div>
             </div>
         </section>
@@ -685,7 +938,7 @@
     </main>
 
     <footer class="border-t border-slate-800/60 mt-12 py-6 text-center text-xs text-slate-500">
-        ERPlannet Multi-Tenant SaaS Platform &bull; Phase 0 (Foundation), Phase 1 (Business Core) & Phase 2 (Warehouse & Procurement) &bull; Yerevan, Armenia
+        ERPlannet Multi-Tenant SaaS Platform &bull; Phase 0, 1, 2, 3 & 4 (Sales Channels, POS, Fleet & Payments) &bull; Yerevan, Armenia
     </footer>
 
     <!-- JavaScript for Live Interactive API Testing -->
@@ -855,6 +1108,87 @@
 
         async function testHealthCheck() {
             await makeRequest('GET', '/api/v1/health');
+        }
+
+        async function fetchPosTerminals() {
+            await ensureTenantAuth();
+            await makeRequest('GET', '/api/v1/pos/terminals', {
+                'X-Tenant-Slug': 'gourmet',
+                'Authorization': 'Bearer ' + currentToken
+            });
+        }
+
+        async function fetchCurrentPosSession() {
+            await ensureTenantAuth();
+            await makeRequest('GET', '/api/v1/pos/sessions/current', {
+                'X-Tenant-Slug': 'gourmet',
+                'Authorization': 'Bearer ' + currentToken
+            });
+        }
+
+        async function testPosCheckout() {
+            await ensureTenantAuth();
+            const sessionRes = await makeRequest('GET', '/api/v1/pos/sessions/current', {
+                'X-Tenant-Slug': 'gourmet',
+                'Authorization': 'Bearer ' + currentToken
+            });
+            if (!sessionRes || !sessionRes.data) return;
+
+            const prodsRes = await makeRequest('GET', '/api/v1/products', {
+                'X-Tenant-Slug': 'gourmet',
+                'Authorization': 'Bearer ' + currentToken
+            });
+            const p1 = prodsRes.data[0];
+
+            await makeRequest('POST', '/api/v1/pos/checkout', {
+                'X-Tenant-Slug': 'gourmet',
+                'Authorization': 'Bearer ' + currentToken
+            }, {
+                pos_session_id: sessionRes.data.id,
+                items: [
+                    { product_id: p1.id, quantity: 2, unit_price: p1.sale_price }
+                ],
+                payments: [
+                    { gateway: 'telcell', method: 'qr', amount: p1.sale_price * 2 }
+                ],
+                notes: 'Browser Live POS Checkout'
+            });
+        }
+
+        async function fetchDeliveryDrivers() {
+            await ensureTenantAuth();
+            await makeRequest('GET', '/api/v1/delivery/drivers', {
+                'X-Tenant-Slug': 'gourmet',
+                'Authorization': 'Bearer ' + currentToken
+            });
+        }
+
+        async function fetchDeliveryShipments() {
+            await ensureTenantAuth();
+            await makeRequest('GET', '/api/v1/delivery/shipments', {
+                'X-Tenant-Slug': 'gourmet',
+                'Authorization': 'Bearer ' + currentToken
+            });
+        }
+
+        async function testTelcellPayment() {
+            await ensureTenantAuth();
+            const ordersRes = await makeRequest('GET', '/api/v1/orders', {
+                'X-Tenant-Slug': 'gourmet',
+                'Authorization': 'Bearer ' + currentToken
+            });
+            if (!ordersRes || !ordersRes.data || !ordersRes.data[0]) return;
+            const orderId = ordersRes.data[0].id;
+
+            await makeRequest('POST', `/api/v1/orders/${orderId}/payments`, {
+                'X-Tenant-Slug': 'gourmet',
+                'Authorization': 'Bearer ' + currentToken
+            }, {
+                gateway: 'telcell',
+                return_url: 'http://localhost:8000/payment/success',
+                cancel_url: 'http://localhost:8000/payment/cancel',
+                payment_method: 'qr'
+            });
         }
     </script>
 </body>

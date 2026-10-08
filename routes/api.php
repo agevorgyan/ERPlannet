@@ -11,6 +11,12 @@ use App\Http\Controllers\Api\V1\Tenant\CRM\CustomerController;
 use App\Http\Controllers\Api\V1\Tenant\Manufacturing\ProductionOrderController;
 use App\Http\Controllers\Api\V1\Tenant\Manufacturing\RecipeController;
 use App\Http\Controllers\Api\V1\Tenant\PaymentController;
+use App\Http\Controllers\Api\V1\Tenant\Delivery\DeliveryDriverController;
+use App\Http\Controllers\Api\V1\Tenant\Delivery\DeliveryShipmentController;
+use App\Http\Controllers\Api\V1\Tenant\Payments\OrderPaymentController;
+use App\Http\Controllers\Api\V1\Tenant\POS\PosCheckoutController;
+use App\Http\Controllers\Api\V1\Tenant\POS\PosSessionController;
+use App\Http\Controllers\Api\V1\Tenant\POS\PosTerminalController;
 use App\Http\Controllers\Api\V1\Tenant\Procurement\PurchaseOrderController;
 use App\Http\Controllers\Api\V1\Tenant\Procurement\SupplierController;
 use App\Http\Controllers\Api\V1\Tenant\Quality\QualityInspectionController;
@@ -153,9 +159,31 @@ Route::prefix('v1')->group(function () {
             // Subscription & Entitlements
             Route::get('/subscription', [SubscriptionController::class, 'show']);
 
-            // Payments
+            // Billing Payments
             Route::get('/payments/gateways', [PaymentController::class, 'availableGateways']);
             Route::post('/payments/initiate', [PaymentController::class, 'initiate']);
+
+            // POS (Point of Sale) & Cashier Shifts
+            Route::apiResource('pos/terminals', PosTerminalController::class)->only(['index', 'store', 'show']);
+            Route::post('/pos/sessions/open', [PosSessionController::class, 'open']);
+            Route::get('/pos/sessions/current', [PosSessionController::class, 'current']);
+            Route::post('/pos/sessions/cash-movement', [PosSessionController::class, 'cashMovement']);
+            Route::post('/pos/sessions/close', [PosSessionController::class, 'close']);
+            Route::post('/pos/checkout', [PosCheckoutController::class, 'checkout']);
+
+            // Delivery Fleet & Dispatch Management
+            Route::apiResource('delivery/drivers', DeliveryDriverController::class)->only(['index', 'store', 'show']);
+            Route::apiResource('delivery/shipments', DeliveryShipmentController::class)->only(['index', 'store', 'show']);
+            Route::post('/delivery/shipments/{id}/assign', [DeliveryShipmentController::class, 'assign']);
+            Route::post('/delivery/shipments/{id}/dispatch', [DeliveryShipmentController::class, 'dispatch']);
+            Route::post('/delivery/shipments/{id}/complete', [DeliveryShipmentController::class, 'complete']);
+
+            // Order Payments & Transactions
+            Route::post('/orders/{id}/payments', [OrderPaymentController::class, 'initiate']);
+            Route::get('/orders/{id}/payments', [OrderPaymentController::class, 'transactions']);
         });
+
+        // Payment Webhooks
+        Route::post('/payments/webhooks/{gateway}', [OrderPaymentController::class, 'webhook']);
     });
 });

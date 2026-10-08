@@ -35,6 +35,9 @@ class Order extends Model
         'delivery_fee',
         'tax',
         'total',
+        'pos_terminal_id',
+        'pos_session_id',
+        'receipt_number',
         'payment_status', // unpaid, partially_paid, paid, refunded
         'customer_notes',
         'internal_notes',
@@ -59,6 +62,26 @@ class Order extends Model
     public function branch(): BelongsTo
     {
         return $this->belongsTo(Branch::class, 'branch_id');
+    }
+
+    public function posTerminal(): BelongsTo
+    {
+        return $this->belongsTo(\App\Domain\POS\Models\PosTerminal::class, 'pos_terminal_id');
+    }
+
+    public function posSession(): BelongsTo
+    {
+        return $this->belongsTo(\App\Domain\POS\Models\PosSession::class, 'pos_session_id');
+    }
+
+    public function shipment(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(\App\Domain\Delivery\Models\DeliveryShipment::class, 'order_id');
+    }
+
+    public function paymentTransactions(): HasMany
+    {
+        return $this->hasMany(\App\Domain\Payments\Models\PaymentTransaction::class, 'order_id');
     }
 
     public function customer(): BelongsTo

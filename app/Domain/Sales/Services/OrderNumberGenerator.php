@@ -20,17 +20,20 @@ class OrderNumberGenerator
         $year = date('Y');
         $prefix = "ORD-{$year}-";
 
-        // Query the highest order number for this tenant in current year
-        $lastOrder = Order::withoutGlobalScopes()
+        // Query orders for this tenant in current year
+        $orders = Order::withoutGlobalScopes()
             ->where('tenant_id', $tenantId)
             ->where('order_number', 'like', "{$prefix}%")
-            ->orderByDesc('order_number')
-            ->first();
+            ->pluck('order_number');
 
-        $nextNumber = 1;
-        if ($lastOrder && preg_match('/ORD-\d{4}-(\d+)/', $lastOrder->order_number, $matches)) {
-            $nextNumber = ((int) $matches[1]) + 1;
+        $maxNumber = 0;
+        foreach ($orders as $num) {
+            if (preg_match('/^ORD-\d{4}-(\d+)$/', $num, $matches)) {
+                $maxNumber = max($maxNumber, (int) $matches[1]);
+            }
         }
+
+        $nextNumber = $maxNumber + 1;
 
         return $prefix . str_pad((string) $nextNumber, 6, '0', STR_PAD_LEFT);
     }

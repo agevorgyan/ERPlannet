@@ -8,6 +8,7 @@ use App\Infrastructure\Payments\Gateways\BankTransferGateway;
 use App\Infrastructure\Payments\Gateways\CashGateway;
 use App\Infrastructure\Payments\Gateways\IdramGateway;
 use App\Infrastructure\Payments\Gateways\StripeGateway;
+use App\Infrastructure\Payments\Gateways\TelcellGateway;
 use InvalidArgumentException;
 
 class PaymentGatewayManager
@@ -24,6 +25,7 @@ class PaymentGatewayManager
     {
         $this->register(new AmeriaBankGateway());
         $this->register(new IdramGateway());
+        $this->register(new TelcellGateway());
         $this->register(new StripeGateway());
         $this->register(new BankTransferGateway());
         $this->register(new CashGateway());
@@ -38,6 +40,9 @@ class PaymentGatewayManager
     public function gateway(string $identifier): PaymentGatewayInterface
     {
         $key = strtolower($identifier);
+        if ($key === 'ameria') {
+            $key = 'ameriabank';
+        }
 
         if (!isset($this->gateways[$key])) {
             throw new InvalidArgumentException("Payment gateway '{$identifier}' is not supported.");
