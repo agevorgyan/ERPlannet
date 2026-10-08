@@ -134,4 +134,62 @@ class DeliveryShipmentController extends Controller
             'data' => $shipment,
         ]);
     }
+
+    public function fail(Request $request, string $id, \App\Domain\Delivery\Actions\FailDeliveryAction $action): JsonResponse
+    {
+        $validated = $request->validate([
+            'reason' => ['required', 'string', 'max:255'],
+        ]);
+
+        $shipment = $action->execute($id, $validated['reason'], $request->user()?->id);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Shipment marked as failed.',
+            'data' => $shipment,
+        ]);
+    }
+
+    public function return(Request $request, string $id, \App\Domain\Delivery\Actions\ReturnDeliveryShipmentAction $action): JsonResponse
+    {
+        $validated = $request->validate([
+            'reason' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $shipment = $action->execute($id, $validated['reason'] ?? 'Returned to warehouse', $request->user()?->id);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Shipment returned and items restocked to warehouse.',
+            'data' => $shipment,
+        ]);
+    }
+
+    public function gps(Request $request, string $id, \App\Domain\Delivery\Actions\RecordGpsPingAction $action): JsonResponse
+    {
+        $validated = $request->validate([
+            'latitude' => ['required', 'numeric'],
+            'longitude' => ['required', 'numeric'],
+            'speed' => ['nullable', 'numeric'],
+            'battery_level' => ['nullable', 'integer', 'min:0', 'max:100'],
+        ]);
+
+        $shipment = DeliveryShipment::findOrFail($id);
+
+        $event = $action->execute(
+            driverId: (string) $shipment->delivery_driver_id,
+            shipmentId: $shipment->id,
+            latitude: (float) $validated['latitude'],
+            longitude: (float) $validated['longitude'],
+            speed: isset($validated['speed']) ? (float) $validated['speed'] : null,
+            batteryLevel: $validated['battery_level'] ?? null,
+            metadata: ['source' => 'mobile_app']
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'GPS ping recorded.',
+            'data' => $event,
+        ], 201);
+    }
 }

@@ -27,12 +27,15 @@ class PosCheckoutController extends Controller
             'payments.*.amount' => ['required', 'numeric', 'min:0.01'],
         ]);
 
+        $idempotencyKey = $request->header('X-Idempotency-Key') ?? $request->input('idempotency_key');
+
         $order = $action->execute(
             posSessionId: $validated['pos_session_id'],
             items: $validated['items'],
             payments: $validated['payments'],
             customerId: $validated['customer_id'] ?? null,
-            notes: $validated['notes'] ?? null
+            notes: $validated['notes'] ?? null,
+            idempotencyKey: $idempotencyKey
         );
 
         return response()->json([

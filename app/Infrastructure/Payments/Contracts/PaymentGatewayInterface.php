@@ -11,14 +11,44 @@ use App\Infrastructure\Payments\DTOs\WebhookResultDTO;
 interface PaymentGatewayInterface
 {
     /**
-     * Unique gateway identifier (e.g., 'ameriabank', 'idram', 'stripe', 'cash', 'bank_transfer')
+     * Unique gateway identifier (e.g., 'ameriabank', 'idram', 'telcell', 'stripe', 'cash', 'bank_transfer')
      */
     public function getIdentifier(): string;
 
     /**
-     * Initiate a payment and return payment result (redirect URL or completion details).
+     * Create payment session / intent.
+     */
+    public function createPayment(PaymentIntentDTO $intent): PaymentResultDTO;
+
+    /**
+     * Alias for createPayment (backwards compatibility).
      */
     public function initiatePayment(PaymentIntentDTO $intent): PaymentResultDTO;
+
+    /**
+     * Authorize payment without immediate capture (pre-authorization / hold).
+     */
+    public function authorize(PaymentIntentDTO $intent): PaymentResultDTO;
+
+    /**
+     * Capture a previously authorized payment.
+     */
+    public function capture(string $transactionId, float $amount, array $options = []): PaymentResultDTO;
+
+    /**
+     * Cancel / void an authorized or pending payment.
+     */
+    public function cancel(string $transactionId, array $options = []): PaymentResultDTO;
+
+    /**
+     * Refund a completed payment partially or fully.
+     */
+    public function refund(RefundDTO $dto): RefundResultDTO;
+
+    /**
+     * Query gateway for real-time payment status.
+     */
+    public function getStatus(string $transactionId): PaymentResultDTO;
 
     /**
      * Verify payment status using transaction ID and raw gateway payload.
@@ -26,12 +56,7 @@ interface PaymentGatewayInterface
     public function verifyPayment(string $transactionId, array $payload = []): PaymentResultDTO;
 
     /**
-     * Refund a completed payment.
+     * Parse and validate incoming webhook from the payment provider (verifying signature & headers).
      */
-    public function refund(RefundDTO $dto): RefundResultDTO;
-
-    /**
-     * Parse and validate incoming webhook from the payment provider.
-     */
-    public function handleWebhook(array $payload): WebhookResultDTO;
+    public function handleWebhook(array $payload, array $headers = []): WebhookResultDTO;
 }

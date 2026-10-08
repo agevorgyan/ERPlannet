@@ -38,7 +38,8 @@ class Order extends Model
         'pos_terminal_id',
         'pos_session_id',
         'receipt_number',
-        'payment_status', // unpaid, partially_paid, paid, refunded
+        'idempotency_key',
+        'payment_status', // unpaid, partially_paid, paid, refunded, partially_refunded
         'customer_notes',
         'internal_notes',
         'placed_at',
@@ -72,6 +73,11 @@ class Order extends Model
     public function posSession(): BelongsTo
     {
         return $this->belongsTo(\App\Domain\POS\Models\PosSession::class, 'pos_session_id');
+    }
+
+    public function fiscalReceipt(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(\App\Domain\Fiscal\Models\FiscalReceipt::class, 'order_id');
     }
 
     public function shipment(): \Illuminate\Database\Eloquent\Relations\HasOne

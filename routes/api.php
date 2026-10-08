@@ -11,10 +11,13 @@ use App\Http\Controllers\Api\V1\Tenant\CRM\CustomerController;
 use App\Http\Controllers\Api\V1\Tenant\Manufacturing\ProductionOrderController;
 use App\Http\Controllers\Api\V1\Tenant\Manufacturing\RecipeController;
 use App\Http\Controllers\Api\V1\Tenant\PaymentController;
+use App\Http\Controllers\Api\V1\Tenant\Delivery\CodSettlementController;
 use App\Http\Controllers\Api\V1\Tenant\Delivery\DeliveryDriverController;
+use App\Http\Controllers\Api\V1\Tenant\Delivery\DeliveryDriverShiftController;
 use App\Http\Controllers\Api\V1\Tenant\Delivery\DeliveryShipmentController;
 use App\Http\Controllers\Api\V1\Tenant\Payments\OrderPaymentController;
 use App\Http\Controllers\Api\V1\Tenant\POS\PosCheckoutController;
+use App\Http\Controllers\Api\V1\Tenant\POS\PosRefundController;
 use App\Http\Controllers\Api\V1\Tenant\POS\PosSessionController;
 use App\Http\Controllers\Api\V1\Tenant\POS\PosTerminalController;
 use App\Http\Controllers\Api\V1\Tenant\Procurement\PurchaseOrderController;
@@ -169,18 +172,35 @@ Route::prefix('v1')->group(function () {
             Route::get('/pos/sessions/current', [PosSessionController::class, 'current']);
             Route::post('/pos/sessions/cash-movement', [PosSessionController::class, 'cashMovement']);
             Route::post('/pos/sessions/close', [PosSessionController::class, 'close']);
+            Route::get('/pos/sessions/{id}/z-report', [PosSessionController::class, 'zReport']);
             Route::post('/pos/checkout', [PosCheckoutController::class, 'checkout']);
+            Route::post('/pos/orders/{id}/refund', [PosRefundController::class, 'refund']);
+            Route::post('/pos/orders/{id}/void', [PosRefundController::class, 'void']);
 
             // Delivery Fleet & Dispatch Management
             Route::apiResource('delivery/drivers', DeliveryDriverController::class)->only(['index', 'store', 'show']);
+            Route::post('/delivery/drivers/{id}/shifts/start', [DeliveryDriverShiftController::class, 'start']);
+            Route::post('/delivery/driver-shifts/{id}/end', [DeliveryDriverShiftController::class, 'end']);
             Route::apiResource('delivery/shipments', DeliveryShipmentController::class)->only(['index', 'store', 'show']);
             Route::post('/delivery/shipments/{id}/assign', [DeliveryShipmentController::class, 'assign']);
             Route::post('/delivery/shipments/{id}/dispatch', [DeliveryShipmentController::class, 'dispatch']);
             Route::post('/delivery/shipments/{id}/complete', [DeliveryShipmentController::class, 'complete']);
+            Route::post('/delivery/shipments/{id}/fail', [DeliveryShipmentController::class, 'fail']);
+            Route::post('/delivery/shipments/{id}/return', [DeliveryShipmentController::class, 'return']);
+            Route::post('/delivery/shipments/{id}/gps', [DeliveryShipmentController::class, 'gps']);
+
+            // COD Settlements
+            Route::get('/delivery/cod-settlements', [CodSettlementController::class, 'index']);
+            Route::get('/delivery/cod-settlements/{id}', [CodSettlementController::class, 'show']);
+            Route::post('/delivery/cod-settlements/{id}/submit', [CodSettlementController::class, 'submit']);
+            Route::post('/delivery/cod-settlements/{id}/verify', [CodSettlementController::class, 'verify']);
+            Route::post('/delivery/cod-settlements/{id}/settle', [CodSettlementController::class, 'settle']);
 
             // Order Payments & Transactions
             Route::post('/orders/{id}/payments', [OrderPaymentController::class, 'initiate']);
             Route::get('/orders/{id}/payments', [OrderPaymentController::class, 'transactions']);
+            Route::post('/payments/{id}/refund', [OrderPaymentController::class, 'refund']);
+            Route::post('/payments/{id}/reconcile', [OrderPaymentController::class, 'reconcile']);
         });
 
         // Payment Webhooks

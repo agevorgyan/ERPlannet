@@ -2,11 +2,16 @@
 
 namespace App\Domain\POS\Actions;
 
+use App\Domain\Audit\Models\AuditLog;
 use App\Domain\POS\Models\PosSession;
 use Illuminate\Support\Facades\DB;
 
 class ClosePosSessionAction
 {
+    public function __construct(
+        protected GenerateZReportAction $generateZReportAction
+    ) {}
+
     public function execute(
         string $posSessionId,
         float $closingCashDeclared,
@@ -31,6 +36,25 @@ class ClosePosSessionAction
                 $session->notes = $session->notes ? "{$session->notes}\n{$notes}" : $notes;
             }
             $session->save();
+
+            // Generate End-of-Day Z-Report
+            $this->generateZReportAction->execute($session->id);
+
+            // Audit logging
+            AuditLog::create([
+                'tenant_id' => $session->tenant_id,
+                'user_id' => $session->cashier_id,
+                'action' => 'pos.session_closed',
+                'entity_type' => PosSession::class,
+                'entity_id' => $session->id,
+                'old_values' => ['status' => 'open', 'closing_cash_calculated' => $session->closing_cash_calculated],
+                'new_values' => [
+                    'status' => 'closed',
+                    'closing_cash_declared' => $closingCashDeclared,
+                    'cash_difference' => $difference,
+                ],
+                'created_at' => now(),
+            ]);
 
             return $session;
         });

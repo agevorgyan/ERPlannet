@@ -2,15 +2,21 @@
 
 namespace App\Domain\POS\Actions;
 
+use App\Domain\Audit\Models\AuditLog;
 use App\Domain\Catalog\Models\Product;
 use App\Domain\Catalog\Models\ProductVariant;
+use App\Domain\Fiscal\FiscalProviderManager;
+use App\Domain\Fiscal\Models\FiscalReceipt;
 use App\Domain\Payments\Models\PaymentTransaction;
+use App\Domain\POS\Events\PosSaleCompletedEvent;
+use App\Domain\POS\Models\PosCashMovement;
 use App\Domain\POS\Models\PosSession;
 use App\Domain\POS\Services\PosReceiptNumberGenerator;
 use App\Domain\Sales\Models\Order;
 use App\Domain\Sales\Models\OrderItem;
 use App\Domain\Sales\Services\OrderNumberGenerator;
 use App\Domain\Warehouse\Actions\RecordStockMovementAction;
+use App\Domain\Warehouse\Models\StockLevel;
 use App\Infrastructure\MultiTenancy\TenantContext;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -21,6 +27,7 @@ class PosCheckoutAction
         protected OrderNumberGenerator $orderNumberGenerator,
         protected PosReceiptNumberGenerator $receiptNumberGenerator,
         protected RecordStockMovementAction $recordStockMovement,
+        protected FiscalProviderManager $fiscalProviderManager,
         protected TenantContext $tenantContext
     ) {}
 
@@ -29,7 +36,8 @@ class PosCheckoutAction
         array $items,
         array $payments,
         ?string $customerId = null,
-        ?string $notes = null
+        ?string $notes = null,
+        ?string $idempotencyKey = null
     ): Order {
         if (empty($items)) {
             throw new \InvalidArgumentException('POS cart must contain at least one item.');
@@ -44,7 +52,19 @@ class PosCheckoutAction
             throw new \RuntimeException('Tenant context not set.');
         }
 
-        return DB::transaction(function () use ($tenant, $posSessionId, $items, $payments, $customerId, $notes) {
+        // 1. Idempotency Check: return existing order if same key was already processed
+        if (!empty($idempotencyKey)) {
+            $existing = Order::where('tenant_id', $tenant->id)
+                ->where('idempotency_key', $idempotencyKey)
+                ->first();
+
+            if ($existing) {
+                return $existing->load(['items.product', 'paymentTransactions', 'posTerminal', 'posSession', 'fiscalReceipt']);
+            }
+        }
+
+        // 2. ATOMIC TRANSACTION: Order + Payment + Stock movement + Cash movement + Fiscal + Audit + Accounting event
+        return DB::transaction(function () use ($tenant, $posSessionId, $items, $payments, $customerId, $notes, $idempotencyKey) {
             $session = PosSession::with('terminal')
                 ->where('id', $posSessionId)
                 ->lockForUpdate()
@@ -58,7 +78,7 @@ class PosCheckoutAction
             $warehouseId = $terminal->warehouse_id;
             $branchId = $terminal->branch_id;
 
-            // 1. Calculate items subtotal and total
+            // 3. Calculate items subtotal and total, row-locking stock levels to prevent concurrency overselling
             $subtotal = 0.0;
             $totalDiscount = 0.0;
             $calculatedItems = [];
@@ -73,6 +93,13 @@ class PosCheckoutAction
                 if ($quantity <= 0) {
                     throw new \InvalidArgumentException("Invalid quantity for product {$product->sku}.");
                 }
+
+                // Row-lock stock level
+                StockLevel::where('warehouse_id', $warehouseId)
+                    ->where('product_id', $product->id)
+                    ->when($variant, fn($q) => $q->where('product_variant_id', $variant->id))
+                    ->lockForUpdate()
+                    ->first();
 
                 $unitPrice = isset($itemData['unit_price'])
                     ? (float) $itemData['unit_price']
@@ -98,7 +125,7 @@ class PosCheckoutAction
 
             $orderTotal = round($subtotal - $totalDiscount, 2);
 
-            // 2. Validate payments and calculate cash change
+            // 4. Validate payments and calculate cash change
             $totalPaid = 0.0;
             $cashReceived = 0.0;
             $nonCashPaid = 0.0;
@@ -129,7 +156,7 @@ class PosCheckoutAction
 
             $netCashKept = $cashReceived - $changeGiven;
 
-            // 3. Create Order
+            // 5. Create Order
             $orderNumber = $this->orderNumberGenerator->generate();
             $receiptNumber = $this->receiptNumberGenerator->generate($tenant);
 
@@ -139,6 +166,7 @@ class PosCheckoutAction
                 'pos_terminal_id' => $terminal->id,
                 'pos_session_id' => $session->id,
                 'receipt_number' => $receiptNumber,
+                'idempotency_key' => $idempotencyKey,
                 'customer_id' => $customerId,
                 'order_number' => $orderNumber,
                 'status' => 'delivered',
@@ -156,7 +184,7 @@ class PosCheckoutAction
                 'delivered_at' => now(),
             ]);
 
-            // 4. Create Order Items & Deduct Inventory
+            // 6. Create Order Items & Deduct Inventory (Inventory Transaction Hook)
             foreach ($calculatedItems as $ci) {
                 $pName = is_array($ci['product']->name)
                     ? ($ci['product']->name['hy'] ?? reset($ci['product']->name) ?? $ci['product']->sku)
@@ -191,13 +219,12 @@ class PosCheckoutAction
                 );
             }
 
-            // 5. Record Payment Transactions
+            // 7. Record Payment Transactions
             foreach ($payments as $pay) {
                 $payGateway = $pay['gateway'] ?? 'cash';
                 $payMethod = $pay['method'] ?? 'cash';
                 $payAmount = (float) $pay['amount'];
 
-                // If cash payment and change was given, the actual net transaction is payAmount - changeGiven
                 $actualTxAmount = ($payGateway === 'cash' || $payMethod === 'cash')
                     ? max(0.01, $payAmount - $changeGiven)
                     : $payAmount;
@@ -220,13 +247,53 @@ class PosCheckoutAction
                 ]);
             }
 
-            // 6. Update POS Session running calculated cash balance
+            // 8. Update POS Session running calculated cash balance (Cash Movement)
             if ($netCashKept > 0) {
                 $session->closing_cash_calculated = (float) $session->closing_cash_calculated + $netCashKept;
                 $session->save();
             }
 
-            return $order->load(['items.product', 'paymentTransactions', 'posTerminal', 'posSession']);
+            // 9. Fiscal Receipt Generation (Decoupled Fiscal Provider Hook)
+            $fiscalProvider = $this->fiscalProviderManager->provider();
+            $fiscalResult = $fiscalProvider->createReceipt($order, [
+                'crn' => $terminal->device_uid ?? 'CRN-' . rand(10000000, 99999999),
+            ]);
+
+            FiscalReceipt::create([
+                'tenant_id' => $tenant->id,
+                'order_id' => $order->id,
+                'pos_session_id' => $session->id,
+                'provider' => $fiscalProvider->getIdentifier(),
+                'fiscal_number' => $fiscalResult->fiscalNumber ?? 'SRC-REC-' . strtoupper(Str::random(8)),
+                'crn' => $fiscalResult->crn ?? 'CRN-POS-01',
+                'status' => $fiscalResult->status,
+                'total_amount' => $order->total,
+                'tax_amount' => 0.00,
+                'qr_payload' => $fiscalResult->qrPayload,
+                'provider_response' => $fiscalResult->rawResponse,
+            ]);
+
+            // 10. Audit Logging
+            AuditLog::create([
+                'tenant_id' => $tenant->id,
+                'user_id' => $session->cashier_id,
+                'action' => 'pos.checkout',
+                'entity_type' => Order::class,
+                'entity_id' => $order->id,
+                'new_values' => [
+                    'order_number' => $order->order_number,
+                    'receipt_number' => $receiptNumber,
+                    'total' => $orderTotal,
+                    'net_cash' => $netCashKept,
+                    'items_count' => count($items),
+                ],
+                'created_at' => now(),
+            ]);
+
+            // 11. Accounting Event Hook
+            event(new PosSaleCompletedEvent($order, $payments));
+
+            return $order->load(['items.product', 'paymentTransactions', 'posTerminal', 'posSession', 'fiscalReceipt']);
         });
     }
 }

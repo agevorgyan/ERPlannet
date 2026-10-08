@@ -17,6 +17,11 @@ class IdramGateway implements PaymentGatewayInterface
         return 'idram';
     }
 
+    public function createPayment(PaymentIntentDTO $intent): PaymentResultDTO
+    {
+        return $this->initiatePayment($intent);
+    }
+
     public function initiatePayment(PaymentIntentDTO $intent): PaymentResultDTO
     {
         $billNo = 'IDRAM_' . Str::upper(Str::random(10));
@@ -34,6 +39,44 @@ class IdramGateway implements PaymentGatewayInterface
                 'amount' => $intent->amount,
                 'currency' => $intent->currency,
             ]
+        );
+    }
+
+    public function authorize(PaymentIntentDTO $intent): PaymentResultDTO
+    {
+        $billNo = 'IDRAM_AUTH_' . Str::upper(Str::random(10));
+        return new PaymentResultDTO(
+            status: 'authorized',
+            transactionId: $billNo,
+            redirectUrl: "https://banking.idram.am/Payment/Hold?EDP_BILL_NO={$billNo}",
+            gatewayResponse: ['bill_no' => $billNo, 'amount' => $intent->amount]
+        );
+    }
+
+    public function capture(string $transactionId, float $amount, array $options = []): PaymentResultDTO
+    {
+        return new PaymentResultDTO(
+            status: 'successful',
+            transactionId: $transactionId,
+            gatewayResponse: ['captured_amount' => $amount, 'captured_at' => now()->toIso8601String()]
+        );
+    }
+
+    public function cancel(string $transactionId, array $options = []): PaymentResultDTO
+    {
+        return new PaymentResultDTO(
+            status: 'cancelled',
+            transactionId: $transactionId,
+            gatewayResponse: ['cancelled_at' => now()->toIso8601String()]
+        );
+    }
+
+    public function getStatus(string $transactionId): PaymentResultDTO
+    {
+        return new PaymentResultDTO(
+            status: 'successful',
+            transactionId: $transactionId,
+            gatewayResponse: ['transaction_id' => $transactionId, 'gateway' => 'idram', 'status' => 'paid']
         );
     }
 
@@ -57,16 +100,23 @@ class IdramGateway implements PaymentGatewayInterface
         );
     }
 
-    public function handleWebhook(array $payload): WebhookResultDTO
+    public function handleWebhook(array $payload, array $headers = []): WebhookResultDTO
     {
-        $billNo = $payload['EDP_BILL_NO'] ?? null;
-        $isSuccess = isset($payload['EDP_PAYER_ACCOUNT']);
+        $billNo = $payload['EDP_BILL_NO'] ?? $payload['transaction_id'] ?? null;
+        $isSuccess = isset($payload['EDP_PAYER_ACCOUNT']) || ($payload['status'] ?? '') === 'successful' || ($payload['status'] ?? '') === 'paid';
+
+        // Check secret signature if present
+        $verified = true;
+        if (isset($headers['x-idram-signature']) && isset($headers['x-secret'])) {
+            $expected = hash_hmac('sha256', (string) $billNo, (string) $headers['x-secret']);
+            $verified = hash_equals($expected, $headers['x-idram-signature']);
+        }
 
         return new WebhookResultDTO(
-            verified: true,
+            verified: $verified,
             transactionId: $billNo,
             status: $isSuccess ? 'successful' : 'failed',
-            amount: isset($payload['EDP_AMOUNT']) ? (float) $payload['EDP_AMOUNT'] : null,
+            amount: isset($payload['EDP_AMOUNT']) ? (float) $payload['EDP_AMOUNT'] : (isset($payload['amount']) ? (float) $payload['amount'] : null),
             currency: 'AMD',
             rawPayload: $payload
         );

@@ -17,6 +17,11 @@ class CashGateway implements PaymentGatewayInterface
         return 'cash';
     }
 
+    public function createPayment(PaymentIntentDTO $intent): PaymentResultDTO
+    {
+        return $this->initiatePayment($intent);
+    }
+
     public function initiatePayment(PaymentIntentDTO $intent): PaymentResultDTO
     {
         $receiptId = 'CASH-' . strtoupper(Str::random(8));
@@ -30,6 +35,43 @@ class CashGateway implements PaymentGatewayInterface
                 'amount' => $intent->amount,
                 'currency' => $intent->currency,
             ]
+        );
+    }
+
+    public function authorize(PaymentIntentDTO $intent): PaymentResultDTO
+    {
+        $receiptId = 'CASH_HOLD_' . strtoupper(Str::random(8));
+        return new PaymentResultDTO(
+            status: 'authorized',
+            transactionId: $receiptId,
+            gatewayResponse: ['receipt_id' => $receiptId, 'amount' => $intent->amount]
+        );
+    }
+
+    public function capture(string $transactionId, float $amount, array $options = []): PaymentResultDTO
+    {
+        return new PaymentResultDTO(
+            status: 'successful',
+            transactionId: $transactionId,
+            gatewayResponse: ['captured_amount' => $amount, 'captured_at' => now()->toIso8601String()]
+        );
+    }
+
+    public function cancel(string $transactionId, array $options = []): PaymentResultDTO
+    {
+        return new PaymentResultDTO(
+            status: 'cancelled',
+            transactionId: $transactionId,
+            gatewayResponse: ['cancelled_at' => now()->toIso8601String()]
+        );
+    }
+
+    public function getStatus(string $transactionId): PaymentResultDTO
+    {
+        return new PaymentResultDTO(
+            status: 'successful',
+            transactionId: $transactionId,
+            gatewayResponse: ['transaction_id' => $transactionId, 'gateway' => 'cash', 'status' => 'successful']
         );
     }
 
@@ -51,11 +93,11 @@ class CashGateway implements PaymentGatewayInterface
         );
     }
 
-    public function handleWebhook(array $payload): WebhookResultDTO
+    public function handleWebhook(array $payload, array $headers = []): WebhookResultDTO
     {
         return new WebhookResultDTO(
             verified: true,
-            transactionId: $payload['receipt_id'] ?? null,
+            transactionId: $payload['receipt_id'] ?? $payload['transaction_id'] ?? null,
             status: 'successful',
             amount: isset($payload['amount']) ? (float) $payload['amount'] : null,
             currency: $payload['currency'] ?? 'AMD',

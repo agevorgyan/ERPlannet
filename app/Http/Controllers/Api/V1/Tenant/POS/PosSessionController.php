@@ -104,4 +104,14 @@ class PosSessionController extends Controller
             'data' => $session->load(['terminal', 'cashier']),
         ]);
     }
+
+    public function zReport(string $id, \App\Domain\POS\Actions\GenerateZReportAction $action): JsonResponse
+    {
+        $zReport = $action->execute($id);
+
+        return response()->json([
+            'success' => true,
+            'data' => $zReport,
+        ]);
+    }
 }

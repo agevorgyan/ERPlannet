@@ -17,6 +17,11 @@ class TelcellGateway implements PaymentGatewayInterface
         return 'telcell';
     }
 
+    public function createPayment(PaymentIntentDTO $intent): PaymentResultDTO
+    {
+        return $this->initiatePayment($intent);
+    }
+
     public function initiatePayment(PaymentIntentDTO $intent): PaymentResultDTO
     {
         $invoiceId = 'TELCELL_' . Str::upper(Str::random(10));
@@ -41,9 +46,47 @@ class TelcellGateway implements PaymentGatewayInterface
         );
     }
 
+    public function authorize(PaymentIntentDTO $intent): PaymentResultDTO
+    {
+        $invoiceId = 'TELCELL_AUTH_' . Str::upper(Str::random(10));
+        return new PaymentResultDTO(
+            status: 'authorized',
+            transactionId: $invoiceId,
+            redirectUrl: "https://pay.telcell.am/checkout?invoice_id={$invoiceId}&type=auth",
+            gatewayResponse: ['invoice_id' => $invoiceId, 'amount' => $intent->amount]
+        );
+    }
+
+    public function capture(string $transactionId, float $amount, array $options = []): PaymentResultDTO
+    {
+        return new PaymentResultDTO(
+            status: 'successful',
+            transactionId: $transactionId,
+            gatewayResponse: ['captured_amount' => $amount, 'captured_at' => now()->toIso8601String()]
+        );
+    }
+
+    public function cancel(string $transactionId, array $options = []): PaymentResultDTO
+    {
+        return new PaymentResultDTO(
+            status: 'cancelled',
+            transactionId: $transactionId,
+            gatewayResponse: ['cancelled_at' => now()->toIso8601String()]
+        );
+    }
+
+    public function getStatus(string $transactionId): PaymentResultDTO
+    {
+        return new PaymentResultDTO(
+            status: 'successful',
+            transactionId: $transactionId,
+            gatewayResponse: ['transaction_id' => $transactionId, 'gateway' => 'telcell', 'status' => 'successful']
+        );
+    }
+
     public function verifyPayment(string $transactionId, array $payload = []): PaymentResultDTO
     {
-        $status = ($payload['status'] ?? '') === 'success' || ($payload['state'] ?? '') === 'PAID';
+        $status = ($payload['status'] ?? '') === 'success' || ($payload['state'] ?? '') === 'PAID' || ($payload['status'] ?? '') === 'successful';
 
         return new PaymentResultDTO(
             status: $status ? 'successful' : 'failed',
@@ -61,16 +104,25 @@ class TelcellGateway implements PaymentGatewayInterface
         );
     }
 
-    public function handleWebhook(array $payload): WebhookResultDTO
+    public function handleWebhook(array $payload, array $headers = []): WebhookResultDTO
     {
         $transactionId = $payload['invoice_id'] ?? $payload['transaction_id'] ?? null;
-        $status = ($payload['status'] ?? '') === 'paid' ? 'successful' : 'failed';
+        $statusRaw = $payload['status'] ?? '';
+        $status = ($statusRaw === 'paid' || $statusRaw === 'successful' || $statusRaw === 'PAID') ? 'successful' : 'failed';
+
+        $verified = true;
+        if (isset($headers['x-telcell-signature']) && isset($headers['x-secret'])) {
+            $expected = hash_hmac('sha256', (string) $transactionId, (string) $headers['x-secret']);
+            $verified = hash_equals($expected, $headers['x-telcell-signature']);
+        }
 
         return new WebhookResultDTO(
-            handled: true,
-            status: $status,
+            verified: $verified,
             transactionId: $transactionId,
-            payload: $payload
+            status: $status,
+            amount: isset($payload['sum']) ? (float) $payload['sum'] : (isset($payload['amount']) ? (float) $payload['amount'] : null),
+            currency: $payload['currency'] ?? 'AMD',
+            rawPayload: $payload
         );
     }
 }
