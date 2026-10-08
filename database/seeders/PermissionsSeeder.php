@@ -29,8 +29,20 @@ class PermissionsSeeder extends Seeder
             ['code' => 'catalog.products.delete', 'module' => 'catalog', 'name' => 'Delete Products'],
 
             // Warehouse & Stock
+            ['code' => 'warehouse.warehouses.view', 'module' => 'warehouse', 'name' => 'View Warehouses'],
+            ['code' => 'warehouse.warehouses.manage', 'module' => 'warehouse', 'name' => 'Manage Warehouses'],
             ['code' => 'warehouse.stock.view', 'module' => 'warehouse', 'name' => 'View Stock'],
+            ['code' => 'warehouse.stock.adjust', 'module' => 'warehouse', 'name' => 'Adjust Stock Quantities'],
+            ['code' => 'warehouse.movements.view', 'module' => 'warehouse', 'name' => 'View Stock Movements'],
             ['code' => 'warehouse.movements.create', 'module' => 'warehouse', 'name' => 'Create Stock Movements'],
+            ['code' => 'warehouse.transfers.manage', 'module' => 'warehouse', 'name' => 'Manage Stock Transfers'],
+
+            // Procurement & Suppliers
+            ['code' => 'procurement.suppliers.view', 'module' => 'procurement', 'name' => 'View Suppliers'],
+            ['code' => 'procurement.suppliers.manage', 'module' => 'procurement', 'name' => 'Manage Suppliers'],
+            ['code' => 'procurement.orders.view', 'module' => 'procurement', 'name' => 'View Purchase Orders'],
+            ['code' => 'procurement.orders.manage', 'module' => 'procurement', 'name' => 'Manage Purchase Orders'],
+            ['code' => 'procurement.orders.receive', 'module' => 'procurement', 'name' => 'Receive Purchase Order Goods'],
 
             // Production (Food / Manufacturing)
             ['code' => 'production.recipes.view', 'module' => 'production', 'name' => 'View Recipes'],

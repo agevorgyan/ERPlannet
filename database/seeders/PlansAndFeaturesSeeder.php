@@ -14,11 +14,15 @@ class PlansAndFeaturesSeeder extends Seeder
         $features = [
             ['code' => 'feature.crm', 'name' => 'CRM Module', 'type' => 'boolean', 'module' => 'crm'],
             ['code' => 'feature.warehouse', 'name' => 'Warehouse & Inventory', 'type' => 'boolean', 'module' => 'warehouse'],
+            ['code' => 'feature.inventory_multi_warehouse', 'name' => 'Multi-Warehouse Support', 'type' => 'boolean', 'module' => 'warehouse'],
+            ['code' => 'feature.batch_tracking', 'name' => 'Batch, Lot & Expiry Tracking', 'type' => 'boolean', 'module' => 'warehouse'],
             ['code' => 'feature.production', 'name' => 'Production & Recipes', 'type' => 'boolean', 'module' => 'production'],
             ['code' => 'feature.delivery', 'name' => 'Delivery Management', 'type' => 'boolean', 'module' => 'delivery'],
             ['code' => 'feature.iso22000', 'name' => 'ISO 22000 & Quality Assurance', 'type' => 'boolean', 'module' => 'quality'],
             ['code' => 'limit.users', 'name' => 'Active Users Limit', 'type' => 'limit', 'module' => 'iam'],
             ['code' => 'limit.branches', 'name' => 'Branches Limit', 'type' => 'limit', 'module' => 'branches'],
+            ['code' => 'limit.warehouses', 'name' => 'Warehouses Limit', 'type' => 'limit', 'module' => 'warehouse'],
+            ['code' => 'limit.suppliers', 'name' => 'Suppliers Limit', 'type' => 'limit', 'module' => 'procurement'],
             ['code' => 'limit.products', 'name' => 'Products Limit', 'type' => 'limit', 'module' => 'catalog'],
             ['code' => 'limit.orders_monthly', 'name' => 'Monthly Orders Limit', 'type' => 'limit', 'module' => 'sales'],
         ];
@@ -45,11 +49,15 @@ class PlansAndFeaturesSeeder extends Seeder
         $starter->features()->syncWithoutDetaching([
             $featureModels['feature.crm']->id => ['value' => 'true'],
             $featureModels['feature.warehouse']->id => ['value' => 'false'],
+            $featureModels['feature.inventory_multi_warehouse']->id => ['value' => 'false'],
+            $featureModels['feature.batch_tracking']->id => ['value' => 'false'],
             $featureModels['feature.production']->id => ['value' => 'false'],
             $featureModels['feature.delivery']->id => ['value' => 'false'],
             $featureModels['feature.iso22000']->id => ['value' => 'false'],
             $featureModels['limit.users']->id => ['value' => '3'],
             $featureModels['limit.branches']->id => ['value' => '1'],
+            $featureModels['limit.warehouses']->id => ['value' => '1'],
+            $featureModels['limit.suppliers']->id => ['value' => '5'],
             $featureModels['limit.products']->id => ['value' => '200'],
             $featureModels['limit.orders_monthly']->id => ['value' => '500'],
         ]);
@@ -71,11 +79,15 @@ class PlansAndFeaturesSeeder extends Seeder
         $growth->features()->syncWithoutDetaching([
             $featureModels['feature.crm']->id => ['value' => 'true'],
             $featureModels['feature.warehouse']->id => ['value' => 'true'],
+            $featureModels['feature.inventory_multi_warehouse']->id => ['value' => 'true'],
+            $featureModels['feature.batch_tracking']->id => ['value' => 'true'],
             $featureModels['feature.production']->id => ['value' => 'true'],
             $featureModels['feature.delivery']->id => ['value' => 'true'],
             $featureModels['feature.iso22000']->id => ['value' => 'false'],
             $featureModels['limit.users']->id => ['value' => '15'],
             $featureModels['limit.branches']->id => ['value' => '5'],
+            $featureModels['limit.warehouses']->id => ['value' => '5'],
+            $featureModels['limit.suppliers']->id => ['value' => '50'],
             $featureModels['limit.products']->id => ['value' => '2000'],
             $featureModels['limit.orders_monthly']->id => ['value' => '5000'],
         ]);
@@ -97,11 +109,15 @@ class PlansAndFeaturesSeeder extends Seeder
         $enterprise->features()->syncWithoutDetaching([
             $featureModels['feature.crm']->id => ['value' => 'true'],
             $featureModels['feature.warehouse']->id => ['value' => 'true'],
+            $featureModels['feature.inventory_multi_warehouse']->id => ['value' => 'true'],
+            $featureModels['feature.batch_tracking']->id => ['value' => 'true'],
             $featureModels['feature.production']->id => ['value' => 'true'],
             $featureModels['feature.delivery']->id => ['value' => 'true'],
             $featureModels['feature.iso22000']->id => ['value' => 'true'],
             $featureModels['limit.users']->id => ['value' => 'unlimited'],
             $featureModels['limit.branches']->id => ['value' => 'unlimited'],
+            $featureModels['limit.warehouses']->id => ['value' => 'unlimited'],
+            $featureModels['limit.suppliers']->id => ['value' => 'unlimited'],
             $featureModels['limit.products']->id => ['value' => 'unlimited'],
             $featureModels['limit.orders_monthly']->id => ['value' => 'unlimited'],
         ]);

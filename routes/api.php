@@ -9,10 +9,17 @@ use App\Http\Controllers\Api\V1\Tenant\Catalog\ProductController;
 use App\Http\Controllers\Api\V1\Tenant\Catalog\UnitController;
 use App\Http\Controllers\Api\V1\Tenant\CRM\CustomerController;
 use App\Http\Controllers\Api\V1\Tenant\PaymentController;
+use App\Http\Controllers\Api\V1\Tenant\Procurement\PurchaseOrderController;
+use App\Http\Controllers\Api\V1\Tenant\Procurement\SupplierController;
 use App\Http\Controllers\Api\V1\Tenant\RoleController;
 use App\Http\Controllers\Api\V1\Tenant\Sales\OrderController;
 use App\Http\Controllers\Api\V1\Tenant\SubscriptionController;
 use App\Http\Controllers\Api\V1\Tenant\TenantAuthController;
+use App\Http\Controllers\Api\V1\Tenant\Warehouse\StockBatchController;
+use App\Http\Controllers\Api\V1\Tenant\Warehouse\StockLevelController;
+use App\Http\Controllers\Api\V1\Tenant\Warehouse\StockMovementController;
+use App\Http\Controllers\Api\V1\Tenant\Warehouse\StockTransferController;
+use App\Http\Controllers\Api\V1\Tenant\Warehouse\WarehouseController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -93,6 +100,25 @@ Route::prefix('v1')->group(function () {
 
             // Branches
             Route::apiResource('branches', BranchController::class);
+
+            // Warehouses
+            Route::apiResource('warehouses', WarehouseController::class);
+
+            // Inventory & Stock
+            Route::get('/inventory/levels', [StockLevelController::class, 'index']);
+            Route::get('/inventory/batches', [StockBatchController::class, 'index']);
+            Route::get('/inventory/movements', [StockMovementController::class, 'index']);
+            Route::post('/inventory/adjust', [StockMovementController::class, 'adjust']);
+            Route::apiResource('inventory/transfers', StockTransferController::class)->only(['index', 'store', 'show']);
+            Route::post('/inventory/transfers/{id}/ship', [StockTransferController::class, 'ship']);
+            Route::post('/inventory/transfers/{id}/receive', [StockTransferController::class, 'receive']);
+
+            // Procurement & Suppliers
+            Route::apiResource('suppliers', SupplierController::class);
+            Route::apiResource('purchase-orders', PurchaseOrderController::class)->only(['index', 'store', 'show']);
+            Route::post('/purchase-orders/{id}/submit', [PurchaseOrderController::class, 'submit']);
+            Route::post('/purchase-orders/{id}/receive', [PurchaseOrderController::class, 'receive']);
+            Route::post('/purchase-orders/{id}/cancel', [PurchaseOrderController::class, 'cancel']);
 
             // Catalog
             Route::apiResource('categories', CategoryController::class);

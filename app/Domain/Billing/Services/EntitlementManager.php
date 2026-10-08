@@ -86,11 +86,15 @@ class EntitlementManager implements EntitlementManagerInterface
 
         $modelCount = 0;
         if ($featureCode === 'limit.users') {
-            $modelCount = \App\Domain\IAM\Models\User::withoutGlobalScopes()->where('tenant_id', $tenant->id)->count();
+            $modelCount = \App\Domain\IAM\Models\User::withoutGlobalScopes()->where('tenant_id', $tenant->id)->where('is_active', true)->count();
         } elseif ($featureCode === 'limit.branches') {
-            $modelCount = \App\Domain\Branch\Models\Branch::withoutGlobalScopes()->where('tenant_id', $tenant->id)->count();
+            $modelCount = \App\Domain\Branch\Models\Branch::withoutGlobalScopes()->where('tenant_id', $tenant->id)->whereNull('deleted_at')->count();
         } elseif ($featureCode === 'limit.products') {
-            $modelCount = \App\Domain\Catalog\Models\Product::withoutGlobalScopes()->where('tenant_id', $tenant->id)->count();
+            $modelCount = \App\Domain\Catalog\Models\Product::withoutGlobalScopes()->where('tenant_id', $tenant->id)->where('is_active', true)->count();
+        } elseif ($featureCode === 'limit.warehouses') {
+            $modelCount = \App\Domain\Warehouse\Models\Warehouse::withoutGlobalScopes()->where('tenant_id', $tenant->id)->whereNull('deleted_at')->count();
+        } elseif ($featureCode === 'limit.suppliers') {
+            $modelCount = \App\Domain\Procurement\Models\Supplier::withoutGlobalScopes()->where('tenant_id', $tenant->id)->whereNull('deleted_at')->count();
         }
 
         return max($usageCount, $modelCount);

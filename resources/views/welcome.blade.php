@@ -61,9 +61,9 @@
                 <div>
                     <div class="flex items-center space-x-2">
                         <span class="font-bold text-lg tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">ERPlannet</span>
-                        <span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Phase 0 & 1 Ready</span>
+                        <span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Phase 0, 1 & 2 Complete (55 Tests Passed)</span>
                     </div>
-                    <p class="text-xs text-slate-400">Multi-Tenant SaaS ERP/CRM Platform</p>
+                    <p class="text-xs text-slate-400">Multi-Tenant SaaS ERP/CRM &bull; Warehouse &bull; Procurement</p>
                 </div>
             </div>
 
@@ -200,7 +200,7 @@
                     <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-amber-500/20 text-amber-300">Auto RFC 6761</span>
                 </div>
                 <p class="text-xs text-slate-400 mb-3">
-                    Chrome, Safari և Firefox բրաուզերները <code class="text-amber-300">*.localhost</code>-ը ավտոմատ ուղղում են դեպի <code class="text-amber-300">127.0.0.1</code>՝ առանց <code class="text-slate-300">/etc/hosts</code>-ը փոխելու։
+                    Chrome, Safari և Firefox բրաուզերները <code class="text-amber-300">*.localhost</code>-ը ավտոմատ ուղղում են դեպի <code class="text-amber-300">127.0.0.1</code>։
                 </p>
                 <div class="bg-slate-950/60 rounded-xl p-3 border border-slate-800/80 text-xs text-slate-400">
                     <p>Postman/cURL-ի դեպքում կարող եք պարզապես ուղարկել header՝</p>
@@ -209,19 +209,23 @@
             </div>
         </div>
 
-        <!-- Live Platform Stats -->
-        <div class="grid grid-cols-2 md:grid-cols-6 gap-4">
+        <!-- Live Platform Stats (Phase 0, 1 & 2) -->
+        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
             <div class="glass-panel p-4 rounded-xl text-center">
                 <span class="text-2xl font-bold text-white">{{ $stats['tenants_count'] }}</span>
                 <span class="block text-xs text-slate-400 mt-1">Tenants</span>
             </div>
             <div class="glass-panel p-4 rounded-xl text-center">
-                <span class="text-2xl font-bold text-indigo-400">{{ $stats['plans_count'] }}</span>
-                <span class="block text-xs text-slate-400 mt-1">Plans</span>
+                <span class="text-2xl font-bold text-indigo-400">{{ $stats['branches_count'] }}</span>
+                <span class="block text-xs text-slate-400 mt-1">Branches</span>
             </div>
             <div class="glass-panel p-4 rounded-xl text-center">
-                <span class="text-2xl font-bold text-emerald-400">{{ $stats['branches_count'] }}</span>
-                <span class="block text-xs text-slate-400 mt-1">Branches</span>
+                <span class="text-2xl font-bold text-cyan-400">{{ $stats['warehouses_count'] }}</span>
+                <span class="block text-xs text-slate-400 mt-1">Warehouses</span>
+            </div>
+            <div class="glass-panel p-4 rounded-xl text-center">
+                <span class="text-2xl font-bold text-teal-400">{{ $stats['suppliers_count'] }}</span>
+                <span class="block text-xs text-slate-400 mt-1">Suppliers</span>
             </div>
             <div class="glass-panel p-4 rounded-xl text-center">
                 <span class="text-2xl font-bold text-purple-400">{{ $stats['products_count'] }}</span>
@@ -229,114 +233,172 @@
             </div>
             <div class="glass-panel p-4 rounded-xl text-center">
                 <span class="text-2xl font-bold text-amber-400">{{ $stats['orders_count'] }}</span>
-                <span class="block text-xs text-slate-400 mt-1">Orders</span>
+                <span class="block text-xs text-slate-400 mt-1">Sales Orders</span>
             </div>
             <div class="glass-panel p-4 rounded-xl text-center">
-                <span class="text-2xl font-bold text-teal-400">{{ number_format($stats['total_revenue'], 0) }} ֏</span>
+                <span class="text-2xl font-bold text-emerald-400">{{ $stats['purchase_orders_count'] }}</span>
+                <span class="block text-xs text-slate-400 mt-1">Purchase Orders</span>
+            </div>
+            <div class="glass-panel p-4 rounded-xl text-center">
+                <span class="text-2xl font-bold text-rose-400">{{ number_format($stats['total_revenue'], 0) }} ֏</span>
                 <span class="block text-xs text-slate-400 mt-1">Revenue</span>
             </div>
         </div>
 
-        <!-- Live Seeded Data Showcase (Gourmet Tenant) -->
+        <!-- Phase 2: Warehouses & Stock Batches Showcase -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-            <!-- Products Catalog -->
+            <!-- Warehouses Showcase -->
             <div class="glass-panel rounded-2xl p-6 space-y-4">
                 <div class="flex items-center justify-between">
                     <div>
                         <h3 class="text-base font-semibold text-white flex items-center space-x-2">
-                            <span>🥩</span>
-                            <span>Ապրանքների Կատալոգ (Gourmet Tenant)</span>
+                            <span>🏭</span>
+                            <span>Պահեստներ (Warehouses — Phase 2)</span>
                         </h3>
-                        <p class="text-xs text-slate-400">Multi-lingual JSONB անվանումներ, չափման միավորներ և ինքնարժեք/վաճառք</p>
+                        <p class="text-xs text-slate-400">Կենտրոնական և Սառնարանային պահեստներ</p>
                     </div>
-                    <span class="text-xs px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 font-mono">{{ $products->count() }} items</span>
-                </div>
-
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-xs">
-                        <thead>
-                            <tr class="border-b border-slate-800 text-slate-400 font-medium">
-                                <th class="pb-2">Ապրանք</th>
-                                <th class="pb-2">SKU</th>
-                                <th class="pb-2">Միավոր</th>
-                                <th class="pb-2">Ինքնարժեք</th>
-                                <th class="pb-2 text-right">Գին</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-800/60 font-mono">
-                            @foreach ($products as $p)
-                                <tr class="hover:bg-slate-800/30 transition">
-                                    <td class="py-2.5 font-sans font-medium text-slate-200">
-                                        {{ is_array($p->name) ? ($p->name['hy'] ?? reset($p->name)) : $p->name }}
-                                        @if($p->is_produced)
-                                            <span class="ml-1 text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 font-sans">Արտադրություն</span>
-                                        @endif
-                                    </td>
-                                    <td class="py-2.5 text-slate-400">{{ $p->sku }}</td>
-                                    <td class="py-2.5 text-slate-300">{{ $p->unit?->code ?? '-' }}</td>
-                                    <td class="py-2.5 text-slate-400">{{ number_format($p->cost_price, 0) }} ֏</td>
-                                    <td class="py-2.5 text-right font-bold text-emerald-400">{{ number_format($p->sale_price, 0) }} ֏</td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Orders & Branches -->
-            <div class="glass-panel rounded-2xl p-6 space-y-4">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h3 class="text-base font-semibold text-white flex items-center space-x-2">
-                            <span>📦</span>
-                            <span>Պատվերներ & Մասնաճյուղեր</span>
-                        </h3>
-                        <p class="text-xs text-slate-400">Sequential Order Numbering & State Machine Transitions</p>
-                    </div>
-                    <span class="text-xs px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 font-mono">{{ $orders->count() }} orders</span>
+                    <span class="text-xs px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 font-mono">{{ $warehouses->count() }} warehouses</span>
                 </div>
 
                 <div class="space-y-3">
-                    @foreach ($orders as $order)
+                    @foreach ($warehouses as $wh)
                         <div class="p-3.5 rounded-xl bg-slate-950/50 border border-slate-800/80 flex items-center justify-between text-xs">
                             <div class="space-y-1">
                                 <div class="flex items-center space-x-2">
-                                    <span class="font-mono font-bold text-brand-400">{{ $order->order_number }}</span>
-                                    <span class="text-slate-400 font-sans">({{ $order->branch?->name ?? 'Main' }})</span>
-                                    @if ($order->status === 'delivered')
-                                        <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-medium">Delivered</span>
-                                    @elseif ($order->status === 'processing')
-                                        <span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-medium">Processing</span>
-                                    @else
-                                        <span class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-medium">{{ $order->status }}</span>
+                                    <span class="font-mono font-bold text-cyan-400">{{ $wh->code }}</span>
+                                    <span class="text-slate-200 font-medium">{{ $wh->name }}</span>
+                                    @if ($wh->is_default)
+                                        <span class="px-2 py-0.5 rounded bg-brand-500/20 text-brand-300 text-[10px]">Default</span>
+                                    @endif
+                                    @if ($wh->type === 'cold_storage')
+                                        <span class="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 text-[10px]">Cold Storage</span>
                                     @endif
                                 </div>
                                 <div class="text-slate-400">
-                                    Հաճախորդ՝ <span class="text-slate-300">{{ $order->customer?->first_name }} {{ $order->customer?->last_name }}</span> &bull;
-                                    Տողեր՝ {{ $order->items->count() }} ապրանք
+                                    Հասցե՝ <span class="text-slate-300">{{ $wh->address ?? 'N/A' }}</span> &bull;
+                                    Մասնաճյուղ՝ <span class="text-slate-300">{{ $wh->branch?->name }}</span>
+                                </div>
+                            </div>
+                            <span class="px-2 py-1 rounded bg-emerald-500/10 text-emerald-400 font-mono text-[11px]">Active</span>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+
+            <!-- Stock Batches & Lots -->
+            <div class="glass-panel rounded-2xl p-6 space-y-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-base font-semibold text-white flex items-center space-x-2">
+                            <span>🏷️</span>
+                            <span>Խմբաքանակներ & Ժամկետներ (Batches & Expiry)</span>
+                        </h3>
+                        <p class="text-xs text-slate-400">Lot Numbering, Manufacturing & Expiry Tracking</p>
+                    </div>
+                    <span class="text-xs px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 font-mono">{{ $batches->count() }} batches</span>
+                </div>
+
+                <div class="space-y-3">
+                    @foreach ($batches as $batch)
+                        <div class="p-3.5 rounded-xl bg-slate-950/50 border border-slate-800/80 flex items-center justify-between text-xs">
+                            <div class="space-y-1">
+                                <div class="flex items-center space-x-2">
+                                    <span class="font-mono font-bold text-emerald-400">{{ $batch->batch_number }}</span>
+                                    <span class="text-slate-200">{{ is_array($batch->product->name) ? ($batch->product->name['hy'] ?? reset($batch->product->name)) : $batch->product->name }}</span>
+                                </div>
+                                <div class="text-slate-400 text-[11px]">
+                                    Պիտանի է մինչև՝ <span class="text-amber-400 font-mono">{{ $batch->expiry_date }}</span> &bull;
+                                    Պահեստ՝ <span class="text-slate-300">{{ $batch->warehouse?->code }}</span>
                                 </div>
                             </div>
                             <div class="text-right">
-                                <div class="font-mono font-bold text-emerald-400 text-sm">
-                                    {{ number_format($order->total, 0) }} ֏
-                                </div>
-                                <span class="text-[11px] text-slate-400 uppercase font-mono">{{ $order->payment_status }}</span>
+                                <span class="font-mono font-bold text-white block">{{ number_format($batch->quantity_on_hand, 2) }} կգ</span>
+                                <span class="text-[10px] text-slate-400 font-mono">Ինքնարժեք: {{ number_format($batch->cost_price, 0) }} ֏</span>
                             </div>
                         </div>
                     @endforeach
                 </div>
+            </div>
 
-                <!-- Branches List -->
-                <div class="pt-2 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
-                    <span>Մասնաճյուղեր ({{ $branches->count() }}):</span>
-                    <div class="flex space-x-2">
-                        @foreach ($branches as $b)
-                            <span class="px-2 py-1 rounded bg-slate-800/80 text-slate-300 font-mono">
-                                {{ $b->name }} ({{ $b->code }})
-                            </span>
-                        @endforeach
+        </div>
+
+        <!-- Phase 2: Suppliers & Purchase Orders Showcase -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+            <!-- Suppliers -->
+            <div class="glass-panel rounded-2xl p-6 space-y-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-base font-semibold text-white flex items-center space-x-2">
+                            <span>🤝</span>
+                            <span>Մատակարարներ (Suppliers — Phase 2)</span>
+                        </h3>
+                        <p class="text-xs text-slate-400">B2B Vendors, ՀՎՀՀ և վճարման պայմաններ</p>
                     </div>
+                    <span class="text-xs px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 font-mono">{{ $suppliers->count() }} suppliers</span>
+                </div>
+
+                <div class="space-y-3">
+                    @foreach ($suppliers as $sup)
+                        <div class="p-3.5 rounded-xl bg-slate-950/50 border border-slate-800/80 flex items-center justify-between text-xs">
+                            <div class="space-y-1">
+                                <div class="flex items-center space-x-2">
+                                    <span class="font-bold text-white">{{ $sup->company_name }}</span>
+                                    <span class="font-mono text-slate-400 text-[11px]">(ՀՎՀՀ: {{ $sup->tax_id }})</span>
+                                </div>
+                                <div class="text-slate-400 text-[11px]">
+                                    Կոնտակտ՝ <span class="text-slate-300">{{ $sup->contact_person }}</span> &bull;
+                                    Հեռ՝ <span class="text-slate-300">{{ $sup->phone }}</span>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <span class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-mono text-[10px]">{{ $sup->payment_terms_days }} օր վճ. ժամկետ</span>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+
+            <!-- Purchase Orders -->
+            <div class="glass-panel rounded-2xl p-6 space-y-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-base font-semibold text-white flex items-center space-x-2">
+                            <span>📑</span>
+                            <span>Գնումների Պատվերներ (Purchase Orders)</span>
+                        </h3>
+                        <p class="text-xs text-slate-400">PO Lifecycle: Draft &rarr; Ordered &rarr; Goods Received</p>
+                    </div>
+                    <span class="text-xs px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 font-mono">{{ $purchaseOrders->count() }} POs</span>
+                </div>
+
+                <div class="space-y-3">
+                    @foreach ($purchaseOrders as $po)
+                        <div class="p-3.5 rounded-xl bg-slate-950/50 border border-slate-800/80 flex items-center justify-between text-xs">
+                            <div class="space-y-1">
+                                <div class="flex items-center space-x-2">
+                                    <span class="font-mono font-bold text-brand-400">{{ $po->po_number }}</span>
+                                    <span class="text-slate-300">{{ $po->supplier?->company_name }}</span>
+                                    @if ($po->status === 'received')
+                                        <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-medium">Received</span>
+                                    @elseif ($po->status === 'ordered')
+                                        <span class="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-medium">Ordered</span>
+                                    @else
+                                        <span class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-medium">{{ $po->status }}</span>
+                                    @endif
+                                </div>
+                                <div class="text-slate-400 text-[11px]">
+                                    Պահեստ՝ <span class="text-slate-300">{{ $po->warehouse?->name }}</span> &bull;
+                                    Տողեր՝ {{ $po->items->count() }} ապրանք
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <span class="font-mono font-bold text-emerald-400 text-sm">{{ number_format($po->total, 0) }} ֏</span>
+                                <span class="text-[10px] text-slate-400 uppercase font-mono block">{{ $po->payment_status }}</span>
+                            </div>
+                        </div>
+                    @endforeach
                 </div>
             </div>
 
@@ -351,7 +413,7 @@
                         <span>Interactive In-Browser API Console</span>
                     </h3>
                     <p class="text-xs text-slate-400 mt-1">
-                        Կտտացրեք կոճակներին՝ կենդանի API հարցումներ կատարելու և պատասխանները տեսնելու համար։
+                        Phase 0, 1 & 2 API-ների կենդանի թեստավորում հենց բրաուզերում։
                     </p>
                 </div>
                 <div class="flex items-center space-x-2" id="token-status-badge">
@@ -362,68 +424,64 @@
             </div>
 
             <!-- Action Buttons Grid -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
                 <button onclick="loginPlatformAdmin()" class="p-3 text-left rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-indigo-500/30 hover:border-indigo-500 transition group">
-                    <div class="flex items-center justify-between mb-1">
-                        <span class="text-xs font-semibold text-indigo-300">1. Platform Admin Login</span>
-                        <span class="text-[10px] font-mono text-slate-400">POST</span>
-                    </div>
-                    <p class="text-[11px] text-slate-400">admin@erplannet.com</p>
+                    <span class="text-xs font-semibold text-indigo-300 block mb-1">1. Admin Login</span>
+                    <p class="text-[11px] text-slate-400">admin@erplannet</p>
                 </button>
 
                 <button onclick="loginTenantOwner()" class="p-3 text-left rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-emerald-500/30 hover:border-emerald-500 transition group">
-                    <div class="flex items-center justify-between mb-1">
-                        <span class="text-xs font-semibold text-emerald-300">2. Tenant Owner Login</span>
-                        <span class="text-[10px] font-mono text-slate-400">POST</span>
-                    </div>
-                    <p class="text-[11px] text-slate-400">aram@gourmet.am (gourmet)</p>
+                    <span class="text-xs font-semibold text-emerald-300 block mb-1">2. Tenant Login</span>
+                    <p class="text-[11px] text-slate-400">aram@gourmet.am</p>
+                </button>
+
+                <button onclick="fetchWarehouses()" class="p-3 text-left rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 hover:border-slate-500 transition group">
+                    <span class="text-xs font-semibold text-cyan-300 block mb-1">3. Warehouses</span>
+                    <p class="text-[11px] text-slate-400">/api/v1/warehouses</p>
+                </button>
+
+                <button onclick="fetchStockLevels()" class="p-3 text-left rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 hover:border-slate-500 transition group">
+                    <span class="text-xs font-semibold text-slate-200 block mb-1">4. Stock Levels</span>
+                    <p class="text-[11px] text-slate-400">/inventory/levels</p>
+                </button>
+
+                <button onclick="fetchBatches()" class="p-3 text-left rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 hover:border-slate-500 transition group">
+                    <span class="text-xs font-semibold text-slate-200 block mb-1">5. Stock Batches</span>
+                    <p class="text-[11px] text-slate-400">/inventory/batches</p>
+                </button>
+
+                <button onclick="fetchSuppliers()" class="p-3 text-left rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 hover:border-slate-500 transition group">
+                    <span class="text-xs font-semibold text-teal-300 block mb-1">6. Suppliers</span>
+                    <p class="text-[11px] text-slate-400">/api/v1/suppliers</p>
+                </button>
+
+                <button onclick="fetchPurchaseOrders()" class="p-3 text-left rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 hover:border-slate-500 transition group">
+                    <span class="text-xs font-semibold text-emerald-300 block mb-1">7. Purchase Orders</span>
+                    <p class="text-[11px] text-slate-400">/purchase-orders</p>
                 </button>
 
                 <button onclick="fetchTenantProducts()" class="p-3 text-left rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 hover:border-slate-500 transition group">
-                    <div class="flex items-center justify-between mb-1">
-                        <span class="text-xs font-semibold text-slate-200">3. Get Products</span>
-                        <span class="text-[10px] font-mono text-slate-400">GET</span>
-                    </div>
+                    <span class="text-xs font-semibold text-slate-200 block mb-1">8. Products</span>
                     <p class="text-[11px] text-slate-400">/api/v1/products</p>
                 </button>
 
                 <button onclick="fetchTenantOrders()" class="p-3 text-left rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 hover:border-slate-500 transition group">
-                    <div class="flex items-center justify-between mb-1">
-                        <span class="text-xs font-semibold text-slate-200">4. Get Orders</span>
-                        <span class="text-[10px] font-mono text-slate-400">GET</span>
-                    </div>
+                    <span class="text-xs font-semibold text-slate-200 block mb-1">9. Sales Orders</span>
                     <p class="text-[11px] text-slate-400">/api/v1/orders</p>
                 </button>
 
                 <button onclick="fetchSubscription()" class="p-3 text-left rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 hover:border-slate-500 transition group">
-                    <div class="flex items-center justify-between mb-1">
-                        <span class="text-xs font-semibold text-slate-200">5. Entitlement Quotas</span>
-                        <span class="text-[10px] font-mono text-slate-400">GET</span>
-                    </div>
+                    <span class="text-xs font-semibold text-slate-200 block mb-1">10. Entitlements</span>
                     <p class="text-[11px] text-slate-400">/api/v1/subscription</p>
                 </button>
 
-                <button onclick="fetchPlatformTenants()" class="p-3 text-left rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 hover:border-slate-500 transition group">
-                    <div class="flex items-center justify-between mb-1">
-                        <span class="text-xs font-semibold text-slate-200">6. Platform Tenants</span>
-                        <span class="text-[10px] font-mono text-slate-400">GET</span>
-                    </div>
-                    <p class="text-[11px] text-slate-400">/api/v1/platform/tenants</p>
-                </button>
-
                 <button onclick="fetchTranslations('hy')" class="p-3 text-left rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 hover:border-slate-500 transition group">
-                    <div class="flex items-center justify-between mb-1">
-                        <span class="text-xs font-semibold text-slate-200">7. Հայերեն Թարգմանություններ</span>
-                        <span class="text-[10px] font-mono text-slate-400">GET</span>
-                    </div>
-                    <p class="text-[11px] text-slate-400">/api/v1/translations/hy</p>
+                    <span class="text-xs font-semibold text-slate-200 block mb-1">11. Հայերեն UI</span>
+                    <p class="text-[11px] text-slate-400">/translations/hy</p>
                 </button>
 
                 <button onclick="testHealthCheck()" class="p-3 text-left rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 hover:border-slate-500 transition group">
-                    <div class="flex items-center justify-between mb-1">
-                        <span class="text-xs font-semibold text-slate-200">8. Health Check</span>
-                        <span class="text-[10px] font-mono text-slate-400">GET</span>
-                    </div>
+                    <span class="text-xs font-semibold text-slate-200 block mb-1">12. Health Check</span>
                     <p class="text-[11px] text-slate-400">/api/v1/health</p>
                 </button>
             </div>
@@ -441,37 +499,7 @@
                     </div>
                 </div>
                 <div class="relative">
-                    <pre id="response-output" class="p-4 rounded-xl bg-slate-950 border border-slate-800 text-xs font-mono text-emerald-300 max-h-96 overflow-y-auto whitespace-pre-wrap">{ "info": "ERPlannet Multi-Tenant API Ready. Click any button above." }</pre>
-                </div>
-            </div>
-        </section>
-
-        <!-- Command Line / Developers Cheatsheet -->
-        <section class="glass-panel rounded-2xl p-6 space-y-4">
-            <h3 class="text-base font-semibold text-white flex items-center space-x-2">
-                <span>💻</span>
-                <span>Հրամաններ և Postman/cURL ուղեցույց</span>
-            </h3>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-mono">
-                <div class="bg-slate-950/70 p-4 rounded-xl border border-slate-800 space-y-2">
-                    <span class="text-slate-400 font-sans font-medium block">1. Լոկալ սերվերի գործարկում (Terminal)</span>
-                    <p class="text-slate-300">php artisan serve --port=8000</p>
-                    <p class="text-slate-500 font-sans text-[11px]">կամ Docker Compose-ով՝ docker compose up -d</p>
-                </div>
-
-                <div class="bg-slate-950/70 p-4 rounded-xl border border-slate-800 space-y-2">
-                    <span class="text-slate-400 font-sans font-medium block">2. Բոլոր 40 թեստերի գործարկում</span>
-                    <p class="text-emerald-400">php artisan test</p>
-                    <p class="text-slate-500 font-sans text-[11px]">100% ծածկույթ PostgreSQL-ի վրա</p>
-                </div>
-
-                <div class="bg-slate-950/70 p-4 rounded-xl border border-slate-800 space-y-2 md:col-span-2">
-                    <span class="text-slate-400 font-sans font-medium block">3. cURL հարցում Tenant-ի տվյալները ստանալու համար</span>
-                    <p class="text-slate-300 whitespace-pre-wrap">curl -X POST http://localhost:8000/api/v1/auth/login \
-  -H "X-Tenant-Slug: gourmet" \
-  -H "Content-Type: application/json" \
-  -d '{"email":"aram@gourmet.am","password":"password123"}'</p>
+                    <pre id="response-output" class="p-4 rounded-xl bg-slate-950 border border-slate-800 text-xs font-mono text-emerald-300 max-h-96 overflow-y-auto whitespace-pre-wrap">{ "info": "ERPlannet Multi-Tenant API (Phase 0, 1 & 2) Ready. Click any button above." }</pre>
                 </div>
             </div>
         </section>
@@ -479,13 +507,13 @@
     </main>
 
     <footer class="border-t border-slate-800/60 mt-12 py-6 text-center text-xs text-slate-500">
-        ERPlannet Multi-Tenant SaaS Platform &bull; Built with Laravel 13, PostgreSQL 18 & Redis &bull; Yerevan, Armenia
+        ERPlannet Multi-Tenant SaaS Platform &bull; Phase 0 (Foundation), Phase 1 (Business Core) & Phase 2 (Warehouse & Procurement) &bull; Yerevan, Armenia
     </footer>
 
     <!-- JavaScript for Live Interactive API Testing -->
     <script>
         let currentToken = null;
-        let currentAuthType = null; // 'platform' or 'tenant'
+        let currentAuthType = null;
 
         function setConsoleStatus(method, url, status, time, data) {
             document.getElementById('response-method').innerText = method;
@@ -549,10 +577,54 @@
             }
         }
 
-        async function fetchTenantProducts() {
+        async function ensureTenantAuth() {
             if (!currentToken || currentAuthType !== 'tenant') {
                 await loginTenantOwner();
             }
+        }
+
+        async function fetchWarehouses() {
+            await ensureTenantAuth();
+            await makeRequest('GET', '/api/v1/warehouses', {
+                'X-Tenant-Slug': 'gourmet',
+                'Authorization': 'Bearer ' + currentToken
+            });
+        }
+
+        async function fetchStockLevels() {
+            await ensureTenantAuth();
+            await makeRequest('GET', '/api/v1/inventory/levels', {
+                'X-Tenant-Slug': 'gourmet',
+                'Authorization': 'Bearer ' + currentToken
+            });
+        }
+
+        async function fetchBatches() {
+            await ensureTenantAuth();
+            await makeRequest('GET', '/api/v1/inventory/batches', {
+                'X-Tenant-Slug': 'gourmet',
+                'Authorization': 'Bearer ' + currentToken
+            });
+        }
+
+        async function fetchSuppliers() {
+            await ensureTenantAuth();
+            await makeRequest('GET', '/api/v1/suppliers', {
+                'X-Tenant-Slug': 'gourmet',
+                'Authorization': 'Bearer ' + currentToken
+            });
+        }
+
+        async function fetchPurchaseOrders() {
+            await ensureTenantAuth();
+            await makeRequest('GET', '/api/v1/purchase-orders', {
+                'X-Tenant-Slug': 'gourmet',
+                'Authorization': 'Bearer ' + currentToken
+            });
+        }
+
+        async function fetchTenantProducts() {
+            await ensureTenantAuth();
             await makeRequest('GET', '/api/v1/products', {
                 'X-Tenant-Slug': 'gourmet',
                 'Authorization': 'Bearer ' + currentToken
@@ -560,9 +632,7 @@
         }
 
         async function fetchTenantOrders() {
-            if (!currentToken || currentAuthType !== 'tenant') {
-                await loginTenantOwner();
-            }
+            await ensureTenantAuth();
             await makeRequest('GET', '/api/v1/orders', {
                 'X-Tenant-Slug': 'gourmet',
                 'Authorization': 'Bearer ' + currentToken
@@ -570,20 +640,9 @@
         }
 
         async function fetchSubscription() {
-            if (!currentToken || currentAuthType !== 'tenant') {
-                await loginTenantOwner();
-            }
+            await ensureTenantAuth();
             await makeRequest('GET', '/api/v1/subscription', {
                 'X-Tenant-Slug': 'gourmet',
-                'Authorization': 'Bearer ' + currentToken
-            });
-        }
-
-        async function fetchPlatformTenants() {
-            if (!currentToken || currentAuthType !== 'platform') {
-                await loginPlatformAdmin();
-            }
-            await makeRequest('GET', '/api/v1/platform/tenants', {
                 'Authorization': 'Bearer ' + currentToken
             });
         }

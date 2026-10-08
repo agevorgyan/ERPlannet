@@ -14,11 +14,20 @@ use App\Domain\CRM\Models\CustomerAddress;
 use App\Domain\IAM\Models\Permission;
 use App\Domain\IAM\Models\Role;
 use App\Domain\IAM\Models\User;
+use App\Domain\Procurement\Models\PurchaseOrder;
+use App\Domain\Procurement\Models\PurchaseOrderItem;
+use App\Domain\Procurement\Models\Supplier;
 use App\Domain\Sales\Models\Order;
 use App\Domain\Sales\Models\OrderItem;
 use App\Domain\Sales\Models\OrderStatusHistory;
 use App\Domain\Tenant\Models\Tenant;
 use App\Domain\Tenant\Models\TenantDomain;
+use App\Domain\Warehouse\Models\StockBatch;
+use App\Domain\Warehouse\Models\StockLevel;
+use App\Domain\Warehouse\Models\StockMovement;
+use App\Domain\Warehouse\Models\StockTransfer;
+use App\Domain\Warehouse\Models\StockTransferItem;
+use App\Domain\Warehouse\Models\Warehouse;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -318,6 +327,198 @@ class DemoTenantSeeder extends Seeder
                 'quantity' => 0.687,
                 'unit_price' => 3200.00,
                 'total' => 2200.00,
+            ]
+        );
+
+        // 10. Warehouses (Phase 2)
+        $whMain = Warehouse::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'code' => 'WH-MAIN'],
+            [
+                'branch_id' => $branchMain->id,
+                'name' => 'Կենտրոն Գլխավոր Պահեստ',
+                'type' => 'standard',
+                'address' => 'Abovyan 12, Yerevan',
+                'is_active' => true,
+                'is_default' => true,
+            ]
+        );
+
+        $whCold = Warehouse::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'code' => 'WH-COLD'],
+            [
+                'branch_id' => $branchMain->id,
+                'name' => 'Սառնարանային Պահեստ N1 (Կաթնամթերք և Միս)',
+                'type' => 'cold_storage',
+                'address' => 'Abovyan 12 (Sub-level 1), Yerevan',
+                'is_active' => true,
+                'is_default' => false,
+            ]
+        );
+
+        // 11. Suppliers (Phase 2)
+        $supplierMeat = Supplier::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'tax_id' => '01548234'],
+            [
+                'company_name' => 'Արարատ Միս Ֆարմ ՍՊԸ',
+                'legal_name' => '«Արարատ Միս Ֆարմ» ՍՊԸ',
+                'contact_person' => 'Կարեն Գրիգորյան',
+                'email' => 'karen@araratmeat.am',
+                'phone' => '+37493112233',
+                'address' => 'Արարատի մարզ, գ. Ոսկետափ',
+                'currency' => 'AMD',
+                'payment_terms_days' => 14,
+                'is_active' => true,
+            ]
+        );
+
+        $supplierDairy = Supplier::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'tax_id' => '06938219'],
+            [
+                'company_name' => 'Լոռվա Կաթնամթերք ՓԲԸ',
+                'legal_name' => '«Լոռվա Կաթնամթերք» ՓԲԸ',
+                'contact_person' => 'Անահիտ Սարգսյան',
+                'email' => 'info@loridairy.am',
+                'phone' => '+37494445566',
+                'address' => 'Լոռու մարզ, ք. Ստեփանավան',
+                'currency' => 'AMD',
+                'payment_terms_days' => 7,
+                'is_active' => true,
+            ]
+        );
+
+        // 12. Stock Batches & Levels (Phase 2)
+        $batchCheese = StockBatch::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'warehouse_id' => $whCold->id, 'product_id' => $p2->id, 'batch_number' => 'LOT-202610-001'],
+            [
+                'quantity_on_hand' => 85.0000,
+                'quantity_reserved' => 0.6870,
+                'cost_price' => 2200.00,
+                'mfg_date' => now()->subDays(5)->toDateString(),
+                'expiry_date' => now()->addDays(55)->toDateString(),
+                'status' => 'active',
+                'notes' => 'Բարձր յուղայնության տնական լոռի',
+            ]
+        );
+
+        $batchBasturma = StockBatch::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'warehouse_id' => $whCold->id, 'product_id' => $p3->id, 'batch_number' => 'LOT-202610-002'],
+            [
+                'quantity_on_hand' => 45.0000,
+                'quantity_reserved' => 0.0000,
+                'cost_price' => 4500.00,
+                'mfg_date' => now()->subDays(12)->toDateString(),
+                'expiry_date' => now()->addDays(108)->toDateString(),
+                'status' => 'active',
+                'notes' => 'Պրեմիում տավարի ֆիլեից',
+            ]
+        );
+
+        StockLevel::updateOrCreate(
+            ['tenant_id' => $tenant->id, 'warehouse_id' => $whCold->id, 'product_id' => $p2->id, 'product_variant_id' => null],
+            [
+                'quantity_on_hand' => 85.0000,
+                'quantity_reserved' => 0.6870,
+                'reorder_point' => 20.0000,
+                'ideal_stock' => 100.0000,
+                'updated_at' => now(),
+            ]
+        );
+
+        StockLevel::updateOrCreate(
+            ['tenant_id' => $tenant->id, 'warehouse_id' => $whCold->id, 'product_id' => $p3->id, 'product_variant_id' => null],
+            [
+                'quantity_on_hand' => 45.0000,
+                'quantity_reserved' => 0.0000,
+                'reorder_point' => 15.0000,
+                'ideal_stock' => 50.0000,
+                'updated_at' => now(),
+            ]
+        );
+
+        StockLevel::updateOrCreate(
+            ['tenant_id' => $tenant->id, 'warehouse_id' => $whMain->id, 'product_id' => $p1->id, 'product_variant_id' => null],
+            [
+                'quantity_on_hand' => 150.0000,
+                'quantity_reserved' => 5.0000,
+                'reorder_point' => 50.0000,
+                'ideal_stock' => 200.0000,
+                'updated_at' => now(),
+            ]
+        );
+
+        // 13. Purchase Orders (Phase 2)
+        $po1 = PurchaseOrder::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'po_number' => "PO-{$year}-000001"],
+            [
+                'supplier_id' => $supplierDairy->id,
+                'warehouse_id' => $whCold->id,
+                'user_id' => $owner->id,
+                'status' => 'received',
+                'order_date' => now()->subDays(6)->toDateString(),
+                'received_at' => now()->subDays(5),
+                'subtotal' => 187000.00,
+                'tax_amount' => 0.00,
+                'total' => 187000.00,
+                'currency' => 'AMD',
+                'payment_status' => 'paid',
+                'notes' => 'Առաջին փորձնական խմբաքանակի գնում',
+            ]
+        );
+
+        PurchaseOrderItem::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'purchase_order_id' => $po1->id, 'product_id' => $p2->id],
+            [
+                'quantity_ordered' => 85.0000,
+                'quantity_received' => 85.0000,
+                'unit_cost' => 2200.00,
+                'total' => 187000.00,
+            ]
+        );
+
+        // Movement for PO1 receipt
+        StockMovement::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'reference_type' => PurchaseOrder::class, 'reference_id' => $po1->id],
+            [
+                'warehouse_id' => $whCold->id,
+                'product_id' => $p2->id,
+                'product_variant_id' => null,
+                'stock_batch_id' => $batchCheese->id,
+                'user_id' => $owner->id,
+                'type' => 'purchase_receipt',
+                'quantity' => 85.0000,
+                'unit_cost' => 2200.00,
+                'balance_before' => 0.0000,
+                'balance_after' => 85.0000,
+                'notes' => 'Goods receipt from Lori Dairies',
+                'created_at' => now()->subDays(5),
+            ]
+        );
+
+        $po2 = PurchaseOrder::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'po_number' => "PO-{$year}-000002"],
+            [
+                'supplier_id' => $supplierMeat->id,
+                'warehouse_id' => $whCold->id,
+                'user_id' => $owner->id,
+                'status' => 'ordered',
+                'order_date' => now()->subDays(1)->toDateString(),
+                'expected_delivery_date' => now()->addDays(2)->toDateString(),
+                'subtotal' => 225000.00,
+                'tax_amount' => 0.00,
+                'total' => 225000.00,
+                'currency' => 'AMD',
+                'payment_status' => 'unpaid',
+                'notes' => 'Տավարի մսի հումքի հերթական պատվեր',
+            ]
+        );
+
+        PurchaseOrderItem::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'purchase_order_id' => $po2->id, 'product_id' => $p3->id],
+            [
+                'quantity_ordered' => 50.0000,
+                'quantity_received' => 0.0000,
+                'unit_cost' => 4500.00,
+                'total' => 225000.00,
             ]
         );
     }
