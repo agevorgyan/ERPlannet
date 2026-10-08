@@ -24,7 +24,9 @@ class PlansAndFeaturesSeeder extends Seeder
             ['code' => 'limit.warehouses', 'name' => 'Warehouses Limit', 'type' => 'limit', 'module' => 'warehouse'],
             ['code' => 'limit.suppliers', 'name' => 'Suppliers Limit', 'type' => 'limit', 'module' => 'procurement'],
             ['code' => 'limit.products', 'name' => 'Products Limit', 'type' => 'limit', 'module' => 'catalog'],
+            ['code' => 'limit.recipes', 'name' => 'Recipes Limit', 'type' => 'limit', 'module' => 'production'],
             ['code' => 'limit.orders_monthly', 'name' => 'Monthly Orders Limit', 'type' => 'limit', 'module' => 'sales'],
+            ['code' => 'limit.production_orders_monthly', 'name' => 'Monthly Production Orders Limit', 'type' => 'limit', 'module' => 'production'],
         ];
 
         $featureModels = [];
@@ -59,7 +61,9 @@ class PlansAndFeaturesSeeder extends Seeder
             $featureModels['limit.warehouses']->id => ['value' => '1'],
             $featureModels['limit.suppliers']->id => ['value' => '5'],
             $featureModels['limit.products']->id => ['value' => '200'],
+            $featureModels['limit.recipes']->id => ['value' => '0'],
             $featureModels['limit.orders_monthly']->id => ['value' => '500'],
+            $featureModels['limit.production_orders_monthly']->id => ['value' => '0'],
         ]);
 
         // 3. Growth Plan
@@ -89,7 +93,9 @@ class PlansAndFeaturesSeeder extends Seeder
             $featureModels['limit.warehouses']->id => ['value' => '5'],
             $featureModels['limit.suppliers']->id => ['value' => '50'],
             $featureModels['limit.products']->id => ['value' => '2000'],
+            $featureModels['limit.recipes']->id => ['value' => '50'],
             $featureModels['limit.orders_monthly']->id => ['value' => '5000'],
+            $featureModels['limit.production_orders_monthly']->id => ['value' => '500'],
         ]);
 
         // 4. Enterprise Plan
@@ -119,7 +125,9 @@ class PlansAndFeaturesSeeder extends Seeder
             $featureModels['limit.warehouses']->id => ['value' => 'unlimited'],
             $featureModels['limit.suppliers']->id => ['value' => 'unlimited'],
             $featureModels['limit.products']->id => ['value' => 'unlimited'],
+            $featureModels['limit.recipes']->id => ['value' => 'unlimited'],
             $featureModels['limit.orders_monthly']->id => ['value' => 'unlimited'],
+            $featureModels['limit.production_orders_monthly']->id => ['value' => 'unlimited'],
         ]);
     }
 }

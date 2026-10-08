@@ -8,9 +8,12 @@ use App\Http\Controllers\Api\V1\Tenant\Catalog\CategoryController;
 use App\Http\Controllers\Api\V1\Tenant\Catalog\ProductController;
 use App\Http\Controllers\Api\V1\Tenant\Catalog\UnitController;
 use App\Http\Controllers\Api\V1\Tenant\CRM\CustomerController;
+use App\Http\Controllers\Api\V1\Tenant\Manufacturing\ProductionOrderController;
+use App\Http\Controllers\Api\V1\Tenant\Manufacturing\RecipeController;
 use App\Http\Controllers\Api\V1\Tenant\PaymentController;
 use App\Http\Controllers\Api\V1\Tenant\Procurement\PurchaseOrderController;
 use App\Http\Controllers\Api\V1\Tenant\Procurement\SupplierController;
+use App\Http\Controllers\Api\V1\Tenant\Quality\QualityInspectionController;
 use App\Http\Controllers\Api\V1\Tenant\RoleController;
 use App\Http\Controllers\Api\V1\Tenant\Sales\OrderController;
 use App\Http\Controllers\Api\V1\Tenant\SubscriptionController;
@@ -129,6 +132,18 @@ Route::prefix('v1')->group(function () {
             // CRM & Customers
             Route::apiResource('customers', CustomerController::class);
             Route::post('/customers/{id}/addresses', [CustomerController::class, 'addAddress']);
+
+            // Manufacturing & Recipes (BOM)
+            Route::apiResource('recipes', RecipeController::class);
+
+            // Production Orders
+            Route::apiResource('production-orders', ProductionOrderController::class)->only(['index', 'store', 'show']);
+            Route::post('/production-orders/{id}/start', [ProductionOrderController::class, 'start']);
+            Route::post('/production-orders/{id}/complete', [ProductionOrderController::class, 'complete']);
+            Route::post('/production-orders/{id}/cancel', [ProductionOrderController::class, 'cancel']);
+
+            // Quality Assurance & ISO 22000
+            Route::apiResource('quality-inspections', QualityInspectionController::class)->only(['index', 'store', 'show']);
 
             // Sales & Orders
             Route::apiResource('orders', OrderController::class)->only(['index', 'store', 'show']);

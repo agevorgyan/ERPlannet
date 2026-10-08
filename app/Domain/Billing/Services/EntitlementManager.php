@@ -61,6 +61,10 @@ class EntitlementManager implements EntitlementManagerInterface
             return 0;
         }
 
+        if (str_starts_with($featureCode, 'feature.')) {
+            return $this->can($featureCode) ? INF : 0;
+        }
+
         if (strtolower($value) === 'unlimited' || (int)$value === -1) {
             return INF;
         }
@@ -95,6 +99,8 @@ class EntitlementManager implements EntitlementManagerInterface
             $modelCount = \App\Domain\Warehouse\Models\Warehouse::withoutGlobalScopes()->where('tenant_id', $tenant->id)->whereNull('deleted_at')->count();
         } elseif ($featureCode === 'limit.suppliers') {
             $modelCount = \App\Domain\Procurement\Models\Supplier::withoutGlobalScopes()->where('tenant_id', $tenant->id)->whereNull('deleted_at')->count();
+        } elseif ($featureCode === 'limit.recipes') {
+            $modelCount = \App\Domain\Manufacturing\Models\Recipe::withoutGlobalScopes()->where('tenant_id', $tenant->id)->whereNull('deleted_at')->count();
         }
 
         return max($usageCount, $modelCount);
@@ -138,6 +144,13 @@ class EntitlementManager implements EntitlementManagerInterface
 
     public function assertCan(string $featureCode, int $count = 1): void
     {
+        if (str_starts_with($featureCode, 'feature.')) {
+            if (!$this->can($featureCode)) {
+                throw new FeatureNotAvailableException($featureCode);
+            }
+            return;
+        }
+
         $limit = $this->getLimit($featureCode);
 
         if ($limit === 0 && !$this->can($featureCode)) {

@@ -61,9 +61,9 @@
                 <div>
                     <div class="flex items-center space-x-2">
                         <span class="font-bold text-lg tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">ERPlannet</span>
-                        <span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Phase 0, 1 & 2 Complete (55 Tests Passed)</span>
+                        <span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Phase 0, 1, 2 & 3 Complete (65 Tests Passed)</span>
                     </div>
-                    <p class="text-xs text-slate-400">Multi-Tenant SaaS ERP/CRM &bull; Warehouse &bull; Procurement</p>
+                    <p class="text-xs text-slate-400">Multi-Tenant SaaS ERP/CRM &bull; Manufacturing &bull; Recipes (BOM) &bull; ISO 22000 QA</p>
                 </div>
             </div>
 
@@ -209,39 +209,47 @@
             </div>
         </div>
 
-        <!-- Live Platform Stats (Phase 0, 1 & 2) -->
-        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
-            <div class="glass-panel p-4 rounded-xl text-center">
-                <span class="text-2xl font-bold text-white">{{ $stats['tenants_count'] }}</span>
-                <span class="block text-xs text-slate-400 mt-1">Tenants</span>
+        <!-- Live Platform Stats (Phase 0, 1, 2 & 3) -->
+        <div class="grid grid-cols-2 md:grid-cols-5 lg:grid-cols-10 gap-3">
+            <div class="glass-panel p-3.5 rounded-xl text-center">
+                <span class="text-xl font-bold text-white">{{ $stats['tenants_count'] }}</span>
+                <span class="block text-[11px] text-slate-400 mt-1">Tenants</span>
             </div>
-            <div class="glass-panel p-4 rounded-xl text-center">
-                <span class="text-2xl font-bold text-indigo-400">{{ $stats['branches_count'] }}</span>
-                <span class="block text-xs text-slate-400 mt-1">Branches</span>
+            <div class="glass-panel p-3.5 rounded-xl text-center">
+                <span class="text-xl font-bold text-indigo-400">{{ $stats['branches_count'] }}</span>
+                <span class="block text-[11px] text-slate-400 mt-1">Branches</span>
             </div>
-            <div class="glass-panel p-4 rounded-xl text-center">
-                <span class="text-2xl font-bold text-cyan-400">{{ $stats['warehouses_count'] }}</span>
-                <span class="block text-xs text-slate-400 mt-1">Warehouses</span>
+            <div class="glass-panel p-3.5 rounded-xl text-center">
+                <span class="text-xl font-bold text-cyan-400">{{ $stats['warehouses_count'] }}</span>
+                <span class="block text-[11px] text-slate-400 mt-1">Warehouses</span>
             </div>
-            <div class="glass-panel p-4 rounded-xl text-center">
-                <span class="text-2xl font-bold text-teal-400">{{ $stats['suppliers_count'] }}</span>
-                <span class="block text-xs text-slate-400 mt-1">Suppliers</span>
+            <div class="glass-panel p-3.5 rounded-xl text-center">
+                <span class="text-xl font-bold text-teal-400">{{ $stats['suppliers_count'] }}</span>
+                <span class="block text-[11px] text-slate-400 mt-1">Suppliers</span>
             </div>
-            <div class="glass-panel p-4 rounded-xl text-center">
-                <span class="text-2xl font-bold text-purple-400">{{ $stats['products_count'] }}</span>
-                <span class="block text-xs text-slate-400 mt-1">Products</span>
+            <div class="glass-panel p-3.5 rounded-xl text-center">
+                <span class="text-xl font-bold text-purple-400">{{ $stats['products_count'] }}</span>
+                <span class="block text-[11px] text-slate-400 mt-1">Products</span>
             </div>
-            <div class="glass-panel p-4 rounded-xl text-center">
-                <span class="text-2xl font-bold text-amber-400">{{ $stats['orders_count'] }}</span>
-                <span class="block text-xs text-slate-400 mt-1">Sales Orders</span>
+            <div class="glass-panel p-3.5 rounded-xl text-center">
+                <span class="text-xl font-bold text-amber-400">{{ $stats['recipes_count'] }}</span>
+                <span class="block text-[11px] text-slate-400 mt-1">Recipes (BOM)</span>
             </div>
-            <div class="glass-panel p-4 rounded-xl text-center">
-                <span class="text-2xl font-bold text-emerald-400">{{ $stats['purchase_orders_count'] }}</span>
-                <span class="block text-xs text-slate-400 mt-1">Purchase Orders</span>
+            <div class="glass-panel p-3.5 rounded-xl text-center">
+                <span class="text-xl font-bold text-blue-400">{{ $stats['production_orders_count'] }}</span>
+                <span class="block text-[11px] text-slate-400 mt-1">Production</span>
             </div>
-            <div class="glass-panel p-4 rounded-xl text-center">
-                <span class="text-2xl font-bold text-rose-400">{{ number_format($stats['total_revenue'], 0) }} ֏</span>
-                <span class="block text-xs text-slate-400 mt-1">Revenue</span>
+            <div class="glass-panel p-3.5 rounded-xl text-center">
+                <span class="text-xl font-bold text-emerald-400">{{ $stats['quality_inspections_count'] }}</span>
+                <span class="block text-[11px] text-slate-400 mt-1">ISO 22000 QA</span>
+            </div>
+            <div class="glass-panel p-3.5 rounded-xl text-center">
+                <span class="text-xl font-bold text-orange-400">{{ $stats['orders_count'] }}</span>
+                <span class="block text-[11px] text-slate-400 mt-1">Sales Orders</span>
+            </div>
+            <div class="glass-panel p-3.5 rounded-xl text-center">
+                <span class="text-xl font-bold text-rose-400">{{ number_format($stats['total_revenue'], 0) }} ֏</span>
+                <span class="block text-[11px] text-slate-400 mt-1">Revenue</span>
             </div>
         </div>
 
@@ -404,6 +412,161 @@
 
         </div>
 
+        <!-- Phase 3: Manufacturing, Recipes (BOM) & ISO 22000 Quality Assurance Showcase -->
+        <div class="space-y-6">
+            <div class="border-b border-slate-800 pb-3 flex items-center justify-between">
+                <div>
+                    <h3 class="text-lg font-bold text-white flex items-center space-x-2">
+                        <span>🏭</span>
+                        <span>Phase 3: Արտադրություն, Բաղադրատոմսեր (BOM) & ISO 22000 Որակ</span>
+                    </h3>
+                    <p class="text-xs text-slate-400 mt-0.5">
+                        Տեխնոլոգիական քարտեր, բաղադրիչների մասշտաբավորում, արտադրության ցիկլ և HACCP / CCP հսկողություն
+                    </p>
+                </div>
+                <span class="text-xs font-mono px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                    Manufacturing &amp; QA Live
+                </span>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                <!-- 1. Recipes & BOM -->
+                <div class="glass-panel rounded-2xl p-6 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h4 class="text-base font-semibold text-white flex items-center space-x-2">
+                                <span>📜</span>
+                                <span>Բաղադրատոմսեր (BOM)</span>
+                            </h4>
+                            <p class="text-xs text-slate-400">Տեխնոլոգիական քարտեր ({{ $recipes->count() }})</p>
+                        </div>
+                        <span class="text-xs font-mono px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20">Recipes</span>
+                    </div>
+
+                    <div class="space-y-3">
+                        @foreach ($recipes as $rcp)
+                            <div class="p-3.5 rounded-xl bg-slate-900/70 border border-slate-800 space-y-2">
+                                <div class="flex items-center justify-between">
+                                    <span class="font-mono text-xs font-bold text-amber-400">{{ $rcp->code }}</span>
+                                    <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300">
+                                        Ելք՝ {{ number_format($rcp->yield_quantity, 0) }} {{ $rcp->yieldUnit?->symbol ?? 'միավոր' }}
+                                    </span>
+                                </div>
+                                <h5 class="text-xs font-semibold text-white">{{ $rcp->name }}</h5>
+                                <div class="text-[11px] text-slate-400 space-y-1">
+                                    <div class="flex justify-between text-slate-400">
+                                        <span>Աշխատավարձ / Վերադիր՝</span>
+                                        <span class="font-mono text-slate-300">{{ number_format($rcp->labor_cost, 0) }} / {{ number_format($rcp->overhead_cost, 0) }} ֏</span>
+                                    </div>
+                                    <div class="pt-1 border-t border-slate-800/80 text-[10px] text-slate-400">
+                                        <span class="text-amber-300/80 font-medium">Հումք՝</span>
+                                        @foreach ($rcp->items as $item)
+                                            <span class="inline-block px-1.5 py-0.5 bg-slate-800 rounded mr-1 mb-1">
+                                                {{ is_array($item->product?->name) ? ($item->product->name['hy'] ?? '') : $item->product?->name }}: {{ $item->quantity }}կգ
+                                            </span>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+
+                <!-- 2. Production Orders -->
+                <div class="glass-panel rounded-2xl p-6 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h4 class="text-base font-semibold text-white flex items-center space-x-2">
+                                <span>⚙️</span>
+                                <span>Արտադրական Պատվերներ</span>
+                            </h4>
+                            <p class="text-xs text-slate-400">Production Orders ({{ $productionOrders->count() }})</p>
+                        </div>
+                        <span class="text-xs font-mono px-2 py-0.5 rounded bg-blue-500/10 text-blue-300 border border-blue-500/20">Lifecycle</span>
+                    </div>
+
+                    <div class="space-y-3">
+                        @foreach ($productionOrders as $po)
+                            <div class="p-3.5 rounded-xl bg-slate-900/70 border border-slate-800 space-y-2">
+                                <div class="flex items-center justify-between">
+                                    <span class="font-mono text-xs font-bold text-blue-400">{{ $po->order_number }}</span>
+                                    <span class="text-[10px] font-mono px-2 py-0.5 rounded-full {{ $po->status === 'completed' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-amber-500/20 text-amber-300 border border-amber-500/30' }}">
+                                        {{ strtoupper($po->status) }}
+                                    </span>
+                                </div>
+                                <h5 class="text-xs font-medium text-white">
+                                    {{ is_array($po->product?->name) ? ($po->product->name['hy'] ?? '') : $po->product?->name }}
+                                </h5>
+                                <div class="text-[11px] text-slate-400 space-y-1">
+                                    <div class="flex justify-between">
+                                        <span>Պլանավորված / Փաստացի՝</span>
+                                        <span class="font-mono text-slate-200">
+                                            {{ number_format($po->planned_quantity, 0) }} / {{ number_format($po->actual_quantity, 0) }} հատ
+                                        </span>
+                                    </div>
+                                    @if ($po->batch)
+                                        <div class="flex justify-between text-emerald-400 font-mono text-[10px]">
+                                            <span>Թողարկված Խմբաքանակ՝</span>
+                                            <span>{{ $po->batch->batch_number }}</span>
+                                        </div>
+                                    @endif
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+
+                <!-- 3. Quality Assurance & ISO 22000 Inspections -->
+                <div class="glass-panel rounded-2xl p-6 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h4 class="text-base font-semibold text-white flex items-center space-x-2">
+                                <span>🛡️</span>
+                                <span>ISO 22000 / HACCP Որակ</span>
+                            </h4>
+                            <p class="text-xs text-slate-400">Quality Inspections ({{ $qualityInspections->count() }})</p>
+                        </div>
+                        <span class="text-xs font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">Certified</span>
+                    </div>
+
+                    <div class="space-y-3">
+                        @foreach ($qualityInspections as $qa)
+                            <div class="p-3.5 rounded-xl bg-slate-900/70 border border-emerald-500/30 space-y-2.5">
+                                <div class="flex items-center justify-between">
+                                    <span class="font-mono text-xs font-bold text-emerald-400">{{ $qa->inspection_number }}</span>
+                                    <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold">
+                                        {{ $qa->overall_score }}% PASSED
+                                    </span>
+                                </div>
+                                <div class="text-[11px] text-slate-300 font-medium">
+                                    Ստանդարտ՝ <span class="text-white">{{ $qa->standard_applied }}</span> &bull;
+                                    Պատվեր՝ <span class="text-blue-300 font-mono">{{ $qa->productionOrder?->order_number }}</span>
+                                </div>
+
+                                <!-- CCP Points breakdown -->
+                                <div class="space-y-1.5 pt-1 border-t border-slate-800 text-[10px]">
+                                    @foreach ($qa->items as $item)
+                                        <div class="p-1.5 rounded bg-slate-800/80 flex items-center justify-between">
+                                            <div>
+                                                <span class="font-mono font-bold text-amber-400 mr-1">{{ $item->critical_control_point }}</span>
+                                                <span class="text-slate-300">{{ $item->parameter_name }}</span>
+                                            </div>
+                                            <div class="flex items-center space-x-1.5 font-mono">
+                                                <span class="text-slate-200">{{ $item->actual_value }}{{ $item->unit }}</span>
+                                                <span class="text-emerald-400 font-bold">✓</span>
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
         <!-- Interactive API Console (Live In-Browser Testing) -->
         <section id="api-tester" class="glass-panel rounded-2xl p-6 lg:p-8 space-y-6">
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800/80 pb-5">
@@ -413,7 +576,7 @@
                         <span>Interactive In-Browser API Console</span>
                     </h3>
                     <p class="text-xs text-slate-400 mt-1">
-                        Phase 0, 1 & 2 API-ների կենդանի թեստավորում հենց բրաուզերում։
+                        Phase 0, 1, 2 & 3 API-ների կենդանի թեստավորում հենց բրաուզերում։
                     </p>
                 </div>
                 <div class="flex items-center space-x-2" id="token-status-badge">
@@ -460,28 +623,43 @@
                     <p class="text-[11px] text-slate-400">/purchase-orders</p>
                 </button>
 
+                <button onclick="fetchRecipes()" class="p-3 text-left rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-amber-500/30 hover:border-amber-500 transition group">
+                    <span class="text-xs font-semibold text-amber-300 block mb-1">8. Recipes (BOM)</span>
+                    <p class="text-[11px] text-slate-400">/api/v1/recipes</p>
+                </button>
+
+                <button onclick="fetchProductionOrders()" class="p-3 text-left rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-blue-500/30 hover:border-blue-500 transition group">
+                    <span class="text-xs font-semibold text-blue-300 block mb-1">9. Production Orders</span>
+                    <p class="text-[11px] text-slate-400">/production-orders</p>
+                </button>
+
+                <button onclick="fetchQualityInspections()" class="p-3 text-left rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-emerald-500/30 hover:border-emerald-500 transition group">
+                    <span class="text-xs font-semibold text-emerald-300 block mb-1">10. ISO 22000 QA</span>
+                    <p class="text-[11px] text-slate-400">/quality-inspections</p>
+                </button>
+
                 <button onclick="fetchTenantProducts()" class="p-3 text-left rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 hover:border-slate-500 transition group">
-                    <span class="text-xs font-semibold text-slate-200 block mb-1">8. Products</span>
+                    <span class="text-xs font-semibold text-slate-200 block mb-1">11. Products</span>
                     <p class="text-[11px] text-slate-400">/api/v1/products</p>
                 </button>
 
                 <button onclick="fetchTenantOrders()" class="p-3 text-left rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 hover:border-slate-500 transition group">
-                    <span class="text-xs font-semibold text-slate-200 block mb-1">9. Sales Orders</span>
+                    <span class="text-xs font-semibold text-slate-200 block mb-1">12. Sales Orders</span>
                     <p class="text-[11px] text-slate-400">/api/v1/orders</p>
                 </button>
 
                 <button onclick="fetchSubscription()" class="p-3 text-left rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 hover:border-slate-500 transition group">
-                    <span class="text-xs font-semibold text-slate-200 block mb-1">10. Entitlements</span>
+                    <span class="text-xs font-semibold text-slate-200 block mb-1">13. Entitlements</span>
                     <p class="text-[11px] text-slate-400">/api/v1/subscription</p>
                 </button>
 
                 <button onclick="fetchTranslations('hy')" class="p-3 text-left rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 hover:border-slate-500 transition group">
-                    <span class="text-xs font-semibold text-slate-200 block mb-1">11. Հայերեն UI</span>
+                    <span class="text-xs font-semibold text-slate-200 block mb-1">14. Հայերեն UI</span>
                     <p class="text-[11px] text-slate-400">/translations/hy</p>
                 </button>
 
                 <button onclick="testHealthCheck()" class="p-3 text-left rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 hover:border-slate-500 transition group">
-                    <span class="text-xs font-semibold text-slate-200 block mb-1">12. Health Check</span>
+                    <span class="text-xs font-semibold text-slate-200 block mb-1">15. Health Check</span>
                     <p class="text-[11px] text-slate-400">/api/v1/health</p>
                 </button>
             </div>
@@ -618,6 +796,30 @@
         async function fetchPurchaseOrders() {
             await ensureTenantAuth();
             await makeRequest('GET', '/api/v1/purchase-orders', {
+                'X-Tenant-Slug': 'gourmet',
+                'Authorization': 'Bearer ' + currentToken
+            });
+        }
+
+        async function fetchRecipes() {
+            await ensureTenantAuth();
+            await makeRequest('GET', '/api/v1/recipes', {
+                'X-Tenant-Slug': 'gourmet',
+                'Authorization': 'Bearer ' + currentToken
+            });
+        }
+
+        async function fetchProductionOrders() {
+            await ensureTenantAuth();
+            await makeRequest('GET', '/api/v1/production-orders', {
+                'X-Tenant-Slug': 'gourmet',
+                'Authorization': 'Bearer ' + currentToken
+            });
+        }
+
+        async function fetchQualityInspections() {
+            await ensureTenantAuth();
+            await makeRequest('GET', '/api/v1/quality-inspections', {
                 'X-Tenant-Slug': 'gourmet',
                 'Authorization': 'Bearer ' + currentToken
             });

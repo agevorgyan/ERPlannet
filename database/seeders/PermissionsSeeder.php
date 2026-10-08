@@ -49,6 +49,10 @@ class PermissionsSeeder extends Seeder
             ['code' => 'production.recipes.manage', 'module' => 'production', 'name' => 'Manage Recipes'],
             ['code' => 'production.orders.manage', 'module' => 'production', 'name' => 'Manage Production Orders'],
 
+            // Quality Assurance & ISO 22000
+            ['code' => 'quality.inspections.view', 'module' => 'quality', 'name' => 'View Quality Inspections'],
+            ['code' => 'quality.inspections.manage', 'module' => 'quality', 'name' => 'Perform & Manage Quality Inspections'],
+
             // Delivery
             ['code' => 'delivery.orders.view', 'module' => 'delivery', 'name' => 'View Deliveries'],
             ['code' => 'delivery.orders.dispatch', 'module' => 'delivery', 'name' => 'Dispatch Deliveries'],

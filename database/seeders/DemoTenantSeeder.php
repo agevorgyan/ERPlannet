@@ -14,9 +14,15 @@ use App\Domain\CRM\Models\CustomerAddress;
 use App\Domain\IAM\Models\Permission;
 use App\Domain\IAM\Models\Role;
 use App\Domain\IAM\Models\User;
+use App\Domain\Manufacturing\Models\ProductionOrder;
+use App\Domain\Manufacturing\Models\ProductionOrderItem;
+use App\Domain\Manufacturing\Models\Recipe;
+use App\Domain\Manufacturing\Models\RecipeItem;
 use App\Domain\Procurement\Models\PurchaseOrder;
 use App\Domain\Procurement\Models\PurchaseOrderItem;
 use App\Domain\Procurement\Models\Supplier;
+use App\Domain\Quality\Models\QualityInspection;
+use App\Domain\Quality\Models\QualityInspectionItem;
 use App\Domain\Sales\Models\Order;
 use App\Domain\Sales\Models\OrderItem;
 use App\Domain\Sales\Models\OrderStatusHistory;
@@ -35,7 +41,7 @@ class DemoTenantSeeder extends Seeder
 {
     public function run(): void
     {
-        $plan = Plan::where('code', 'growth')->first() ?? Plan::first();
+        $plan = Plan::where('code', 'enterprise')->first() ?? Plan::first();
 
         // 1. Tenant
         $tenant = Tenant::firstOrCreate(
@@ -200,6 +206,7 @@ class DemoTenantSeeder extends Seeder
                 'currency' => 'AMD',
                 'track_stock' => true,
                 'is_produced' => true,
+                'shelf_life_days' => 180,
             ]
         );
 
@@ -210,6 +217,71 @@ class DemoTenantSeeder extends Seeder
                 'name' => ['hy' => 'Կտրատված 200գ', 'en' => 'Sliced 200g'],
                 'sale_price' => 1600.00,
                 'attributes' => ['packaging' => 'sliced_200g'],
+            ]
+        );
+
+        $catRaw = Category::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'slug' => 'raw-materials'],
+            ['name' => ['hy' => 'Հումք և նյութեր', 'en' => 'Raw Materials', 'ru' => 'Сырье и материалы'], 'sort_order' => 4]
+        );
+
+        $pFlour = Product::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'sku' => 'ING-FLOUR'],
+            [
+                'category_id' => $catRaw->id,
+                'unit_id' => $unitKg->id,
+                'name' => ['hy' => 'Ցորենի ալյուր Բ/Տ', 'en' => 'Wheat Flour Premium', 'ru' => 'Мука пшеничная в/с'],
+                'cost_price' => 320.00,
+                'sale_price' => 420.00,
+                'currency' => 'AMD',
+                'track_stock' => true,
+                'is_produced' => false,
+                'shelf_life_days' => 180,
+            ]
+        );
+
+        $pYeast = Product::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'sku' => 'ING-YEAST'],
+            [
+                'category_id' => $catRaw->id,
+                'unit_id' => $unitKg->id,
+                'name' => ['hy' => 'Հացի խմորիչ չոր', 'en' => 'Baking Yeast Dry', 'ru' => 'Дрожжи сухие'],
+                'cost_price' => 1800.00,
+                'sale_price' => 2400.00,
+                'currency' => 'AMD',
+                'track_stock' => true,
+                'is_produced' => false,
+                'shelf_life_days' => 90,
+            ]
+        );
+
+        $pMilk = Product::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'sku' => 'ING-MILK'],
+            [
+                'category_id' => $catRaw->id,
+                'unit_id' => $unitKg->id,
+                'name' => ['hy' => 'Կովի անարատ կաթ', 'en' => 'Raw Cow Milk Grade A', 'ru' => 'Коровье молоко цельное'],
+                'cost_price' => 220.00,
+                'sale_price' => 280.00,
+                'currency' => 'AMD',
+                'track_stock' => true,
+                'is_produced' => false,
+                'shelf_life_days' => 3,
+            ]
+        );
+
+        $pSpices = Product::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'sku' => 'ING-SPICES'],
+            [
+                'category_id' => $catRaw->id,
+                'unit_id' => $unitKg->id,
+                'name' => ['hy' => 'Չաման և բաստուրմայի համեմունք', 'en' => 'Chaman & Basturma Spices', 'ru' => 'Чаман и специи'],
+                'cost_price' => 3500.00,
+                'sale_price' => 4500.00,
+                'currency' => 'AMD',
+                'track_stock' => true,
+                'is_produced' => false,
+                'shelf_life_days' => 365,
             ]
         );
 
@@ -519,6 +591,327 @@ class DemoTenantSeeder extends Seeder
                 'quantity_received' => 0.0000,
                 'unit_cost' => 4500.00,
                 'total' => 225000.00,
+            ]
+        );
+
+        // =========================================================================
+        // 14. Phase 3: Raw Material Stock Levels & Initial Inventory (WH-MAIN)
+        // =========================================================================
+        $rawInventory = [
+            ['product' => $pFlour, 'qty' => 1200.0, 'cost' => 320.0],
+            ['product' => $pYeast, 'qty' => 60.0, 'cost' => 1800.0],
+            ['product' => $pMilk, 'qty' => 850.0, 'cost' => 220.0],
+            ['product' => $pSpices, 'qty' => 45.0, 'cost' => 3500.0],
+        ];
+
+        foreach ($rawInventory as $item) {
+            StockLevel::updateOrCreate(
+                [
+                    'tenant_id' => $tenant->id,
+                    'warehouse_id' => $whMain->id,
+                    'product_id' => $item['product']->id,
+                    'product_variant_id' => null,
+                ],
+                [
+                    'quantity_on_hand' => $item['qty'],
+                    'quantity_reserved' => 0.0,
+                    'reorder_point' => 50.0,
+                    'ideal_stock' => 200.0,
+                ]
+            );
+
+            StockMovement::firstOrCreate(
+                [
+                    'tenant_id' => $tenant->id,
+                    'warehouse_id' => $whMain->id,
+                    'product_id' => $item['product']->id,
+                    'type' => 'adjustment_plus',
+                    'notes' => 'Initial raw materials stock intake',
+                ],
+                [
+                    'quantity' => $item['qty'],
+                    'unit_cost' => $item['cost'],
+                    'balance_before' => 0.0,
+                    'balance_after' => $item['qty'],
+                    'user_id' => $owner->id,
+                    'created_at' => now()->subDays(4),
+                ]
+            );
+        }
+
+        // =========================================================================
+        // 15. Phase 3: Recipes & Bill of Materials (BOM)
+        // =========================================================================
+        // Recipe 1: Tonir Matnakash Traditional (100 pcs)
+        $recipeBread = Recipe::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'code' => 'RCP-MATNAKASH-100'],
+            [
+                'product_id' => $p1->id,
+                'name' => 'Ավանդական Թոնրի Մատնաքաշ (100 հատ)',
+                'version' => '1.0',
+                'yield_quantity' => 100.0,
+                'yield_unit_id' => $unitPcs->id,
+                'scrap_percentage' => 1.5,
+                'labor_cost' => 3000.00,
+                'overhead_cost' => 1200.00,
+                'instructions' => '1. Խառնել ալյուրը, ջուրը և խմորիչը: 2. Հասունացնել 45 րոպե: 3. Թխել թոնրում 240°C 12-14 րոպե:',
+                'is_active' => true,
+            ]
+        );
+
+        RecipeItem::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'recipe_id' => $recipeBread->id, 'product_id' => $pFlour->id],
+            [
+                'quantity' => 50.0,
+                'unit_id' => $unitKg->id,
+                'waste_percentage' => 2.0,
+                'sort_order' => 1,
+                'notes' => 'Մաղած ալյուր',
+            ]
+        );
+
+        RecipeItem::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'recipe_id' => $recipeBread->id, 'product_id' => $pYeast->id],
+            [
+                'quantity' => 1.2,
+                'unit_id' => $unitKg->id,
+                'waste_percentage' => 0.0,
+                'sort_order' => 2,
+                'notes' => 'Տաք ջրում լուծված',
+            ]
+        );
+
+        // Recipe 2: Lori Cheese Homemade (10 kg)
+        $recipeCheese = Recipe::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'code' => 'RCP-LORI-CHEESE-10'],
+            [
+                'product_id' => $p2->id,
+                'name' => 'Լոռի Պանիր Տնական Բաղադրատոմս (10 կգ)',
+                'version' => '1.0',
+                'yield_quantity' => 10.0,
+                'yield_unit_id' => $unitKg->id,
+                'scrap_percentage' => 0.5,
+                'labor_cost' => 4500.00,
+                'overhead_cost' => 1800.00,
+                'instructions' => 'Պաստերիզացիա 72°C, մակարդում, շիճուկի հեռացում, աղաջրում հասունացում 45 օր:',
+                'is_active' => true,
+            ]
+        );
+
+        RecipeItem::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'recipe_id' => $recipeCheese->id, 'product_id' => $pMilk->id],
+            [
+                'quantity' => 100.0,
+                'unit_id' => $unitKg->id,
+                'waste_percentage' => 0.0,
+                'sort_order' => 1,
+                'notes' => 'Անարատ կովի կաթ',
+            ]
+        );
+
+        // Recipe 3: Basturma Premium (20 kg)
+        $recipeBasturma = Recipe::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'code' => 'RCP-BASTURMA-20'],
+            [
+                'product_id' => $p3->id,
+                'name' => 'Տավարի Բաստուրմա Պրեմիում (20 կգ)',
+                'version' => '1.0',
+                'yield_quantity' => 20.0,
+                'yield_unit_id' => $unitKg->id,
+                'scrap_percentage' => 3.0,
+                'labor_cost' => 15000.00,
+                'overhead_cost' => 6000.00,
+                'instructions' => 'Աղ դնել 14 օր, չորացնել ճնշման տակ, պատել չամանով և հասունացնել 25 օր:',
+                'is_active' => true,
+            ]
+        );
+
+        RecipeItem::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'recipe_id' => $recipeBasturma->id, 'product_id' => $pSpices->id],
+            [
+                'quantity' => 2.5,
+                'unit_id' => $unitKg->id,
+                'waste_percentage' => 1.0,
+                'sort_order' => 1,
+                'notes' => 'Չամանի խառնուրդ',
+            ]
+        );
+
+        // =========================================================================
+        // 16. Phase 3: Production Orders
+        // =========================================================================
+        // Order 1: Completed Tonir Matnakash batch
+        $batchMatnakash = StockBatch::firstOrCreate(
+            [
+                'tenant_id' => $tenant->id,
+                'warehouse_id' => $whMain->id,
+                'product_id' => $p1->id,
+                'batch_number' => "LOT-{$year}1008-000001",
+            ],
+            [
+                'quantity_on_hand' => 98.0,
+                'cost_price' => 155.0,
+                'mfg_date' => now()->toDateString(),
+                'expiry_date' => now()->addDays(3)->toDateString(),
+                'status' => 'active',
+                'notes' => 'Առավոտյան թխվածք #1 (Թոնիր)',
+            ]
+        );
+
+        $prodOrder1 = ProductionOrder::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'order_number' => "PRD-{$year}-000001"],
+            [
+                'recipe_id' => $recipeBread->id,
+                'product_id' => $p1->id,
+                'product_variant_id' => null,
+                'source_warehouse_id' => $whMain->id,
+                'target_warehouse_id' => $whMain->id,
+                'user_id' => $owner->id,
+                'status' => 'completed',
+                'planned_quantity' => 100.0,
+                'actual_quantity' => 98.0,
+                'waste_quantity' => 2.0,
+                'unit_cost' => 155.0,
+                'total_cost' => 15190.0,
+                'stock_batch_id' => $batchMatnakash->id,
+                'planned_start_date' => now()->subHours(4)->toDateString(),
+                'started_at' => now()->subHours(4),
+                'completed_at' => now()->subHours(1),
+                'notes' => 'Առավոտյան թոնրի հերթափոխ #1',
+            ]
+        );
+
+        ProductionOrderItem::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'production_order_id' => $prodOrder1->id, 'product_id' => $pFlour->id],
+            [
+                'planned_quantity' => 51.0,
+                'consumed_quantity' => 51.0,
+                'unit_cost' => 320.0,
+                'total_cost' => 16320.0,
+            ]
+        );
+
+        ProductionOrderItem::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'production_order_id' => $prodOrder1->id, 'product_id' => $pYeast->id],
+            [
+                'planned_quantity' => 1.2,
+                'consumed_quantity' => 1.2,
+                'unit_cost' => 1800.0,
+                'total_cost' => 2160.0,
+            ]
+        );
+
+        // Movement for yield
+        StockMovement::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'reference_type' => ProductionOrder::class, 'reference_id' => $prodOrder1->id, 'type' => 'production_yield'],
+            [
+                'warehouse_id' => $whMain->id,
+                'product_id' => $p1->id,
+                'stock_batch_id' => $batchMatnakash->id,
+                'quantity' => 98.0,
+                'unit_cost' => 155.0,
+                'balance_before' => 150.0,
+                'balance_after' => 248.0,
+                'user_id' => $owner->id,
+                'notes' => 'Finished goods yield from PRD-2026-000001',
+                'created_at' => now()->subHours(1),
+            ]
+        );
+
+        // Order 2: In-Progress Lori Cheese
+        $prodOrder2 = ProductionOrder::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'order_number' => "PRD-{$year}-000002"],
+            [
+                'recipe_id' => $recipeCheese->id,
+                'product_id' => $p2->id,
+                'product_variant_id' => null,
+                'source_warehouse_id' => $whMain->id,
+                'target_warehouse_id' => $whCold->id,
+                'user_id' => $owner->id,
+                'status' => 'in_progress',
+                'planned_quantity' => 30.0,
+                'actual_quantity' => 0.0,
+                'waste_quantity' => 0.0,
+                'unit_cost' => 0.0,
+                'total_cost' => 66000.0,
+                'planned_start_date' => now()->toDateString(),
+                'started_at' => now()->subHours(2),
+                'notes' => 'Պանրի խմբաքանակի մշակում պաստերիզացիայի փուլում',
+            ]
+        );
+
+        ProductionOrderItem::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'production_order_id' => $prodOrder2->id, 'product_id' => $pMilk->id],
+            [
+                'planned_quantity' => 300.0,
+                'consumed_quantity' => 300.0,
+                'unit_cost' => 220.0,
+                'total_cost' => 66000.0,
+            ]
+        );
+
+        // =========================================================================
+        // 17. Phase 3: ISO 22000 / HACCP Quality Assurance Inspection
+        // =========================================================================
+        $qaInspection = QualityInspection::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'inspection_number' => "QA-{$year}-000001"],
+            [
+                'production_order_id' => $prodOrder1->id,
+                'inspector_id' => $owner->id,
+                'status' => 'passed',
+                'standard_applied' => 'ISO 22000:2018 / HACCP',
+                'overall_score' => 100.0,
+                'notes' => 'Թխման պարամետրերը և մանրէաբանական սահմանները համապատասխանում են ISO 22000 ստանդարտին:',
+                'inspected_at' => now()->subHours(1)->subMinutes(15),
+            ]
+        );
+
+        QualityInspectionItem::firstOrCreate(
+            [
+                'tenant_id' => $tenant->id,
+                'quality_inspection_id' => $qaInspection->id,
+                'critical_control_point' => 'CCP-1',
+            ],
+            [
+                'parameter_name' => 'Թոնրի թխման ջերմաստիճան (Baking Temperature)',
+                'target_value' => '240.0',
+                'min_value' => 230.0,
+                'max_value' => 255.0,
+                'actual_value' => '242.0',
+                'unit' => '°C',
+                'is_passed' => true,
+            ]
+        );
+
+        QualityInspectionItem::firstOrCreate(
+            [
+                'tenant_id' => $tenant->id,
+                'quality_inspection_id' => $qaInspection->id,
+                'critical_control_point' => 'CCP-2',
+            ],
+            [
+                'parameter_name' => 'Խոնավության պարունակություն (Moisture Content)',
+                'target_value' => '38.0',
+                'min_value' => 35.0,
+                'max_value' => 42.0,
+                'actual_value' => '38.4',
+                'unit' => '%',
+                'is_passed' => true,
+            ]
+        );
+
+        QualityInspectionItem::firstOrCreate(
+            [
+                'tenant_id' => $tenant->id,
+                'quality_inspection_id' => $qaInspection->id,
+                'critical_control_point' => 'CCP-3',
+            ],
+            [
+                'parameter_name' => 'Մետաղորսիչ և օտար մարմիններ (Metal Detection)',
+                'target_value' => 'Բացակայում է',
+                'actual_value' => 'Մաքուր / Չի հայտնաբերվել',
+                'unit' => 'ստուգում',
+                'is_passed' => true,
             ]
         );
     }
