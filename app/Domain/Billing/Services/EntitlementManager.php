@@ -76,15 +76,24 @@ class EntitlementManager implements EntitlementManagerInterface
         }
 
         $subscription = $tenant->activeSubscription;
-        if (!$subscription) {
-            return 0;
+        $usageCount = 0;
+        if ($subscription) {
+            $usage = SubscriptionUsage::where('subscription_id', $subscription->id)
+                ->where('feature_code', $featureCode)
+                ->first();
+            $usageCount = $usage ? (int) $usage->used_count : 0;
         }
 
-        $usage = SubscriptionUsage::where('subscription_id', $subscription->id)
-            ->where('feature_code', $featureCode)
-            ->first();
+        $modelCount = 0;
+        if ($featureCode === 'limit.users') {
+            $modelCount = \App\Domain\IAM\Models\User::withoutGlobalScopes()->where('tenant_id', $tenant->id)->count();
+        } elseif ($featureCode === 'limit.branches') {
+            $modelCount = \App\Domain\Branch\Models\Branch::withoutGlobalScopes()->where('tenant_id', $tenant->id)->count();
+        } elseif ($featureCode === 'limit.products') {
+            $modelCount = \App\Domain\Catalog\Models\Product::withoutGlobalScopes()->where('tenant_id', $tenant->id)->count();
+        }
 
-        return $usage ? (int) $usage->used_count : 0;
+        return max($usageCount, $modelCount);
     }
 
     public function canConsume(string $featureCode, int $count = 1): bool

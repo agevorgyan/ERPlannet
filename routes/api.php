@@ -3,8 +3,14 @@
 use App\Http\Controllers\Api\V1\Platform\PlanManagementController;
 use App\Http\Controllers\Api\V1\Platform\PlatformAuthController;
 use App\Http\Controllers\Api\V1\Platform\TenantManagementController;
+use App\Http\Controllers\Api\V1\Tenant\BranchController;
+use App\Http\Controllers\Api\V1\Tenant\Catalog\CategoryController;
+use App\Http\Controllers\Api\V1\Tenant\Catalog\ProductController;
+use App\Http\Controllers\Api\V1\Tenant\Catalog\UnitController;
+use App\Http\Controllers\Api\V1\Tenant\CRM\CustomerController;
 use App\Http\Controllers\Api\V1\Tenant\PaymentController;
 use App\Http\Controllers\Api\V1\Tenant\RoleController;
+use App\Http\Controllers\Api\V1\Tenant\Sales\OrderController;
 use App\Http\Controllers\Api\V1\Tenant\SubscriptionController;
 use App\Http\Controllers\Api\V1\Tenant\TenantAuthController;
 use Illuminate\Support\Facades\Route;
@@ -84,6 +90,24 @@ Route::prefix('v1')->group(function () {
 
             // Roles & RBAC
             Route::apiResource('roles', RoleController::class);
+
+            // Branches
+            Route::apiResource('branches', BranchController::class);
+
+            // Catalog
+            Route::apiResource('categories', CategoryController::class);
+            Route::get('/units', [UnitController::class, 'index']);
+            Route::post('/units', [UnitController::class, 'store']);
+            Route::apiResource('products', ProductController::class);
+
+            // CRM & Customers
+            Route::apiResource('customers', CustomerController::class);
+            Route::post('/customers/{id}/addresses', [CustomerController::class, 'addAddress']);
+
+            // Sales & Orders
+            Route::apiResource('orders', OrderController::class)->only(['index', 'store', 'show']);
+            Route::post('/orders/{id}/status', [OrderController::class, 'transitionStatus']);
+            Route::post('/orders/{id}/cancel', [OrderController::class, 'cancel']);
 
             // Subscription & Entitlements
             Route::get('/subscription', [SubscriptionController::class, 'show']);

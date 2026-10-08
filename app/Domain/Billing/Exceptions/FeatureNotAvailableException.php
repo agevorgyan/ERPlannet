@@ -3,6 +3,7 @@
 namespace App\Domain\Billing\Exceptions;
 
 use Exception;
+use Illuminate\Http\JsonResponse;
 
 class FeatureNotAvailableException extends Exception
 {
@@ -11,6 +12,18 @@ class FeatureNotAvailableException extends Exception
         string $message = ''
     ) {
         $message = $message ?: "Feature '{$featureCode}' is not included in the current subscription plan.";
-        parent::__construct($message, 403); // HTTP 403 Forbidden
+        parent::__construct($message, 403);
+    }
+
+    public function render($request): JsonResponse
+    {
+        return response()->json([
+            'success' => false,
+            'error' => [
+                'code' => 'FEATURE_NOT_INCLUDED',
+                'message' => $this->getMessage(),
+                'feature' => $this->featureCode,
+            ],
+        ], 403);
     }
 }
