@@ -32,6 +32,11 @@ use App\Http\Controllers\Api\V1\Tenant\Warehouse\StockLevelController;
 use App\Http\Controllers\Api\V1\Tenant\Warehouse\StockMovementController;
 use App\Http\Controllers\Api\V1\Tenant\Warehouse\StockTransferController;
 use App\Http\Controllers\Api\V1\Tenant\Warehouse\WarehouseController;
+use App\Http\Controllers\Api\V1\Tenant\IntegrationController;
+use App\Http\Controllers\Api\V1\Tenant\WebhookSubscriptionController;
+use App\Http\Controllers\Api\V1\Tenant\NotificationTemplateController;
+use App\Http\Controllers\Api\V1\Tenant\AccountingExportController;
+use App\Http\Controllers\Api\V1\Tenant\InboundWebhookController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -68,6 +73,9 @@ Route::prefix('v1')->group(function () {
 
         return response()->json(['success' => false, 'error' => 'Locale not found'], 404);
     });
+
+    // Inbound Webhooks Ingress (WooCommerce, etc. - Verified by HMAC)
+    Route::post('/webhooks/ingress/woocommerce/{integrationId}', [InboundWebhookController::class, 'handleWooCommerce']);
 
     /*
     |--------------------------------------------------------------------------
@@ -201,9 +209,35 @@ Route::prefix('v1')->group(function () {
             Route::get('/orders/{id}/payments', [OrderPaymentController::class, 'transactions']);
             Route::post('/payments/{id}/refund', [OrderPaymentController::class, 'refund']);
             Route::post('/payments/{id}/reconcile', [OrderPaymentController::class, 'reconcile']);
+
+            // Phase 5: Integrations & External Ecosystem
+            Route::apiResource('integrations', IntegrationController::class);
+            Route::post('/integrations/{integration}/test-connection', [IntegrationController::class, 'testConnection']);
+            Route::post('/integrations/{integration}/sync/products', [IntegrationController::class, 'syncProducts']);
+            Route::post('/integrations/{integration}/sync/stock', [IntegrationController::class, 'syncStock']);
+            Route::post('/integrations/{integration}/sync/orders', [IntegrationController::class, 'syncOrders']);
+            Route::get('/integrations/{integration}/logs', [IntegrationController::class, 'logs']);
+
+            // Webhook Subscriptions (Outbound)
+            Route::get('/webhooks/subscriptions', [WebhookSubscriptionController::class, 'index']);
+            Route::post('/webhooks/subscriptions', [WebhookSubscriptionController::class, 'store']);
+            Route::delete('/webhooks/subscriptions/{subscription}', [WebhookSubscriptionController::class, 'destroy']);
+            Route::get('/webhooks/deliveries', [WebhookSubscriptionController::class, 'deliveries']);
+            Route::post('/webhooks/deliveries/{delivery}/retry', [WebhookSubscriptionController::class, 'retry']);
+
+            // Notifications & Templates
+            Route::get('/notifications/templates', [NotificationTemplateController::class, 'index']);
+            Route::post('/notifications/templates', [NotificationTemplateController::class, 'store']);
+            Route::put('/notifications/templates/{template}', [NotificationTemplateController::class, 'update']);
+            Route::post('/notifications/test-send', [NotificationTemplateController::class, 'testSend']);
+
+            // Accounting & Fiscal Data Export (1C & Armenian Software)
+            Route::get('/accounting-export/1c/invoices', [AccountingExportController::class, 'exportInvoices']);
+            Route::get('/accounting-export/as/data', [AccountingExportController::class, 'exportInventory']);
         });
 
         // Payment Webhooks
         Route::post('/payments/webhooks/{gateway}', [OrderPaymentController::class, 'webhook']);
     });
 });
+
