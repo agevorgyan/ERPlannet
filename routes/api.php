@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\Platform\TenantManagementController;
 use App\Http\Controllers\Api\V1\Tenant\AccountingExportController;
 use App\Http\Controllers\Api\V1\Tenant\BranchController;
 use App\Http\Controllers\Api\V1\Tenant\Catalog\CategoryController;
+use App\Http\Controllers\Api\V1\Tenant\Catalog\IngredientController;
 use App\Http\Controllers\Api\V1\Tenant\Catalog\ProductController;
 use App\Http\Controllers\Api\V1\Tenant\Catalog\UnitController;
 use App\Http\Controllers\Api\V1\Tenant\CRM\CustomerController;
@@ -149,13 +150,18 @@ Route::prefix('v1')->group(function () {
             Route::post('/inventory/transfers/{id}/receive', [StockTransferController::class, 'receive']);
 
             // Procurement & Suppliers
+            Route::post('/suppliers/{id}/toggle-suspend', [SupplierController::class, 'toggleSuspend']);
+            Route::post('/suppliers/{id}/restore', [SupplierController::class, 'restore']);
+            Route::delete('/suppliers/{id}/force', [SupplierController::class, 'forceDelete']);
             Route::apiResource('suppliers', SupplierController::class);
             Route::apiResource('purchase-orders', PurchaseOrderController::class)->only(['index', 'store', 'show']);
             Route::post('/purchase-orders/{id}/submit', [PurchaseOrderController::class, 'submit']);
             Route::post('/purchase-orders/{id}/receive', [PurchaseOrderController::class, 'receive']);
             Route::post('/purchase-orders/{id}/cancel', [PurchaseOrderController::class, 'cancel']);
 
-            // Catalog
+            // Catalog & Directory
+            Route::post('/ingredients/import-invoices', [IngredientController::class, 'importInvoices']);
+            Route::apiResource('ingredients', IngredientController::class);
             Route::apiResource('categories', CategoryController::class);
             Route::get('/units', [UnitController::class, 'index']);
             Route::post('/units', [UnitController::class, 'store']);

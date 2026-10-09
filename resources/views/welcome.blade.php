@@ -29,6 +29,7 @@
             branches: @json($branches),
             warehouses: @json($warehouses),
             suppliers: @json($suppliers),
+            ingredients: @json($ingredients),
             products: @json($products),
             categories: @json($categories),
             units: @json($units),
@@ -89,6 +90,24 @@
                             <span class="nav-icon"><i class="fa-solid fa-tags"></i></span>
                             <span>Catalog &amp; Items</span>
                             <span class="nav-pill">{{ count($products) }}</span>
+                        </a>
+                    </li>
+                    <!-- Directory Section (Տեղեկագիր) -->
+                    <li style="margin-top: 0.5rem; padding: 0.35rem 0.85rem 0.15rem; font-size: 0.68rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-subtle);">
+                        <i class="fa-solid fa-book-bookmark" style="margin-right: 4px; color: var(--color-primary);"></i> Տեղեկագիր
+                    </li>
+                    <li>
+                        <a href="#directory-suppliers" class="nav-item-link" data-view="directory-suppliers" onclick="ERP.navigateTo('directory-suppliers')">
+                            <span class="nav-icon"><i class="fa-solid fa-truck-field"></i></span>
+                            <span>Մատակարարներ</span>
+                            <span class="nav-pill" id="sidebar-suppliers-count">{{ count($suppliers) }}</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#directory-ingredients" class="nav-item-link" data-view="directory-ingredients" onclick="ERP.navigateTo('directory-ingredients')">
+                            <span class="nav-icon"><i class="fa-solid fa-mortar-pestle"></i></span>
+                            <span>Բաղադրիչներ</span>
+                            <span class="nav-pill" id="sidebar-ingredients-count">{{ count($ingredients) }}</span>
                         </a>
                     </li>
                     <li>
@@ -848,6 +867,402 @@
                                         </tr>
                                     @empty
                                         <tr><td colspan="8" style="text-align: center; color: var(--text-muted);">No products registered yet.</td></tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ==============================================================
+                     VIEW: DIRECTORY - SUPPLIERS (Տեղեկագիր: Մատակարարներ)
+                     ============================================================== -->
+                <section class="view-panel" id="view-directory-suppliers" style="display: none;">
+                    <div class="welcome-banner">
+                        <div>
+                            <h2 class="welcome-title"><i class="fa-solid fa-truck-field" style="color: var(--color-primary); margin-right: 8px;"></i> Տեղեկագիր: Մատակարարներ</h2>
+                            <p class="welcome-subtitle">Մատակարարների ռեեստր, ՀՎՀՀ, կոնտակտներ, առաքման հասցեներ, առաքիչների պարկ, կցված ապրանքներ և զամբյուղ:</p>
+                        </div>
+                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                            <button class="btn btn-primary btn-sm" onclick="ERP.directory.suppliers.openCreateModal()">
+                                <i class="fa-solid fa-plus"></i> Ավելացնել Մատակարար
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header" style="flex-wrap: wrap; gap: 0.75rem;">
+                            <!-- Segmented Tabs: All / Active / Suspended / Trash -->
+                            <div class="directory-tabs">
+                                <button type="button" class="directory-tab-btn active" id="tab-sup-all" onclick="ERP.directory.suppliers.switchTab('all')">
+                                    <i class="fa-solid fa-list"></i> Բոլորը <span class="badge badge-slate" id="sup-count-all">{{ count($suppliers) }}</span>
+                                </button>
+                                <button type="button" class="directory-tab-btn" id="tab-sup-active" onclick="ERP.directory.suppliers.switchTab('active')">
+                                    <i class="fa-solid fa-circle-check" style="color: var(--color-success);"></i> Ակտիվ <span class="badge badge-emerald" id="sup-count-active">{{ $suppliers->where('is_active', true)->count() }}</span>
+                                </button>
+                                <button type="button" class="directory-tab-btn" id="tab-sup-suspended" onclick="ERP.directory.suppliers.switchTab('suspended')">
+                                    <i class="fa-solid fa-circle-pause" style="color: var(--color-warning);"></i> Կասեցված <span class="badge badge-amber" id="sup-count-suspended">{{ $suppliers->where('is_active', false)->count() }}</span>
+                                </button>
+                                <button type="button" class="directory-tab-btn tab-trash" id="tab-sup-trash" onclick="ERP.directory.suppliers.switchTab('trash')">
+                                    <i class="fa-solid fa-trash-can" style="color: var(--color-danger);"></i> Զամբյուղ <span class="badge badge-trash" id="sup-count-trash">0</span>
+                                </button>
+                            </div>
+
+                            <div style="display: flex; gap: 0.5rem; align-items: center; margin-left: auto;">
+                                <div style="position: relative;">
+                                    <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 0.8rem;"></i>
+                                    <input type="text" class="form-control form-control-sm" id="sup-search-input" placeholder="Որոնել (անվանում, ՀՎՀՀ, հեռախոս)..." style="padding-left: 30px; width: 260px;" oninput="ERP.directory.suppliers.handleSearch(this.value)">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Անվանում / ID</th>
+                                        <th>ՀՎՀՀ</th>
+                                        <th>Կոնտակտներ</th>
+                                        <th>Հասցեներ</th>
+                                        <th>Առաքիչներ</th>
+                                        <th>Մատակարարվող Ապրանքներ</th>
+                                        <th>Կարգավիճակ</th>
+                                        <th style="text-align: right;">Գործողություններ</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="directory-suppliers-table-body">
+                                    @forelse($suppliers as $sup)
+                                        <tr id="sup-row-{{ $sup->id }}">
+                                            <td>
+                                                <div style="font-weight: 800; color: var(--text-heading);">{{ $sup->company_name }}</div>
+                                                @if($sup->legal_name && $sup->legal_name !== $sup->company_name)
+                                                    <div style="font-size: 0.72rem; color: var(--text-muted);">{{ $sup->legal_name }}</div>
+                                                @endif
+                                                <div class="font-mono" style="font-size: 0.68rem; color: #94A3B8;">ID: {{ substr($sup->id, 0, 8) }}...</div>
+                                            </td>
+                                            <td class="font-mono" style="font-weight: 700; color: var(--color-primary);">
+                                                {{ $sup->tax_id ?: '—' }}
+                                            </td>
+                                            <td>
+                                                <div style="display: flex; flex-direction: column; gap: 2px; font-size: 0.78rem;">
+                                                    <div><i class="fa-solid fa-phone" style="width: 14px; color: var(--text-muted);"></i> {{ $sup->phone }}</div>
+                                                    @if($sup->email)
+                                                        <div><i class="fa-solid fa-envelope" style="width: 14px; color: var(--text-muted);"></i> <a href="mailto:{{ $sup->email }}" style="color: var(--color-primary);">{{ $sup->email }}</a></div>
+                                                    @endif
+                                                    @if($sup->website)
+                                                        <div><i class="fa-solid fa-globe" style="width: 14px; color: var(--text-muted);"></i> <a href="{{ Str::startsWith($sup->website, 'http') ? $sup->website : 'https://' . $sup->website }}" target="_blank" style="color: var(--color-primary); text-decoration: underline;">{{ $sup->website }}</a></div>
+                                                    @endif
+                                                </div>
+                                            </td>
+                                            <td style="max-width: 200px;">
+                                                <div style="font-size: 0.76rem; display: flex; flex-direction: column; gap: 3px;">
+                                                    @if($sup->legal_address)
+                                                        <div><strong>Իրավ․:</strong> {{ $sup->legal_address }}</div>
+                                                    @endif
+                                                    @if($sup->shipping_address)
+                                                        <div style="color: #0284C7;"><strong>Առաքում:</strong> {{ $sup->shipping_address }}</div>
+                                                    @elseif($sup->address)
+                                                        <div>{{ $sup->address }}</div>
+                                                    @else
+                                                        <span style="color: var(--text-muted);">—</span>
+                                                    @endif
+                                                </div>
+                                            </td>
+                                            <td>
+                                                @php $couriers = $sup->couriers ?? collect(); @endphp
+                                                @if($couriers->count() > 0)
+                                                    <button class="btn btn-xs btn-outline-secondary" onclick="ERP.directory.suppliers.showCouriers('{{ $sup->id }}')" style="font-size: 0.72rem; padding: 3px 8px; border-radius: 6px;">
+                                                        <i class="fa-solid fa-truck"></i> {{ $couriers->count() }} Առաքիչ
+                                                    </button>
+                                                @else
+                                                    <span style="color: var(--text-muted); font-size: 0.75rem;">—</span>
+                                                @endif
+                                            </td>
+                                            <td style="max-width: 220px;">
+                                                @php $supProds = $sup->products ?? collect(); @endphp
+                                                @if($supProds->count() > 0)
+                                                    <div style="display: flex; flex-wrap: wrap; gap: 3px;">
+                                                        @foreach($supProds->take(3) as $sp)
+                                                            <span class="item-chip">{{ $sp->getLocalizedName() }}</span>
+                                                        @endforeach
+                                                        @if($supProds->count() > 3)
+                                                            <span class="badge badge-slate">+{{ $supProds->count() - 3 }}</span>
+                                                        @endif
+                                                    </div>
+                                                @else
+                                                    <span style="color: var(--text-muted); font-size: 0.75rem;">Կցված չէ</span>
+                                                @endif
+                                            </td>
+                                            <td>
+                                                @if($sup->is_active)
+                                                    <span class="badge badge-emerald"><i class="fa-solid fa-circle-check"></i> Ակտիվ</span>
+                                                @else
+                                                    <span class="badge badge-suspended"><i class="fa-solid fa-circle-pause"></i> Կասեցված</span>
+                                                @endif
+                                            </td>
+                                            <td style="text-align: right;">
+                                                <div style="display: inline-flex; gap: 4px;">
+                                                    <button class="btn btn-xs btn-outline-secondary" title="Խմբագրել" onclick="ERP.directory.suppliers.openEditModal('{{ $sup->id }}')">
+                                                        <i class="fa-solid fa-pen-to-square"></i>
+                                                    </button>
+                                                    <button class="btn btn-xs {{ $sup->is_active ? 'btn-outline-warning' : 'btn-outline-success' }}" title="{{ $sup->is_active ? 'Կասեցնել' : 'Ակտիվացնել' }}" onclick="ERP.directory.suppliers.toggleSuspend('{{ $sup->id }}')">
+                                                        <i class="fa-solid {{ $sup->is_active ? 'fa-pause' : 'fa-play' }}"></i>
+                                                    </button>
+                                                    <button class="btn btn-xs btn-outline-danger" title="Տեղափոխել Զամբյուղ" onclick="ERP.directory.suppliers.deleteSupplier('{{ $sup->id }}')">
+                                                        <i class="fa-solid fa-trash-can"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 2rem;">Մատակարարներ գրանցված չեն: Սեղմեք «Ավելացնել Մատակարար» ստեղծելու համար:</td></tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ==============================================================
+                     VIEW: DIRECTORY - INGREDIENTS (Տեղեկագիր: Բաղադրիչներ)
+                     ============================================================== -->
+                <section class="view-panel" id="view-directory-ingredients" style="display: none;">
+                    <div class="welcome-banner">
+                        <div>
+                            <h2 class="welcome-title"><i class="fa-solid fa-mortar-pestle" style="color: var(--color-primary); margin-right: 8px;"></i> Տեղեկագիր: Բաղադրիչներ և Հումք</h2>
+                            <p class="welcome-subtitle">Բաղադրիչների մուտքագրում (ձեռքով կամ ինվոյսների ֆայլային ներմուծմամբ), պահեստի մնացորդներ, նվազագույն քանակներ և բաղադրատոմսերի կապ:</p>
+                        </div>
+                        <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                            <button class="btn btn-secondary btn-sm" onclick="ERP.directory.ingredients.openImportModal()">
+                                <i class="fa-solid fa-file-arrow-up"></i> Ներմուծել Ինվոյս (.xml, .xls, .csv)
+                            </button>
+                            <button class="btn btn-primary btn-sm" onclick="ERP.directory.ingredients.openCreateModal()">
+                                <i class="fa-solid fa-plus"></i> Ձեռքով Մուտքագրել
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Ingredients Summary Metric Cards -->
+                    <div class="metrics-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom: 1.25rem;">
+                        <div class="metric-card">
+                            <div class="metric-icon" style="background: #EEF2FF; color: #4F46E5;"><i class="fa-solid fa-cubes-stacked"></i></div>
+                            <div class="metric-details">
+                                <div class="metric-label">Ընդհանուր Բաղադրիչներ</div>
+                                <div class="metric-val" id="ing-stat-total">{{ count($ingredients) }}</div>
+                            </div>
+                        </div>
+
+                        @php
+                            $lowStockCount = $ingredients->filter(function($i) {
+                                $s = (float)($i->current_stock ?? 0);
+                                $m = (float)($i->min_stock_level ?? 0);
+                                return $m > 0 && $s <= $m;
+                            })->count();
+                            $totalValuation = $ingredients->sum(function($i) {
+                                return (float)($i->cost_price ?? 0) * (float)($i->current_stock ?? 0);
+                            });
+                        @endphp
+
+                        <div class="metric-card" style="cursor: pointer;" onclick="ERP.directory.ingredients.toggleLowStockFilter()" title="Սեղմեք ֆիլտրելու համար">
+                            <div class="metric-icon" style="background: #FEF2F2; color: #DC2626;"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                            <div class="metric-details">
+                                <div class="metric-label">Նվազագույնից Ցածր Պաշար</div>
+                                <div class="metric-val" style="color: #DC2626;" id="ing-stat-low">{{ $lowStockCount }}</div>
+                            </div>
+                        </div>
+
+                        <div class="metric-card">
+                            <div class="metric-icon" style="background: #ECFDF5; color: #059669;"><i class="fa-solid fa-coins"></i></div>
+                            <div class="metric-details">
+                                <div class="metric-label">Պաշարների Ընդհանուր Արժեք</div>
+                                <div class="metric-val" style="color: #059669;" id="ing-stat-val">{{ number_format($totalValuation, 0) }} ֏</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header" style="flex-wrap: wrap; gap: 0.75rem;">
+                            <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; flex: 1;">
+                                <div style="position: relative; min-width: 240px;">
+                                    <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 0.8rem;"></i>
+                                    <input type="text" class="form-control form-control-sm" id="ing-search-input" placeholder="Որոնել (անվանում, SKU, EAN-13, ԱՏԳ ԱԱ)..." style="padding-left: 30px;" oninput="ERP.directory.ingredients.handleSearch(this.value)">
+                                </div>
+
+                                <select class="select select-sm" id="ing-category-filter" style="width: 170px;" onchange="ERP.directory.ingredients.handleCategoryFilter(this.value)">
+                                    <option value="">Բոլոր Կատեգորիաները</option>
+                                    @foreach($categories as $cat)
+                                        <option value="{{ $cat->id }}">{{ is_array($cat->name) ? ($cat->name['hy'] ?? reset($cat->name)) : $cat->name }}</option>
+                                    @endforeach
+                                </select>
+
+                                <select class="select select-sm" id="ing-supplier-filter" style="width: 170px;" onchange="ERP.directory.ingredients.handleSupplierFilter(this.value)">
+                                    <option value="">Բոլոր Մատակարարները</option>
+                                    @foreach($suppliers as $s)
+                                        <option value="{{ $s->id }}">{{ $s->company_name }}</option>
+                                    @endforeach
+                                </select>
+
+                                <button type="button" class="btn btn-sm btn-outline-danger" id="ing-low-stock-btn" onclick="ERP.directory.ingredients.toggleLowStockFilter()">
+                                    <i class="fa-solid fa-triangle-exclamation"></i> Միայն Նվազագույն Քանակով
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Կատեգորիա / Ենթակատեգորիա</th>
+                                        <th>ID / SKU / EAN-13</th>
+                                        <th>ԱՏԳ ԱԱ</th>
+                                        <th>Ապրանքի Անվանում &amp; Նկարագրություն</th>
+                                        <th>Չ/Մ</th>
+                                        <th>Քանակ</th>
+                                        <th>Միավորի Գին</th>
+                                        <th>Զեղչ (%)</th>
+                                        <th>Արժեք</th>
+                                        <th>Զեղչված Արժեք</th>
+                                        <th>Տարա</th>
+                                        <th>ԱԱՀ (%) &amp; Գումար</th>
+                                        <th>Գործարքի Տեսակ</th>
+                                        <th>Մատակարարներ</th>
+                                        <th>Պահեստի Մնացորդ</th>
+                                        <th>Նվազագույն Քանակ</th>
+                                        <th>Օգտագործվում Է</th>
+                                        <th style="text-align: right;">Գործողություններ</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="directory-ingredients-table-body">
+                                    @forelse($ingredients as $ing)
+                                        @php
+                                            $stock = (float)($ing->current_stock ?? 0);
+                                            $minStock = (float)($ing->min_stock_level ?? 0);
+                                            $isLow = ($minStock > 0 && $stock <= $minStock);
+                                            $costPrice = (float)($ing->cost_price ?? 0);
+                                            $discPercent = (float)($ing->discount_percent ?? 0);
+                                            $subtotal = round($costPrice * max(1, $stock), 2);
+                                            $discounted = round($subtotal * (1 - ($discPercent / 100)), 2);
+                                            $vatRate = (float)($ing->vat_rate ?? 20.00);
+                                            $vatAmount = round($discounted * ($vatRate / 100), 2);
+                                            $whereUsedCount = $ing->recipesWhereUsed ? $ing->recipesWhereUsed->count() : 0;
+                                        @endphp
+                                        <tr id="ing-row-{{ $ing->id }}" class="{{ $isLow ? 'low-stock-alert' : '' }}">
+                                            <td>
+                                                <div style="font-weight: 700; color: var(--text-heading);">
+                                                    {{ $ing->category ? (is_array($ing->category->name) ? ($ing->category->name['hy'] ?? reset($ing->category->name)) : $ing->category->name) : '—' }}
+                                                </div>
+                                                @if($ing->subcategory)
+                                                    <div style="font-size: 0.72rem; color: var(--color-primary);">
+                                                        ↳ {{ is_array($ing->subcategory->name) ? ($ing->subcategory->name['hy'] ?? reset($ing->subcategory->name)) : $ing->subcategory->name }}
+                                                    </div>
+                                                @endif
+                                            </td>
+                                            <td>
+                                                <div class="font-mono" style="font-weight: 800; color: var(--color-primary);">{{ $ing->sku }}</div>
+                                                @if($ing->barcode)
+                                                    <div class="font-mono" style="font-size: 0.72rem; color: var(--text-muted);"><i class="fa-solid fa-barcode"></i> {{ $ing->barcode }}</div>
+                                                @endif
+                                                <div class="font-mono" style="font-size: 0.65rem; color: #94A3B8;">ID: {{ substr($ing->id, 0, 8) }}...</div>
+                                            </td>
+                                            <td class="font-mono" style="font-size: 0.75rem;">
+                                                {{ $ing->hs_code ?: '—' }}
+                                            </td>
+                                            <td>
+                                                <div style="font-weight: 800; color: var(--text-heading);">
+                                                    {{ $ing->getLocalizedName() }}
+                                                </div>
+                                                @php $desc = is_array($ing->description) ? ($ing->description['hy'] ?? '') : ($ing->description ?? ''); @endphp
+                                                @if($desc)
+                                                    <div style="font-size: 0.72rem; color: var(--text-muted); max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ $desc }}">
+                                                        {{ $desc }}
+                                                    </div>
+                                                @endif
+                                            </td>
+                                            <td class="font-mono">
+                                                {{ $ing->unit ? (is_array($ing->unit->name) ? ($ing->unit->name['hy'] ?? reset($ing->unit->name)) : $ing->unit->name) : 'կգ' }}
+                                            </td>
+                                            <td class="font-mono" style="font-weight: 700;">
+                                                {{ number_format($stock, 2) }}
+                                            </td>
+                                            <td class="font-mono">
+                                                {{ number_format($costPrice, 2) }} ֏
+                                            </td>
+                                            <td class="font-mono">
+                                                {{ $discPercent > 0 ? $discPercent . '%' : '0%' }}
+                                            </td>
+                                            <td class="font-mono" style="font-weight: 700;">
+                                                {{ number_format($subtotal, 2) }} ֏
+                                            </td>
+                                            <td class="font-mono" style="font-weight: 700; color: #0284C7;">
+                                                {{ number_format($discounted, 2) }} ֏
+                                            </td>
+                                            <td>
+                                                <span class="badge badge-slate" style="font-size: 0.7rem;">{{ $ing->packaging ?: 'Առանց տարայի' }}</span>
+                                            </td>
+                                            <td class="font-mono" style="font-size: 0.75rem;">
+                                                <div>{{ $vatRate }}%</div>
+                                                <div style="color: var(--text-muted);">{{ number_format($vatAmount, 2) }} ֏</div>
+                                            </td>
+                                            <td style="font-size: 0.75rem;">
+                                                @if($ing->transaction_type === 'import_eaec')
+                                                    <span class="badge badge-indigo">ԵԱՏՄ Ներմուծում</span>
+                                                @elseif($ing->transaction_type === 'import_third')
+                                                    <span class="badge badge-violet">Երրորդ երկրներ</span>
+                                                @elseif($ing->transaction_type === 'service')
+                                                    <span class="badge badge-amber">Ծառայություն</span>
+                                                @else
+                                                    <span class="badge badge-emerald">Տեղական ձեռքբերում</span>
+                                                @endif
+                                            </td>
+                                            <td style="max-width: 160px;">
+                                                @php $ingSups = $ing->suppliers ?? collect(); @endphp
+                                                @if($ingSups->count() > 0)
+                                                    <div style="display: flex; flex-wrap: wrap; gap: 3px;">
+                                                        @foreach($ingSups as $isup)
+                                                            <span class="item-chip" title="ՀՎՀՀ: {{ $isup->tax_id }}">{{ $isup->company_name }}</span>
+                                                        @endforeach
+                                                    </div>
+                                                @else
+                                                    <span style="color: var(--text-muted); font-size: 0.75rem;">—</span>
+                                                @endif
+                                            </td>
+                                            <td>
+                                                <div class="font-mono" style="font-weight: 800; font-size: 0.95rem; color: {{ $isLow ? '#DC2626' : 'var(--text-heading)' }};">
+                                                    {{ number_format($stock, 2) }}
+                                                </div>
+                                                <div style="font-size: 0.65rem; color: var(--text-muted);">{{ date('d.m.Y') }}</div>
+                                            </td>
+                                            <td>
+                                                <div class="font-mono" style="font-weight: 700;">{{ number_format($minStock, 2) }}</div>
+                                                @if($isLow)
+                                                    <span class="low-stock-badge"><i class="fa-solid fa-bell"></i> Լրացնել!</span>
+                                                @endif
+                                            </td>
+                                            <td>
+                                                @if($whereUsedCount > 0)
+                                                    <button class="btn btn-xs btn-outline-primary" onclick="ERP.directory.ingredients.showWhereUsed('{{ $ing->id }}')" style="font-size: 0.72rem; padding: 3px 7px;">
+                                                        <i class="fa-solid fa-diagram-project"></i> {{ $whereUsedCount }} Պրոդուկտ
+                                                    </button>
+                                                @else
+                                                    <span style="color: var(--text-muted); font-size: 0.72rem;">Բաղադրատոմս չկա</span>
+                                                @endif
+                                            </td>
+                                            <td style="text-align: right;">
+                                                <div style="display: inline-flex; gap: 4px;">
+                                                    <button class="btn btn-xs btn-outline-secondary" title="Խմբագրել" onclick="ERP.directory.ingredients.openEditModal('{{ $ing->id }}')">
+                                                        <i class="fa-solid fa-pen-to-square"></i>
+                                                    </button>
+                                                    <button class="btn btn-xs btn-outline-primary" title="Ճշգրտել Պահեստ" onclick="ERP.inventory.openAdjustStockModal(); const sel = document.getElementById('adj-product-id'); if(sel) sel.value='{{ $ing->id }}';">
+                                                        <i class="fa-solid fa-scale-balanced"></i>
+                                                    </button>
+                                                    <button class="btn btn-xs btn-outline-danger" title="Հեռացնել" onclick="ERP.directory.ingredients.deleteIngredient('{{ $ing->id }}')">
+                                                        <i class="fa-solid fa-trash-can"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr><td colspan="18" style="text-align: center; color: var(--text-muted); padding: 2rem;">Բաղադրիչներ գրանցված չեն: Օգտվեք «Ձեռքով Մուտքագրել» կամ «Ներմուծել Ինվոյս (.xml, .xls, .csv)» կոճակներից:</td></tr>
                                     @endforelse
                                 </tbody>
                             </table>
@@ -2018,6 +2433,371 @@
                     <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check-double"></i> Post to Ledger</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- ==============================================================
+         DIRECTORY MODALS (Suppliers, Ingredients, Invoices, Where-Used)
+         ============================================================== -->
+
+    <!-- Directory Modal 1: Supplier Create / Edit -->
+    <div class="modal-backdrop" id="directory-supplier-modal">
+        <div class="modal-container" style="max-width: 760px; max-height: 90vh; overflow-y: auto;">
+            <div class="modal-header">
+                <h3 id="directory-supplier-modal-title"><i class="fa-solid fa-truck-field"></i> Ավելացնել Մատակարար</h3>
+                <button type="button" onclick="ERP.directory.suppliers.closeModal()" style="font-size: 1.25rem; color: var(--text-muted); cursor: pointer;">&times;</button>
+            </div>
+            <form onsubmit="ERP.directory.suppliers.submitForm(event)">
+                <input type="hidden" id="sup-id">
+                <div class="modal-body">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                        <div class="form-group">
+                            <label class="form-label">Անվանում (Company Name) *</label>
+                            <input type="text" class="form-control" id="sup-company-name" required placeholder="օր․ Արարատ Միս Ֆարմ ՍՊԸ">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Իրավաբանական Անվանում</label>
+                            <input type="text" class="form-control" id="sup-legal-name" placeholder="օր․ «Արարատ Միս Ֆարմ» ՍՊԸ">
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem;">
+                        <div class="form-group">
+                            <label class="form-label">ՀՎՀՀ (Tax ID)</label>
+                            <input type="text" class="form-control font-mono" id="sup-tax-id" placeholder="օր․ 01548234">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Հեռախոսահամար *</label>
+                            <input type="text" class="form-control font-mono" id="sup-phone" required placeholder="+374 93 112233">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Էլ. փոստ (Email)</label>
+                            <input type="email" class="form-control" id="sup-email" placeholder="supplier@example.am">
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                        <div class="form-group">
+                            <label class="form-label">Կայք (Website)</label>
+                            <input type="text" class="form-control" id="sup-website" placeholder="https://supplier.am">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Կարգավիճակ</label>
+                            <select class="select" id="sup-is-active">
+                                <option value="1">Ակտիվ (Active)</option>
+                                <option value="0">Կասեցված (Suspended)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                        <div class="form-group">
+                            <label class="form-label">Իրավաբանական Հասցե</label>
+                            <input type="text" class="form-control" id="sup-legal-address" placeholder="օր․ ք․ Երևան, Տիգրան Մեծի 12">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Առաքման Հասցե (Որտեղից առաքվում են ապրանքները)</label>
+                            <input type="text" class="form-control" id="sup-shipping-address" placeholder="օր․ ք․ Արտաշատ, Պահեստ 2">
+                        </div>
+                    </div>
+
+                    <!-- Couriers Section (Առաքիչներ) -->
+                    <div style="margin-top: 1rem; border-top: 1px solid var(--border-subtle); padding-top: 0.75rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                            <label class="form-label" style="margin-bottom: 0; font-weight: 800; color: var(--text-heading);">
+                                <i class="fa-solid fa-truck"></i> Առաքիչներ (ID, Անուն Ազգանուն, Հեռախոս, Մակնիշ, Պետհամարանիշ)
+                            </label>
+                            <button type="button" class="btn btn-xs btn-outline-primary" onclick="ERP.directory.suppliers.addCourierRow()">
+                                <i class="fa-solid fa-plus"></i> Ավելացնել Առաքիչ
+                            </button>
+                        </div>
+                        <div id="sup-couriers-list" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                            <!-- Dynamically populated rows -->
+                        </div>
+                    </div>
+
+                    <!-- Attached Products / Ingredients Section -->
+                    <div style="margin-top: 1rem; border-top: 1px solid var(--border-subtle); padding-top: 0.75rem;">
+                        <label class="form-label" style="font-weight: 800; color: var(--text-heading); margin-bottom: 0.35rem;">
+                            <i class="fa-solid fa-box-open"></i> Մատակարարվող Ապրանքներ կամ Բաղադրիչներ
+                        </label>
+                        <div style="max-height: 140px; overflow-y: auto; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 0.5rem; display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem;" id="sup-products-selector">
+                            @foreach($products as $prod)
+                                <label style="display: flex; align-items: center; gap: 6px; font-size: 0.78rem; cursor: pointer;">
+                                    <input type="checkbox" name="sup_product_ids[]" value="{{ $prod->id }}" class="sup-prod-chk">
+                                    <span><strong>{{ $prod->sku }}</strong> — {{ $prod->getLocalizedName() }}</span>
+                                </label>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="ERP.directory.suppliers.closeModal()">Չեղարկել</button>
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Պահպանել Մատակարարին</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Directory Modal 2: Ingredient Create / Edit (Ձեռքով Մուտքագրում) -->
+    <div class="modal-backdrop" id="directory-ingredient-modal">
+        <div class="modal-container" style="max-width: 820px; max-height: 90vh; overflow-y: auto;">
+            <div class="modal-header">
+                <h3 id="directory-ingredient-modal-title"><i class="fa-solid fa-mortar-pestle"></i> Բաղադրիչի Մուտքագրում (Ձեռքով)</h3>
+                <button type="button" onclick="ERP.directory.ingredients.closeModal()" style="font-size: 1.25rem; color: var(--text-muted); cursor: pointer;">&times;</button>
+            </div>
+            <form onsubmit="ERP.directory.ingredients.submitForm(event)">
+                <input type="hidden" id="ing-id">
+                <div class="modal-body">
+                    <!-- Categorization -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                        <div class="form-group">
+                            <label class="form-label">Կատեգորիա /խումբ/ *</label>
+                            <select class="select" id="ing-category-id" onchange="ERP.directory.ingredients.updateSubcategories(this.value)">
+                                <option value="">-- Ընտրեք Կատեգորիան --</option>
+                                @foreach($categories as $cat)
+                                    <option value="{{ $cat->id }}">{{ is_array($cat->name) ? ($cat->name['hy'] ?? reset($cat->name)) : $cat->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Ենթակատեգորիա /ենթախումբ/</label>
+                            <select class="select" id="ing-subcategory-id">
+                                <option value="">-- Ընտրեք Ենթակատեգորիան --</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Identification -->
+                    <div style="display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 0.75rem;">
+                        <div class="form-group">
+                            <label class="form-label">Ապրանքի Անվանում *</label>
+                            <input type="text" class="form-control" id="ing-name-hy" required placeholder="օր․ Ցորենի ալյուր բարձր տեսակի">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">SKU / Ծածկագիր</label>
+                            <div style="display: flex; gap: 4px;">
+                                <input type="text" class="form-control font-mono" id="ing-sku" placeholder="ING-FLOUR-01">
+                                <button type="button" class="btn btn-outline-secondary btn-xs" onclick="ERP.directory.ingredients.generateSku()" title="Գեներացնել">
+                                    <i class="fa-solid fa-arrows-rotate"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">EAN-13 Շտրիխկոդ</label>
+                            <input type="text" class="form-control font-mono" id="ing-barcode" placeholder="օր․ 485000100201">
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem;">
+                        <div class="form-group">
+                            <label class="form-label">ԱՏԳ ԱԱ ծածկագիր (HS Code)</label>
+                            <input type="text" class="form-control font-mono" id="ing-hs-code" placeholder="օր․ 1101 00 150 0">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Տարա (Packaging)</label>
+                            <input type="text" class="form-control" id="ing-packaging" placeholder="օր․ Պարկ 25կգ, Տուփ, Շիշ">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Գործարքի Տեսակ</label>
+                            <select class="select" id="ing-transaction-type">
+                                <option value="local_purchase">Տեղական ձեռքբերում</option>
+                                <option value="import_eaec">Ներմուծում ԵԱՏՄ</option>
+                                <option value="import_third">Ներմուծում Երրորդ երկրներ</option>
+                                <option value="service">Ծառայություն</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Նկարագրություն</label>
+                        <input type="text" class="form-control" id="ing-description" placeholder="Հատկանիշներ, խոնավություն, որակական ցուցանիշներ...">
+                    </div>
+
+                    <!-- Pricing, Quantities & Live Calculations -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 0.75rem; margin-top: 0.5rem;">
+                        <div class="form-group">
+                            <label class="form-label">Չափման Միավոր *</label>
+                            <select class="select" id="ing-unit-id" required>
+                                @foreach($units as $u)
+                                    <option value="{{ $u->id }}">{{ is_array($u->name) ? ($u->name['hy'] ?? reset($u->name)) : $u->name }} ({{ $u->symbol }})</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Քանակ (Մուտք) *</label>
+                            <input type="number" step="any" class="form-control font-mono" id="ing-quantity" value="1" required oninput="ERP.directory.ingredients.recalculate()">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Միավորի Գին (֏) *</label>
+                            <input type="number" step="any" class="form-control font-mono" id="ing-cost-price" value="0" required oninput="ERP.directory.ingredients.recalculate()">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Զեղչ (%)</label>
+                            <input type="number" step="any" class="form-control font-mono" id="ing-discount-percent" value="0" min="0" max="100" oninput="ERP.directory.ingredients.recalculate()">
+                        </div>
+                    </div>
+
+                    <!-- Live Dynamic Math Box -->
+                    <div class="calc-summary-box">
+                        <div class="calc-summary-item">
+                            <span class="calc-summary-label">Արժեք (Գին × Քանակ)</span>
+                            <span class="calc-summary-val" id="calc-subtotal">0.00 ֏</span>
+                        </div>
+                        <div class="calc-summary-item">
+                            <span class="calc-summary-label">Զեղչված Արժեք</span>
+                            <span class="calc-summary-val" style="color: #0284C7;" id="calc-discounted">0.00 ֏</span>
+                        </div>
+                        <div class="calc-summary-item">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+                                <span class="calc-summary-label" style="margin-bottom: 0;">ԱԱՀ %</span>
+                                <input type="number" id="ing-vat-rate" value="20" min="0" max="100" step="any" class="font-mono" style="width: 45px; font-size: 0.72rem; padding: 1px 3px; border: 1px solid #CBD5E1; border-radius: 4px;" oninput="ERP.directory.ingredients.recalculate()">
+                            </div>
+                            <span class="calc-summary-val" style="color: #475569;" id="calc-vat-amount">0.00 ֏</span>
+                        </div>
+                        <div class="calc-summary-item">
+                            <span class="calc-summary-label">Ընդամենը (Ներառյալ ԱԱՀ)</span>
+                            <span class="calc-summary-val" style="color: #059669;" id="calc-total-inc-vat">0.00 ֏</span>
+                        </div>
+                    </div>
+
+                    <!-- Warehouse, Min Stock and Multiple Suppliers -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-top: 0.5rem;">
+                        <div class="form-group">
+                            <label class="form-label">Պահեստում Նվազագույն Քանակ (Հիշեցման համար)</label>
+                            <input type="number" step="any" class="form-control font-mono" id="ing-min-stock-level" value="10" placeholder="օր․ 10">
+                            <small style="color: var(--text-muted); font-size: 0.72rem;">Երբ մնացորդը հասնի կամ իջնի այս շեմից, համակարգը ցույց կտա ազդանշան:</small>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Մուտքի Պահեստ</label>
+                            <select class="select" id="ing-warehouse-id">
+                                @foreach($warehouses as $wh)
+                                    <option value="{{ $wh->id }}">{{ $wh->name }} ({{ $wh->code }})</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-top: 0.5rem;">
+                        <label class="form-label" style="font-weight: 800; color: var(--text-heading);">
+                            <i class="fa-solid fa-truck-field"></i> Մատակարարներ (Կարող են լինել մի քանիսը)
+                        </label>
+                        <div style="max-height: 120px; overflow-y: auto; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 0.5rem; display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem;">
+                            @foreach($suppliers as $sup)
+                                <label style="display: flex; align-items: center; gap: 6px; font-size: 0.78rem; cursor: pointer;">
+                                    <input type="checkbox" name="ing_supplier_ids[]" value="{{ $sup->id }}" class="ing-sup-chk">
+                                    <span><strong>{{ $sup->company_name }}</strong> (ՀՎՀՀ: {{ $sup->tax_id ?: '—' }})</span>
+                                </label>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="ERP.directory.ingredients.closeModal()">Չեղարկել</button>
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Պահպանել Բաղադրիչը</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Directory Modal 3: Invoice File Import (.xml, .xls, .csv) -->
+    <div class="modal-backdrop" id="directory-invoice-import-modal">
+        <div class="modal-container" style="max-width: 680px;">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-file-arrow-up"></i> Ինվոյսների Ներմուծում (.xml, .xls, .csv)</h3>
+                <button type="button" onclick="ERP.directory.ingredients.closeImportModal()" style="font-size: 1.25rem; color: var(--text-muted); cursor: pointer;">&times;</button>
+            </div>
+            <form onsubmit="ERP.directory.ingredients.submitImport(event)">
+                <div class="modal-body">
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
+                        Վերբեռնեք մատակարարի հաշիվ-ապրանքագրի կամ ներմուծման ֆայլը (ՀՀ ՀՏ e-invoicing XML, Excel .xlsx/.xls կամ CSV ֆորմատով)՝ բաղադրիչները ավտոմատ ճանաչելու և պահեստ մուտքագրելու համար:
+                    </p>
+
+                    <!-- Dropzone -->
+                    <div class="import-dropzone" id="invoice-dropzone" onclick="document.getElementById('invoice-file-input').click()">
+                        <i class="fa-solid fa-cloud-arrow-up" style="font-size: 2.5rem; color: var(--color-primary); margin-bottom: 0.5rem; display: block;"></i>
+                        <div style="font-weight: 700; color: var(--text-heading); font-size: 0.95rem;">
+                            Քաշեք և գցեք ֆայլը այստեղ կամ <span style="color: var(--color-primary); text-decoration: underline;">ընտրեք համակարգչից</span>
+                        </div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">
+                            Աջակցվող ֆորմատներ՝ <strong>.XML</strong> (e-Invoicing / UBL), <strong>.XLSX / .XLS</strong>, <strong>.CSV</strong> (առավելագույնը 10MB)
+                        </div>
+                        <input type="file" id="invoice-file-input" accept=".xml,.csv,.txt,.xls,.xlsx" style="display: none;" onchange="ERP.directory.ingredients.handleFileSelect(this)">
+                    </div>
+
+                    <!-- Selected file info pill -->
+                    <div id="invoice-file-preview" style="display: none; margin-top: 0.75rem; background: #F1F5F9; padding: 0.75rem 1rem; border-radius: var(--radius-sm); border: 1px solid #CBD5E1; align-items: center; justify-content: space-between;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <i class="fa-solid fa-file-invoice" style="font-size: 1.5rem; color: var(--color-primary);"></i>
+                            <div>
+                                <div style="font-weight: 700; font-size: 0.85rem;" id="invoice-file-name">invoice.xml</div>
+                                <div style="font-size: 0.72rem; color: var(--text-muted);" id="invoice-file-size">0 KB</div>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-xs btn-outline-danger" onclick="ERP.directory.ingredients.clearFile()">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-top: 1rem;">
+                        <div class="form-group">
+                            <label class="form-label">Կանխադրված Մատակարար (Ըստ ցանկության)</label>
+                            <select class="select" id="import-supplier-id">
+                                <option value="">-- Ավտոմատ որոշել ֆայլից --</option>
+                                @foreach($suppliers as $sup)
+                                    <option value="{{ $sup->id }}">{{ $sup->company_name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Մուտքի Պահեստ *</label>
+                            <select class="select" id="import-warehouse-id" required>
+                                @foreach($warehouses as $wh)
+                                    <option value="{{ $wh->id }}">{{ $wh->name }} ({{ $wh->code }})</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="ERP.directory.ingredients.closeImportModal()">Չեղարկել</button>
+                    <button type="submit" class="btn btn-primary" id="import-submit-btn" disabled>
+                        <i class="fa-solid fa-cloud-arrow-up"></i> Սկսել Ներմուծումը
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Directory Modal 4: Couriers List Modal -->
+    <div class="modal-backdrop" id="directory-couriers-modal">
+        <div class="modal-container" style="max-width: 620px;">
+            <div class="modal-header">
+                <h3 id="couriers-modal-title"><i class="fa-solid fa-truck"></i> Մատակարարի Առաքիչներ</h3>
+                <button type="button" onclick="document.getElementById('directory-couriers-modal').classList.remove('active')" style="font-size: 1.25rem; color: var(--text-muted); cursor: pointer;">&times;</button>
+            </div>
+            <div class="modal-body" id="couriers-modal-body">
+                <!-- Dynamically populated -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('directory-couriers-modal').classList.remove('active')">Փակել</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Directory Modal 5: Where-Used Products Modal -->
+    <div class="modal-backdrop" id="directory-where-used-modal">
+        <div class="modal-container" style="max-width: 680px;">
+            <div class="modal-header">
+                <h3 id="where-used-modal-title"><i class="fa-solid fa-diagram-project"></i> Որտեղ է օգտագործվում բաղադրիչը</h3>
+                <button type="button" onclick="document.getElementById('directory-where-used-modal').classList.remove('active')" style="font-size: 1.25rem; color: var(--text-muted); cursor: pointer;">&times;</button>
+            </div>
+            <div class="modal-body" id="where-used-modal-body">
+                <!-- Dynamically populated -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('directory-where-used-modal').classList.remove('active')">Փակել</button>
+            </div>
         </div>
     </div>
 

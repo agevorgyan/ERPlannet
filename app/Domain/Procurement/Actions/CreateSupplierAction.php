@@ -16,7 +16,7 @@ class CreateSupplierAction
     public function execute(array $data): Supplier
     {
         $tenant = $this->tenantContext->getTenant();
-        if (!$tenant) {
+        if (! $tenant) {
             throw new \RuntimeException('Tenant context not set.');
         }
 
@@ -31,6 +31,9 @@ class CreateSupplierAction
             'email' => $data['email'] ?? null,
             'phone' => $data['phone'],
             'address' => $data['address'] ?? null,
+            'website' => $data['website'] ?? null,
+            'legal_address' => $data['legal_address'] ?? null,
+            'shipping_address' => $data['shipping_address'] ?? null,
             'bank_name' => $data['bank_name'] ?? null,
             'bank_account' => $data['bank_account'] ?? null,
             'currency' => $data['currency'] ?? $tenant->currency ?? 'AMD',

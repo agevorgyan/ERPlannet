@@ -209,10 +209,13 @@
             const url = endpoint.startsWith('http') ? endpoint : `/api/v1${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
             const headers = {
                 'Accept': 'application/json',
-                'Content-Type': 'application/json',
                 'Accept-Language': ERP.state.locale,
                 ...(options.headers || {})
             };
+
+            if (!(options.body instanceof FormData)) {
+                headers['Content-Type'] = 'application/json';
+            }
 
             if (ERP.state.token) {
                 headers['Authorization'] = `Bearer ${ERP.state.token}`;
@@ -337,6 +340,8 @@
             if (viewName === 'pos') ERP.pos.render();
             if (viewName === 'users') ERP.users.load();
             if (viewName === 'roles') ERP.roles.load();
+            if (viewName === 'directory-suppliers') ERP.directory.suppliers.load();
+            if (viewName === 'directory-ingredients') ERP.directory.ingredients.load();
         },
 
         // =====================================================================
@@ -1220,6 +1225,909 @@
         },
 
         // =====================================================================
+        // 9.5 Directory Subsystem (Տեղեկագիր: Մատակարարներ & Բաղադրիչներ)
+        // =====================================================================
+        directory: {
+            suppliers: {
+                currentTab: 'all',
+                searchQuery: '',
+                courierCounter: 0,
+                list: [],
+
+                load: async function () {
+                    const tbody = document.getElementById('directory-suppliers-table-body');
+                    if (!tbody) return;
+
+                    try {
+                        let query = `?status=${this.currentTab}`;
+                        if (this.searchQuery) query += `&search=${encodeURIComponent(this.searchQuery)}`;
+
+                        const res = await ERP.api(`/suppliers${query}`);
+                        if (res && res.success) {
+                            this.list = res.data || [];
+                            this.render(this.list);
+
+                            // Update counts
+                            if (res.counts) {
+                                const cAll = document.getElementById('sup-count-all');
+                                const cAct = document.getElementById('sup-count-active');
+                                const cSusp = document.getElementById('sup-count-suspended');
+                                const cTrash = document.getElementById('sup-count-trash');
+                                const cSide = document.getElementById('sidebar-suppliers-count');
+
+                                if (cAll) cAll.textContent = res.counts.all ?? 0;
+                                if (cAct) cAct.textContent = res.counts.active ?? 0;
+                                if (cSusp) cSusp.textContent = res.counts.suspended ?? 0;
+                                if (cTrash) cTrash.textContent = res.counts.trash ?? 0;
+                                if (cSide) cSide.textContent = res.counts.all ?? 0;
+                            }
+                        }
+                    } catch (err) {
+                        ERP.toast(`Մատակարարների բեռնման սխալ: ${err.message}`, 'error');
+                    }
+                },
+
+                render: function (items) {
+                    const tbody = document.getElementById('directory-suppliers-table-body');
+                    if (!tbody) return;
+
+                    if (!items || items.length === 0) {
+                        const msg = this.currentTab === 'trash'
+                            ? 'Զամբյուղը դատարկ է:'
+                            : 'Մատակարարներ չեն գտնվել:';
+                        tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 2rem;">${msg}</td></tr>`;
+                        return;
+                    }
+
+                    const isTrash = this.currentTab === 'trash';
+
+                    tbody.innerHTML = items.map(s => {
+                        const couriers = s.couriers || [];
+                        const products = s.products || [];
+                        const idShort = s.id ? s.id.substring(0, 8) + '...' : '—';
+
+                        let statusBadge = '';
+                        if (isTrash) {
+                            statusBadge = `<span class="badge badge-trash"><i class="fa-solid fa-trash-can"></i> Զամբյուղում</span>`;
+                        } else if (s.is_active) {
+                            statusBadge = `<span class="badge badge-emerald"><i class="fa-solid fa-circle-check"></i> Ակտիվ</span>`;
+                        } else {
+                            statusBadge = `<span class="badge badge-suspended"><i class="fa-solid fa-circle-pause"></i> Կասեցված</span>`;
+                        }
+
+                        let actions = '';
+                        if (isTrash) {
+                            actions = `
+                                <button class="btn btn-xs btn-outline-success" title="Վերականգնել Զամբյուղից" onclick="ERP.directory.suppliers.restoreSupplier('${s.id}')">
+                                    <i class="fa-solid fa-rotate-left"></i> Վերականգնել
+                                </button>
+                                <button class="btn btn-xs btn-outline-danger" title="Վերջնական Հեռացնել" onclick="ERP.directory.suppliers.forceDeleteSupplier('${s.id}')">
+                                    <i class="fa-solid fa-fire"></i> Հեռացնել
+                                </button>
+                            `;
+                        } else {
+                            actions = `
+                                <button class="btn btn-xs btn-outline-secondary" title="Խմբագրել" onclick="ERP.directory.suppliers.openEditModal('${s.id}')">
+                                    <i class="fa-solid fa-pen-to-square"></i>
+                                </button>
+                                <button class="btn btn-xs ${s.is_active ? 'btn-outline-warning' : 'btn-outline-success'}" title="${s.is_active ? 'Կասեցնել' : 'Ակտիվացնել'}" onclick="ERP.directory.suppliers.toggleSuspend('${s.id}')">
+                                    <i class="fa-solid ${s.is_active ? 'fa-pause' : 'fa-play'}"></i>
+                                </button>
+                                <button class="btn btn-xs btn-outline-danger" title="Տեղափոխել Զամբյուղ" onclick="ERP.directory.suppliers.deleteSupplier('${s.id}')">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            `;
+                        }
+
+                        let courierBtn = `<span style="color: var(--text-muted); font-size: 0.75rem;">—</span>`;
+                        if (couriers.length > 0) {
+                            courierBtn = `
+                                <button class="btn btn-xs btn-outline-secondary" onclick="ERP.directory.suppliers.showCouriers('${s.id}')" style="font-size: 0.72rem; padding: 3px 8px; border-radius: 6px;">
+                                    <i class="fa-solid fa-truck"></i> ${couriers.length} Առաքիչ
+                                </button>
+                            `;
+                        }
+
+                        let productsHtml = `<span style="color: var(--text-muted); font-size: 0.75rem;">Կցված չէ</span>`;
+                        if (products.length > 0) {
+                            const chips = products.slice(0, 3).map(p => {
+                                const pName = (p.name && (p.name.hy || p.name.en || p.name)) || p.sku;
+                                return `<span class="item-chip">${pName}</span>`;
+                            }).join(' ');
+                            const more = products.length > 3 ? `<span class="badge badge-slate">+${products.length - 3}</span>` : '';
+                            productsHtml = `<div style="display: flex; flex-wrap: wrap; gap: 3px;">${chips} ${more}</div>`;
+                        }
+
+                        return `
+                            <tr id="sup-row-${s.id}">
+                                <td>
+                                    <div style="font-weight: 800; color: var(--text-heading);">${s.company_name}</div>
+                                    ${s.legal_name && s.legal_name !== s.company_name ? `<div style="font-size: 0.72rem; color: var(--text-muted);">${s.legal_name}</div>` : ''}
+                                    <div class="font-mono" style="font-size: 0.68rem; color: #94A3B8;">ID: ${idShort}</div>
+                                </td>
+                                <td class="font-mono" style="font-weight: 700; color: var(--color-primary);">${s.tax_id || '—'}</td>
+                                <td>
+                                    <div style="display: flex; flex-direction: column; gap: 2px; font-size: 0.78rem;">
+                                        <div><i class="fa-solid fa-phone" style="width: 14px; color: var(--text-muted);"></i> ${s.phone || '—'}</div>
+                                        ${s.email ? `<div><i class="fa-solid fa-envelope" style="width: 14px; color: var(--text-muted);"></i> <a href="mailto:${s.email}" style="color: var(--color-primary);">${s.email}</a></div>` : ''}
+                                        ${s.website ? `<div><i class="fa-solid fa-globe" style="width: 14px; color: var(--text-muted);"></i> <a href="${s.website.startsWith('http') ? s.website : 'https://' + s.website}" target="_blank" style="color: var(--color-primary); text-decoration: underline;">${s.website}</a></div>` : ''}
+                                    </div>
+                                </td>
+                                <td style="max-width: 200px;">
+                                    <div style="font-size: 0.76rem; display: flex; flex-direction: column; gap: 3px;">
+                                        ${s.legal_address ? `<div><strong>Իրավ․:</strong> ${s.legal_address}</div>` : ''}
+                                        ${s.shipping_address ? `<div style="color: #0284C7;"><strong>Առաքում:</strong> ${s.shipping_address}</div>` : (s.address ? `<div>${s.address}</div>` : '<span style="color: var(--text-muted);">—</span>')}
+                                    </div>
+                                </td>
+                                <td>${courierBtn}</td>
+                                <td style="max-width: 220px;">${productsHtml}</td>
+                                <td>${statusBadge}</td>
+                                <td style="text-align: right;">
+                                    <div style="display: inline-flex; gap: 4px;">${actions}</div>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('');
+                },
+
+                switchTab: function (tab) {
+                    this.currentTab = tab;
+                    ['all', 'active', 'suspended', 'trash'].forEach(t => {
+                        const btn = document.getElementById(`tab-sup-${t}`);
+                        if (btn) {
+                            if (t === tab) btn.classList.add('active');
+                            else btn.classList.remove('active');
+                        }
+                    });
+                    this.load();
+                },
+
+                handleSearch: function (val) {
+                    clearTimeout(this._searchTimer);
+                    this._searchTimer = setTimeout(() => {
+                        this.searchQuery = val.trim();
+                        this.load();
+                    }, 300);
+                },
+
+                openCreateModal: function () {
+                    const modal = document.getElementById('directory-supplier-modal');
+                    if (!modal) return;
+
+                    document.getElementById('directory-supplier-modal-title').innerHTML = '<i class="fa-solid fa-truck-field"></i> Ավելացնել Մատակարար';
+                    document.getElementById('sup-id').value = '';
+                    document.getElementById('sup-company-name').value = '';
+                    document.getElementById('sup-legal-name').value = '';
+                    document.getElementById('sup-tax-id').value = '';
+                    document.getElementById('sup-phone').value = '';
+                    document.getElementById('sup-email').value = '';
+                    document.getElementById('sup-website').value = '';
+                    document.getElementById('sup-is-active').value = '1';
+                    document.getElementById('sup-legal-address').value = '';
+                    document.getElementById('sup-shipping-address').value = '';
+
+                    // Clear couriers list & add 1 blank row
+                    document.getElementById('sup-couriers-list').innerHTML = '';
+                    this.addCourierRow();
+
+                    // Uncheck all products
+                    document.querySelectorAll('.sup-prod-chk').forEach(cb => cb.checked = false);
+
+                    modal.classList.add('active');
+                },
+
+                openEditModal: async function (id) {
+                    const modal = document.getElementById('directory-supplier-modal');
+                    if (!modal) return;
+
+                    try {
+                        const res = await ERP.api(`/suppliers/${id}`);
+                        if (!res || !res.success || !res.data) throw new Error('Մատակարարը չգտնվեց');
+
+                        const s = res.data;
+                        document.getElementById('directory-supplier-modal-title').innerHTML = `<i class="fa-solid fa-pen-to-square"></i> Խմբագրել Մատակարար՝ ${s.company_name}`;
+                        document.getElementById('sup-id').value = s.id;
+                        document.getElementById('sup-company-name').value = s.company_name || '';
+                        document.getElementById('sup-legal-name').value = s.legal_name || '';
+                        document.getElementById('sup-tax-id').value = s.tax_id || '';
+                        document.getElementById('sup-phone').value = s.phone || '';
+                        document.getElementById('sup-email').value = s.email || '';
+                        document.getElementById('sup-website').value = s.website || '';
+                        document.getElementById('sup-is-active').value = s.is_active ? '1' : '0';
+                        document.getElementById('sup-legal-address').value = s.legal_address || '';
+                        document.getElementById('sup-shipping-address').value = s.shipping_address || s.address || '';
+
+                        // Couriers
+                        const couriersList = document.getElementById('sup-couriers-list');
+                        couriersList.innerHTML = '';
+                        if (s.couriers && s.couriers.length > 0) {
+                            s.couriers.forEach(c => this.addCourierRow(c));
+                        } else {
+                            this.addCourierRow();
+                        }
+
+                        // Attached products
+                        const attachedIds = (s.products || []).map(p => p.id);
+                        document.querySelectorAll('.sup-prod-chk').forEach(cb => {
+                            cb.checked = attachedIds.includes(cb.value);
+                        });
+
+                        modal.classList.add('active');
+                    } catch (err) {
+                        ERP.toast(`Խմբագրման սխալ: ${err.message}`, 'error');
+                    }
+                },
+
+                closeModal: function () {
+                    const modal = document.getElementById('directory-supplier-modal');
+                    if (modal) modal.classList.remove('active');
+                },
+
+                addCourierRow: function (data = {}) {
+                    this.courierCounter++;
+                    const rowId = `courier-row-${this.courierCounter}`;
+                    const container = document.getElementById('sup-couriers-list');
+                    if (!container) return;
+
+                    const row = document.createElement('div');
+                    row.className = 'courier-card-row';
+                    row.id = rowId;
+                    row.innerHTML = `
+                        <div>
+                            <input type="text" class="form-control form-control-sm courier-name" placeholder="Անուն Ազգանուն *" value="${data.name || ''}">
+                        </div>
+                        <div>
+                            <input type="text" class="form-control form-control-sm font-mono courier-phone" placeholder="Հեռախոս" value="${data.phone || ''}">
+                        </div>
+                        <div>
+                            <input type="text" class="form-control form-control-sm courier-model" placeholder="Մեքենայի մակնիշ" value="${data.vehicle_model || ''}">
+                        </div>
+                        <div>
+                            <input type="text" class="form-control form-control-sm font-mono courier-plate" placeholder="Պետհամարանիշ" value="${data.license_plate || ''}">
+                        </div>
+                        <div>
+                            <button type="button" class="btn btn-xs btn-outline-danger" onclick="ERP.directory.suppliers.removeCourierRow('${rowId}')" title="Հեռացնել առաքչին">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+                    `;
+                    container.appendChild(row);
+                },
+
+                removeCourierRow: function (rowId) {
+                    const row = document.getElementById(rowId);
+                    if (row) row.remove();
+                },
+
+                submitForm: async function (e) {
+                    e.preventDefault();
+                    const id = document.getElementById('sup-id').value;
+
+                    // Collect couriers
+                    const couriers = [];
+                    document.querySelectorAll('#sup-couriers-list .courier-card-row').forEach(row => {
+                        const name = row.querySelector('.courier-name')?.value?.trim();
+                        if (name) {
+                            couriers.push({
+                                name: name,
+                                phone: row.querySelector('.courier-phone')?.value?.trim() || null,
+                                vehicle_model: row.querySelector('.courier-model')?.value?.trim() || null,
+                                license_plate: row.querySelector('.courier-plate')?.value?.trim() || null,
+                            });
+                        }
+                    });
+
+                    // Collect product IDs
+                    const productIds = Array.from(document.querySelectorAll('.sup-prod-chk:checked')).map(cb => cb.value);
+
+                    const payload = {
+                        company_name: document.getElementById('sup-company-name').value.trim(),
+                        legal_name: document.getElementById('sup-legal-name').value.trim() || null,
+                        tax_id: document.getElementById('sup-tax-id').value.trim() || null,
+                        phone: document.getElementById('sup-phone').value.trim(),
+                        email: document.getElementById('sup-email').value.trim() || null,
+                        website: document.getElementById('sup-website').value.trim() || null,
+                        is_active: document.getElementById('sup-is-active').value === '1',
+                        legal_address: document.getElementById('sup-legal-address').value.trim() || null,
+                        shipping_address: document.getElementById('sup-shipping-address').value.trim() || null,
+                        couriers: couriers,
+                        product_ids: productIds,
+                    };
+
+                    try {
+                        let res;
+                        if (id) {
+                            res = await ERP.api(`/suppliers/${id}`, { method: 'PUT', body: JSON.stringify(payload) });
+                        } else {
+                            res = await ERP.api('/suppliers', { method: 'POST', body: JSON.stringify(payload) });
+                        }
+
+                        if (res && res.success) {
+                            ERP.toast(id ? 'Մատակարարը թարմացվեց:' : 'Մատակարարն ավելացվեց:', 'success');
+                            this.closeModal();
+                            this.load();
+                        }
+                    } catch (err) {
+                        ERP.toast(`Պահպանման սխալ: ${err.message}`, 'error');
+                    }
+                },
+
+                toggleSuspend: async function (id) {
+                    try {
+                        const res = await ERP.api(`/suppliers/${id}/toggle-suspend`, { method: 'POST' });
+                        if (res && res.success) {
+                            ERP.toast(res.message || 'Կարգավիճակը փոփոխվեց:', 'info');
+                            this.load();
+                        }
+                    } catch (err) {
+                        ERP.toast(`Կարգավիճակի փոփոխման սխալ: ${err.message}`, 'error');
+                    }
+                },
+
+                deleteSupplier: async function (id) {
+                    if (!confirm('Հեռացնե՞լ մատակարարին և տեղափոխել Զամբյուղ:')) return;
+
+                    try {
+                        const res = await ERP.api(`/suppliers/${id}`, { method: 'DELETE' });
+                        if (res && res.success) {
+                            ERP.toast('Մատակարարը տեղափոխվեց զամբյուղ:', 'info');
+                            this.load();
+                        }
+                    } catch (err) {
+                        ERP.toast(`Հեռացման սխալ: ${err.message}`, 'error');
+                    }
+                },
+
+                restoreSupplier: async function (id) {
+                    try {
+                        const res = await ERP.api(`/suppliers/${id}/restore`, { method: 'POST' });
+                        if (res && res.success) {
+                            ERP.toast('Մատակարարը վերականգնվեց զամբյուղից:', 'success');
+                            this.load();
+                        }
+                    } catch (err) {
+                        ERP.toast(`Վերականգնման սխալ: ${err.message}`, 'error');
+                    }
+                },
+
+                forceDeleteSupplier: async function (id) {
+                    if (!confirm('ՈՒՇԱԴՐՈՒԹՅՈՒՆ. Մատակարարը և կից առաքիչների տվյալները կհեռացվեն ԱՆՎԵՐԱԴԱՐՁ: Շարունակե՞լ:')) return;
+
+                    try {
+                        const res = await ERP.api(`/suppliers/${id}/force`, { method: 'DELETE' });
+                        if (res && res.success) {
+                            ERP.toast('Մատակարարը վերջնական հեռացվեց:', 'info');
+                            this.load();
+                        }
+                    } catch (err) {
+                        ERP.toast(`Վերջնական հեռացման սխալ: ${err.message}`, 'error');
+                    }
+                },
+
+                showCouriers: function (id) {
+                    const sup = this.list.find(s => s.id === id);
+                    if (!sup) return;
+
+                    const modal = document.getElementById('directory-couriers-modal');
+                    const body = document.getElementById('couriers-modal-body');
+                    const title = document.getElementById('couriers-modal-title');
+                    if (!modal || !body) return;
+
+                    title.innerHTML = `<i class="fa-solid fa-truck"></i> «${sup.company_name}» — Առաքիչների Պարկ`;
+
+                    const couriers = sup.couriers || [];
+                    if (couriers.length === 0) {
+                        body.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 1.5rem;">Առաքիչներ գրանցված չեն:</div>';
+                    } else {
+                        body.innerHTML = `
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Անուն Ազգանուն</th>
+                                        <th>Հեռախոս</th>
+                                        <th>Մեքենայի Մակնիշ</th>
+                                        <th>Պետհամարանիշ</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${couriers.map(c => `
+                                        <tr>
+                                            <td class="font-mono" style="font-size: 0.7rem; color: #94A3B8;">${c.id ? c.id.substring(0, 8) : '—'}</td>
+                                            <td style="font-weight: 700;">${c.name}</td>
+                                            <td class="font-mono">${c.phone || '—'}</td>
+                                            <td>${c.vehicle_model || '—'}</td>
+                                            <td class="font-mono" style="font-weight: 800; color: var(--color-primary);">${c.license_plate || '—'}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        `;
+                    }
+
+                    modal.classList.add('active');
+                }
+            },
+
+            ingredients: {
+                searchQuery: '',
+                categoryId: '',
+                supplierId: '',
+                lowStockOnly: false,
+                list: [],
+                selectedFile: null,
+
+                load: async function () {
+                    const tbody = document.getElementById('directory-ingredients-table-body');
+                    if (!tbody) return;
+
+                    try {
+                        let query = '?';
+                        if (this.searchQuery) query += `&search=${encodeURIComponent(this.searchQuery)}`;
+                        if (this.categoryId) query += `&category_id=${encodeURIComponent(this.categoryId)}`;
+                        if (this.supplierId) query += `&supplier_id=${encodeURIComponent(this.supplierId)}`;
+                        if (this.lowStockOnly) query += `&low_stock=1`;
+
+                        const res = await ERP.api(`/ingredients${query}`);
+                        if (res && res.success) {
+                            this.list = res.data || [];
+                            this.render(this.list);
+
+                            if (res.stats) {
+                                const sTot = document.getElementById('ing-stat-total');
+                                const sLow = document.getElementById('ing-stat-low');
+                                const sVal = document.getElementById('ing-stat-val');
+                                const sSide = document.getElementById('sidebar-ingredients-count');
+
+                                if (sTot) sTot.textContent = res.stats.total_count ?? 0;
+                                if (sLow) sLow.textContent = res.stats.low_stock_count ?? 0;
+                                if (sVal) sVal.textContent = (res.stats.total_valuation ?? 0).toLocaleString('hy-AM') + ' ֏';
+                                if (sSide) sSide.textContent = res.stats.total_count ?? 0;
+                            }
+                        }
+                    } catch (err) {
+                        ERP.toast(`Բաղադրիչների բեռնման սխալ: ${err.message}`, 'error');
+                    }
+                },
+
+                render: function (items) {
+                    const tbody = document.getElementById('directory-ingredients-table-body');
+                    if (!tbody) return;
+
+                    if (!items || items.length === 0) {
+                        tbody.innerHTML = `<tr><td colspan="18" style="text-align: center; color: var(--text-muted); padding: 2rem;">Բաղադրիչներ չեն գտնվել:</td></tr>`;
+                        return;
+                    }
+
+                    const todayStr = new Date().toLocaleDateString('hy-AM');
+
+                    tbody.innerHTML = items.map(item => {
+                        const isLow = item.is_low_stock;
+                        const subtotal = item.subtotal_value || 0;
+                        const discounted = item.discounted_value || 0;
+                        const vatRate = item.vat_rate || 20;
+                        const vatAmount = item.vat_amount || 0;
+                        const suppliers = item.suppliers || [];
+                        const whereUsedCount = item.where_used_count || 0;
+
+                        let transBadge = '<span class="badge badge-emerald">Տեղական ձեռքբերում</span>';
+                        if (item.transaction_type === 'import_eaec') transBadge = '<span class="badge badge-indigo">ԵԱՏՄ Ներմուծում</span>';
+                        else if (item.transaction_type === 'import_third') transBadge = '<span class="badge badge-violet">Երրորդ երկրներ</span>';
+                        else if (item.transaction_type === 'service') transBadge = '<span class="badge badge-amber">Ծառայություն</span>';
+
+                        const supsHtml = suppliers.length > 0
+                            ? `<div style="display: flex; flex-wrap: wrap; gap: 3px;">${suppliers.map(s => `<span class="item-chip" title="ՀՎՀՀ: ${s.tax_id || ''}">${s.company_name}</span>`).join('')}</div>`
+                            : '<span style="color: var(--text-muted); font-size: 0.75rem;">—</span>';
+
+                        const whereUsedHtml = whereUsedCount > 0
+                            ? `<button class="btn btn-xs btn-outline-primary" onclick="ERP.directory.ingredients.showWhereUsed('${item.id}')" style="font-size: 0.72rem; padding: 3px 7px;"><i class="fa-solid fa-diagram-project"></i> ${whereUsedCount} Պրոդուկտ</button>`
+                            : '<span style="color: var(--text-muted); font-size: 0.72rem;">Բաղադրատոմս չկա</span>';
+
+                        return `
+                            <tr id="ing-row-${item.id}" class="${isLow ? 'low-stock-alert' : ''}">
+                                <td>
+                                    <div style="font-weight: 700; color: var(--text-heading);">${item.category ? item.category.name : '—'}</div>
+                                    ${item.subcategory ? `<div style="font-size: 0.72rem; color: var(--color-primary);">↳ ${item.subcategory.name}</div>` : ''}
+                                </td>
+                                <td>
+                                    <div class="font-mono" style="font-weight: 800; color: var(--color-primary);">${item.sku}</div>
+                                    ${item.barcode ? `<div class="font-mono" style="font-size: 0.72rem; color: var(--text-muted);"><i class="fa-solid fa-barcode"></i> ${item.barcode}</div>` : ''}
+                                    <div class="font-mono" style="font-size: 0.65rem; color: #94A3B8;">ID: ${item.id.substring(0, 8)}...</div>
+                                </td>
+                                <td class="font-mono" style="font-size: 0.75rem;">${item.hs_code || '—'}</td>
+                                <td>
+                                    <div style="font-weight: 800; color: var(--text-heading);">${item.name}</div>
+                                    ${item.description ? `<div style="font-size: 0.72rem; color: var(--text-muted); max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${item.description}">${item.description}</div>` : ''}
+                                </td>
+                                <td class="font-mono">${item.unit ? item.unit.name : 'կգ'}</td>
+                                <td class="font-mono" style="font-weight: 700;">${item.current_stock.toFixed(2)}</td>
+                                <td class="font-mono">${item.cost_price.toFixed(2)} ֏</td>
+                                <td class="font-mono">${item.discount_percent > 0 ? item.discount_percent + '%' : '0%'}</td>
+                                <td class="font-mono" style="font-weight: 700;">${subtotal.toLocaleString('hy-AM', {minimumFractionDigits: 2})} ֏</td>
+                                <td class="font-mono" style="font-weight: 700; color: #0284C7;">${discounted.toLocaleString('hy-AM', {minimumFractionDigits: 2})} ֏</td>
+                                <td><span class="badge badge-slate" style="font-size: 0.7rem;">${item.packaging || 'Առանց տարայի'}</span></td>
+                                <td class="font-mono" style="font-size: 0.75rem;">
+                                    <div>${vatRate}%</div>
+                                    <div style="color: var(--text-muted);">${vatAmount.toLocaleString('hy-AM', {minimumFractionDigits: 2})} ֏</div>
+                                </td>
+                                <td style="font-size: 0.75rem;">${transBadge}</td>
+                                <td style="max-width: 160px;">${supsHtml}</td>
+                                <td>
+                                    <div class="font-mono" style="font-weight: 800; font-size: 0.95rem; color: ${isLow ? '#DC2626' : 'var(--text-heading)'};">${item.current_stock.toFixed(2)}</div>
+                                    <div style="font-size: 0.65rem; color: var(--text-muted);">${todayStr}</div>
+                                </td>
+                                <td>
+                                    <div class="font-mono" style="font-weight: 700;">${item.min_stock_level.toFixed(2)}</div>
+                                    ${isLow ? '<span class="low-stock-badge"><i class="fa-solid fa-bell"></i> Լրացնել!</span>' : ''}
+                                </td>
+                                <td>${whereUsedHtml}</td>
+                                <td style="text-align: right;">
+                                    <div style="display: inline-flex; gap: 4px;">
+                                        <button class="btn btn-xs btn-outline-secondary" title="Խմբագրել" onclick="ERP.directory.ingredients.openEditModal('${item.id}')">
+                                            <i class="fa-solid fa-pen-to-square"></i>
+                                        </button>
+                                        <button class="btn btn-xs btn-outline-primary" title="Ճշգրտել Պահեստ" onclick="ERP.inventory.openAdjustStockModal(); const sel = document.getElementById('adj-product-id'); if(sel) sel.value='${item.id}';">
+                                            <i class="fa-solid fa-scale-balanced"></i>
+                                        </button>
+                                        <button class="btn btn-xs btn-outline-danger" title="Հեռացնել" onclick="ERP.directory.ingredients.deleteIngredient('${item.id}')">
+                                            <i class="fa-solid fa-trash-can"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('');
+                },
+
+                handleSearch: function (val) {
+                    clearTimeout(this._searchTimer);
+                    this._searchTimer = setTimeout(() => {
+                        this.searchQuery = val.trim();
+                        this.load();
+                    }, 300);
+                },
+
+                handleCategoryFilter: function (catId) {
+                    this.categoryId = catId;
+                    this.load();
+                },
+
+                handleSupplierFilter: function (supId) {
+                    this.supplierId = supId;
+                    this.load();
+                },
+
+                toggleLowStockFilter: function () {
+                    this.lowStockOnly = !this.lowStockOnly;
+                    const btn = document.getElementById('ing-low-stock-btn');
+                    if (btn) {
+                        if (this.lowStockOnly) {
+                            btn.classList.remove('btn-outline-danger');
+                            btn.classList.add('btn-danger');
+                        } else {
+                            btn.classList.remove('btn-danger');
+                            btn.classList.add('btn-outline-danger');
+                        }
+                    }
+                    this.load();
+                },
+
+                openCreateModal: function () {
+                    const modal = document.getElementById('directory-ingredient-modal');
+                    if (!modal) return;
+
+                    document.getElementById('directory-ingredient-modal-title').innerHTML = '<i class="fa-solid fa-mortar-pestle"></i> Բաղադրիչի Մուտքագրում (Ձեռքով)';
+                    document.getElementById('ing-id').value = '';
+                    document.getElementById('ing-category-id').value = '';
+                    this.updateSubcategories('');
+                    document.getElementById('ing-name-hy').value = '';
+                    this.generateSku();
+                    document.getElementById('ing-barcode').value = '';
+                    document.getElementById('ing-hs-code').value = '';
+                    document.getElementById('ing-packaging').value = '';
+                    document.getElementById('ing-transaction-type').value = 'local_purchase';
+                    document.getElementById('ing-description').value = '';
+                    document.getElementById('ing-quantity').value = '1';
+                    document.getElementById('ing-cost-price').value = '0';
+                    document.getElementById('ing-discount-percent').value = '0';
+                    document.getElementById('ing-vat-rate').value = '20';
+                    document.getElementById('ing-min-stock-level').value = '10';
+
+                    document.querySelectorAll('.ing-sup-chk').forEach(cb => cb.checked = false);
+                    this.recalculate();
+
+                    modal.classList.add('active');
+                },
+
+                openEditModal: async function (id) {
+                    const modal = document.getElementById('directory-ingredient-modal');
+                    if (!modal) return;
+
+                    try {
+                        const res = await ERP.api(`/ingredients/${id}`);
+                        if (!res || !res.success || !res.data) throw new Error('Բաղադրիչը չգտնվեց:');
+
+                        const ing = res.data;
+                        document.getElementById('directory-ingredient-modal-title').innerHTML = `<i class="fa-solid fa-pen-to-square"></i> Խմբագրել Բաղադրիչ՝ ${ing.name?.hy || ing.name}`;
+                        document.getElementById('ing-id').value = ing.id;
+                        document.getElementById('ing-category-id').value = ing.category_id || '';
+                        this.updateSubcategories(ing.category_id || '', ing.subcategory_id);
+                        document.getElementById('ing-name-hy').value = (ing.name && (ing.name.hy || ing.name)) || '';
+                        document.getElementById('ing-sku').value = ing.sku || '';
+                        document.getElementById('ing-barcode').value = ing.barcode || '';
+                        document.getElementById('ing-hs-code').value = ing.hs_code || '';
+                        document.getElementById('ing-packaging').value = ing.packaging || '';
+                        document.getElementById('ing-transaction-type').value = ing.transaction_type || 'local_purchase';
+                        document.getElementById('ing-description').value = (ing.description && (ing.description.hy || ing.description)) || '';
+                        document.getElementById('ing-unit-id').value = ing.unit_id || '';
+                        document.getElementById('ing-quantity').value = ing.current_stock || '1';
+                        document.getElementById('ing-cost-price').value = ing.cost_price || '0';
+                        document.getElementById('ing-discount-percent').value = ing.discount_percent || '0';
+                        document.getElementById('ing-vat-rate').value = ing.vat_rate || '20';
+                        document.getElementById('ing-min-stock-level').value = ing.min_stock_level || '0';
+
+                        const attachedSupIds = (ing.suppliers || []).map(s => s.id);
+                        document.querySelectorAll('.ing-sup-chk').forEach(cb => {
+                            cb.checked = attachedSupIds.includes(cb.value);
+                        });
+
+                        this.recalculate();
+                        modal.classList.add('active');
+                    } catch (err) {
+                        ERP.toast(`Խմբագրման սխալ: ${err.message}`, 'error');
+                    }
+                },
+
+                closeModal: function () {
+                    const modal = document.getElementById('directory-ingredient-modal');
+                    if (modal) modal.classList.remove('active');
+                },
+
+                generateSku: function () {
+                    const skuInput = document.getElementById('ing-sku');
+                    if (skuInput) {
+                        skuInput.value = 'ING-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+                    }
+                },
+
+                updateSubcategories: function (parentId, selectedId = null) {
+                    const subcatSelect = document.getElementById('ing-subcategory-id');
+                    if (!subcatSelect) return;
+
+                    subcatSelect.innerHTML = '<option value="">-- Ընտրեք Ենթակատեգորիան --</option>';
+                    if (!parentId) return;
+
+                    const allCats = window.SERVER_INITIAL_DATA?.categories || [];
+                    const subs = allCats.filter(c => c.parent_id === parentId);
+
+                    subs.forEach(s => {
+                        const opt = document.createElement('option');
+                        opt.value = s.id;
+                        opt.textContent = (typeof s.name === 'object' && s.name !== null) ? (s.name.hy || Object.values(s.name)[0]) : s.name;
+                        if (selectedId && s.id === selectedId) opt.selected = true;
+                        subcatSelect.appendChild(opt);
+                    });
+                },
+
+                recalculate: function () {
+                    const qty = parseFloat(document.getElementById('ing-quantity')?.value) || 0;
+                    const price = parseFloat(document.getElementById('ing-cost-price')?.value) || 0;
+                    const disc = parseFloat(document.getElementById('ing-discount-percent')?.value) || 0;
+                    const vatRate = parseFloat(document.getElementById('ing-vat-rate')?.value) || 20;
+
+                    const subtotal = Math.round(price * qty * 100) / 100;
+                    const discounted = Math.round(subtotal * (1 - (disc / 100)) * 100) / 100;
+                    const vatAmount = Math.round(discounted * (vatRate / 100) * 100) / 100;
+                    const totalIncVat = Math.round((discounted + vatAmount) * 100) / 100;
+
+                    const fSub = document.getElementById('calc-subtotal');
+                    const fDisc = document.getElementById('calc-discounted');
+                    const fVat = document.getElementById('calc-vat-amount');
+                    const fTot = document.getElementById('calc-total-inc-vat');
+
+                    if (fSub) fSub.textContent = subtotal.toLocaleString('hy-AM', {minimumFractionDigits: 2}) + ' ֏';
+                    if (fDisc) fDisc.textContent = discounted.toLocaleString('hy-AM', {minimumFractionDigits: 2}) + ' ֏';
+                    if (fVat) fVat.textContent = vatAmount.toLocaleString('hy-AM', {minimumFractionDigits: 2}) + ' ֏';
+                    if (fTot) fTot.textContent = totalIncVat.toLocaleString('hy-AM', {minimumFractionDigits: 2}) + ' ֏';
+                },
+
+                submitForm: async function (e) {
+                    e.preventDefault();
+                    const id = document.getElementById('ing-id').value;
+
+                    const supIds = Array.from(document.querySelectorAll('.ing-sup-chk:checked')).map(cb => cb.value);
+
+                    const payload = {
+                        name: document.getElementById('ing-name-hy').value.trim(),
+                        category_id: document.getElementById('ing-category-id').value || null,
+                        subcategory_id: document.getElementById('ing-subcategory-id').value || null,
+                        unit_id: document.getElementById('ing-unit-id').value,
+                        sku: document.getElementById('ing-sku').value.trim() || null,
+                        barcode: document.getElementById('ing-barcode').value.trim() || null,
+                        hs_code: document.getElementById('ing-hs-code').value.trim() || null,
+                        packaging: document.getElementById('ing-packaging').value.trim() || null,
+                        transaction_type: document.getElementById('ing-transaction-type').value,
+                        description: document.getElementById('ing-description').value.trim() || null,
+                        cost_price: parseFloat(document.getElementById('ing-cost-price').value) || 0,
+                        quantity: parseFloat(document.getElementById('ing-quantity').value) || 0,
+                        discount_percent: parseFloat(document.getElementById('ing-discount-percent').value) || 0,
+                        vat_rate: parseFloat(document.getElementById('ing-vat-rate').value) || 20,
+                        min_stock_level: parseFloat(document.getElementById('ing-min-stock-level').value) || 0,
+                        warehouse_id: document.getElementById('ing-warehouse-id').value || null,
+                        supplier_ids: supIds,
+                    };
+
+                    try {
+                        let res;
+                        if (id) {
+                            res = await ERP.api(`/ingredients/${id}`, { method: 'PUT', body: JSON.stringify(payload) });
+                        } else {
+                            res = await ERP.api('/ingredients', { method: 'POST', body: JSON.stringify(payload) });
+                        }
+
+                        if (res && res.success) {
+                            ERP.toast(id ? 'Բաղադրիչը թարմացվեց:' : 'Բաղադրիչն ավելացվեց:', 'success');
+                            this.closeModal();
+                            this.load();
+                        }
+                    } catch (err) {
+                        ERP.toast(`Պահպանման սխալ: ${err.message}`, 'error');
+                    }
+                },
+
+                deleteIngredient: async function (id) {
+                    if (!confirm('Հեռացնե՞լ բաղադրիչը:')) return;
+
+                    try {
+                        const res = await ERP.api(`/ingredients/${id}`, { method: 'DELETE' });
+                        if (res && res.success) {
+                            ERP.toast('Բաղադրիչը հեռացվեց:', 'info');
+                            this.load();
+                        }
+                    } catch (err) {
+                        ERP.toast(`Հեռացման սխալ: ${err.message}`, 'error');
+                    }
+                },
+
+                showWhereUsed: function (id) {
+                    const ing = this.list.find(i => i.id === id);
+                    if (!ing) return;
+
+                    const modal = document.getElementById('directory-where-used-modal');
+                    const body = document.getElementById('where-used-modal-body');
+                    const title = document.getElementById('where-used-modal-title');
+                    if (!modal || !body) return;
+
+                    title.innerHTML = `<i class="fa-solid fa-diagram-project"></i> «${ing.name}» — Օգտագործվում է պրոդուկտներում`;
+
+                    const products = ing.where_used_products || [];
+                    if (products.length === 0) {
+                        body.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 1.5rem;">Տվյալ բաղադրիչը դեռևս ոչ մի բաղադրատոմսում/պրոդուկտում ներառված չէ:</div>';
+                    } else {
+                        body.innerHTML = `
+                            <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+                                Այս բաղադրիչը մտնում է հետևյալ պատրաստի արտադրանքների տեխնոլոգիական քարտերի (BOM Recipes) մեջ:
+                            </p>
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Պրոդուկտի SKU</th>
+                                        <th>Արտադրանքի Անվանում</th>
+                                        <th>Բաղադրատոմս (BOM)</th>
+                                        <th>Պահանջվող Քանակ</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${products.map(p => `
+                                        <tr>
+                                            <td class="font-mono" style="font-weight: 800; color: var(--color-primary);">${p.product_sku || '—'}</td>
+                                            <td style="font-weight: 700; color: var(--text-heading);">${p.product_name || '—'}</td>
+                                            <td><span class="badge badge-indigo">${p.recipe_name || 'Հիմնական Recipe'}</span></td>
+                                            <td class="font-mono" style="font-weight: 700; color: #059669;">${p.quantity_needed || 0} ${ing.unit ? ing.unit.name : 'միավոր'}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        `;
+                    }
+
+                    modal.classList.add('active');
+                },
+
+                // --- Invoice Import Flow (.xml, .xls, .csv) ---
+                openImportModal: function () {
+                    const modal = document.getElementById('directory-invoice-import-modal');
+                    if (!modal) return;
+
+                    this.clearFile();
+                    modal.classList.add('active');
+                },
+
+                closeImportModal: function () {
+                    const modal = document.getElementById('directory-invoice-import-modal');
+                    if (modal) modal.classList.remove('active');
+                },
+
+                handleFileSelect: function (input) {
+                    if (!input.files || input.files.length === 0) return;
+
+                    const file = input.files[0];
+                    this.selectedFile = file;
+
+                    const preview = document.getElementById('invoice-file-preview');
+                    const fileName = document.getElementById('invoice-file-name');
+                    const fileSize = document.getElementById('invoice-file-size');
+                    const submitBtn = document.getElementById('import-submit-btn');
+
+                    if (preview && fileName && fileSize) {
+                        fileName.textContent = file.name;
+                        fileSize.textContent = (file.size / 1024).toFixed(1) + ' KB (' + file.name.split('.').pop().toUpperCase() + ')';
+                        preview.style.display = 'flex';
+                    }
+
+                    if (submitBtn) submitBtn.disabled = false;
+                },
+
+                clearFile: function () {
+                    this.selectedFile = null;
+                    const input = document.getElementById('invoice-file-input');
+                    if (input) input.value = '';
+
+                    const preview = document.getElementById('invoice-file-preview');
+                    if (preview) preview.style.display = 'none';
+
+                    const submitBtn = document.getElementById('import-submit-btn');
+                    if (submitBtn) submitBtn.disabled = true;
+                },
+
+                submitImport: async function (e) {
+                    e.preventDefault();
+                    if (!this.selectedFile) {
+                        ERP.toast('Խնդրում ենք ընտրել ներմուծման ֆայլը (.xml, .xls, .csv):', 'warning');
+                        return;
+                    }
+
+                    const submitBtn = document.getElementById('import-submit-btn');
+                    if (submitBtn) {
+                        submitBtn.disabled = true;
+                        submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Ներմուծվում է...';
+                    }
+
+                    const formData = new FormData();
+                    formData.append('file', this.selectedFile);
+
+                    const supId = document.getElementById('import-supplier-id')?.value;
+                    if (supId) formData.append('supplier_id', supId);
+
+                    const whId = document.getElementById('import-warehouse-id')?.value;
+                    if (whId) formData.append('warehouse_id', whId);
+
+                    try {
+                        const res = await ERP.api('/ingredients/import-invoices', {
+                            method: 'POST',
+                            body: formData
+                        });
+
+                        if (res && res.success) {
+                            ERP.toast(res.message || `Հաջողությամբ ներմուծվել է ${res.imported_count} բաղադրիչ:`, 'success');
+                            this.closeImportModal();
+                            this.load();
+                        } else {
+                            throw new Error(res.message || 'Ներմուծման սխալ');
+                        }
+                    } catch (err) {
+                        ERP.toast(`Ներմուծման սխալ: ${err.message}`, 'error');
+                    } finally {
+                        if (submitBtn) {
+                            submitBtn.disabled = false;
+                            submitBtn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> Սկսել Ներմուծումը';
+                        }
+                    }
+                }
+            }
+        },
+
+        // =====================================================================
         // 10. Initialization
         // =====================================================================
         init: function () {
@@ -1229,7 +2137,7 @@
 
             // Check hash in URL or default to dashboard
             const hash = window.location.hash.replace('#', '') || 'dashboard';
-            const validViews = ['dashboard', 'catalog', 'procurement', 'pos', 'inventory', 'manufacturing', 'quality', 'delivery', 'users', 'roles', 'billing', 'settings', 'api-console'];
+            const validViews = ['dashboard', 'catalog', 'directory-suppliers', 'directory-ingredients', 'procurement', 'pos', 'inventory', 'manufacturing', 'quality', 'delivery', 'users', 'roles', 'billing', 'settings', 'api-console'];
             const targetView = validViews.includes(hash) ? hash : 'dashboard';
 
             ERP.navigateTo(targetView);

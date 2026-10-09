@@ -75,7 +75,8 @@ Route::get('/{view?}', function (Request $request, TenantResolver $resolver, ?st
     $demoTenant = Tenant::where('slug', 'gourmet')->first() ?? $tenants->first();
     $branches = $demoTenant ? Branch::withoutGlobalScopes()->where('tenant_id', $demoTenant->id)->get() : collect();
     $warehouses = $demoTenant ? Warehouse::withoutGlobalScopes()->where('tenant_id', $demoTenant->id)->with('branch')->get() : collect();
-    $suppliers = $demoTenant ? Supplier::withoutGlobalScopes()->where('tenant_id', $demoTenant->id)->get() : collect();
+    $suppliers = $demoTenant ? Supplier::withoutGlobalScopes()->where('tenant_id', $demoTenant->id)->with(['couriers', 'products'])->get() : collect();
+    $ingredients = $demoTenant ? Product::withoutGlobalScopes()->where('tenant_id', $demoTenant->id)->whereIn('type', ['ingredient', 'raw_material', 'semi_finished'])->with(['category', 'subcategory', 'unit', 'suppliers', 'recipesWhereUsed.recipe.product'])->withSum('stockLevels as current_stock', 'quantity_on_hand')->get() : collect();
     $products = $demoTenant ? Product::withoutGlobalScopes()->where('tenant_id', $demoTenant->id)->with(['category', 'unit'])->get() : collect();
     $customers = $demoTenant ? Customer::withoutGlobalScopes()->where('tenant_id', $demoTenant->id)->get() : collect();
     $orders = $demoTenant ? Order::withoutGlobalScopes()->where('tenant_id', $demoTenant->id)->with(['items', 'customer'])->latest()->get() : collect();
@@ -113,6 +114,7 @@ Route::get('/{view?}', function (Request $request, TenantResolver $resolver, ?st
         'branches',
         'warehouses',
         'suppliers',
+        'ingredients',
         'products',
         'categories',
         'units',
