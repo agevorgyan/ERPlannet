@@ -6,6 +6,7 @@ use App\Domain\Catalog\Models\Category;
 use App\Domain\Catalog\Models\Product;
 use App\Domain\Catalog\Models\Unit;
 use App\Domain\CRM\Models\Customer;
+use App\Domain\CRM\Models\CustomerSource;
 use App\Domain\Delivery\Models\DeliveryDriver;
 use App\Domain\Delivery\Models\DeliveryShipment;
 use App\Domain\IAM\Models\Role;
@@ -78,7 +79,8 @@ Route::get('/{view?}', function (Request $request, TenantResolver $resolver, ?st
     $suppliers = $demoTenant ? Supplier::withoutGlobalScopes()->where('tenant_id', $demoTenant->id)->with(['couriers', 'products'])->get() : collect();
     $ingredients = $demoTenant ? Product::withoutGlobalScopes()->where('tenant_id', $demoTenant->id)->whereIn('type', ['ingredient', 'raw_material', 'semi_finished'])->with(['category', 'subcategory', 'unit', 'suppliers', 'recipesWhereUsed.recipe.product'])->withSum('stockLevels as current_stock', 'quantity_on_hand')->get() : collect();
     $products = $demoTenant ? Product::withoutGlobalScopes()->where('tenant_id', $demoTenant->id)->with(['category', 'subcategory', 'unit', 'variants', 'recipes.yieldUnit', 'recipes.items.product', 'recipes.items.unit'])->withSum('stockLevels as current_stock', 'quantity_on_hand')->get() : collect();
-    $customers = $demoTenant ? Customer::withoutGlobalScopes()->where('tenant_id', $demoTenant->id)->get() : collect();
+    $customerSources = $demoTenant ? CustomerSource::withoutGlobalScopes()->where('tenant_id', $demoTenant->id)->orderBy('sort_order')->get() : collect();
+    $customers = $demoTenant ? Customer::withoutGlobalScopes()->where('tenant_id', $demoTenant->id)->with(['defaultAddress', 'lastUsedAddress', 'addresses', 'individual', 'company', 'contacts', 'loyaltyAccount', 'primaryBranch', 'acquisitionSource'])->latest()->get() : collect();
     $orders = $demoTenant ? Order::withoutGlobalScopes()->where('tenant_id', $demoTenant->id)->with(['items', 'customer'])->latest()->get() : collect();
     $batches = $demoTenant ? StockBatch::withoutGlobalScopes()->where('tenant_id', $demoTenant->id)->with(['product', 'warehouse'])->get() : collect();
     $purchaseOrders = $demoTenant ? PurchaseOrder::withoutGlobalScopes()->where('tenant_id', $demoTenant->id)->with(['supplier', 'warehouse', 'items.product'])->latest()->get() : collect();
@@ -122,6 +124,7 @@ Route::get('/{view?}', function (Request $request, TenantResolver $resolver, ?st
         'productCategories',
         'ingredientCategories',
         'units',
+        'customerSources',
         'customers',
         'orders',
         'batches',

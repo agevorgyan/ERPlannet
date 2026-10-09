@@ -25,6 +25,11 @@ class TenantContext
         return $this->currentTenant?->id;
     }
 
+    public function getTenantId(): ?string
+    {
+        return $this->id();
+    }
+
     public function hasTenant(): bool
     {
         return $this->currentTenant !== null;

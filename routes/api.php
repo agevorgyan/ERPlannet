@@ -172,8 +172,15 @@ Route::prefix('v1')->group(function () {
             Route::apiResource('products', ProductController::class);
 
             // CRM & Customers
-            Route::apiResource('customers', CustomerController::class);
+            Route::get('/customers/sources', [CustomerController::class, 'sources']);
+            Route::match(['get', 'post'], '/customers/check-duplicate', [CustomerController::class, 'checkDuplicate']);
+            Route::post('/customers/merge', [CustomerController::class, 'merge']);
+            Route::post('/customers/{id}/restore', [CustomerController::class, 'restore']);
+            Route::get('/customers/{id}/timeline', [CustomerController::class, 'timeline']);
+            Route::post('/customers/{id}/notes', [CustomerController::class, 'addNote']);
+            Route::post('/customers/{id}/loyalty/adjust', [CustomerController::class, 'adjustLoyalty']);
             Route::post('/customers/{id}/addresses', [CustomerController::class, 'addAddress']);
+            Route::apiResource('customers', CustomerController::class);
 
             // Manufacturing & Recipes (BOM)
             Route::apiResource('recipes', RecipeController::class);

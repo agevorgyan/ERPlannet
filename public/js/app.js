@@ -348,6 +348,7 @@
             if (viewName === 'directory-categories') ERP.directory.categories.load();
             if (viewName === 'directory-suppliers') ERP.directory.suppliers.load();
             if (viewName === 'directory-ingredients') ERP.directory.ingredients.load();
+            if (viewName === 'directory-customers') ERP.directory.customers.load();
         },
 
         // =====================================================================
@@ -3696,6 +3697,1037 @@
                         }
                     }
                 }
+            },
+
+            // -----------------------------------------------------------------
+            // CRM: CUSTOMERS & CUSTOMER 360° SUBSYSTEM
+            // -----------------------------------------------------------------
+            customers: {
+                currentFilter: 'all',
+                currentStatus: 'active',
+                currentBranch: 'all',
+                currentSource: 'all',
+                currentTier: 'all',
+                searchQuery: '',
+                searchTimeout: null,
+                list: [],
+                sources: [],
+                activeCustomer: null,
+
+                load: async function () {
+                    const tbody = document.getElementById('directory-customers-table-body');
+                    if (!tbody) return;
+
+                    try {
+                        const params = new URLSearchParams();
+                        if (this.currentFilter !== 'all') params.append('type', this.currentFilter);
+                        if (this.currentStatus !== 'all') params.append('status', this.currentStatus);
+                        if (this.currentBranch !== 'all') params.append('branch_id', this.currentBranch);
+                        if (this.currentSource !== 'all') params.append('source_id', this.currentSource);
+                        if (this.currentTier !== 'all') params.append('loyalty_tier', this.currentTier);
+                        if (this.searchQuery) params.append('search', this.searchQuery);
+
+                        const qs = params.toString() ? `?${params.toString()}` : '';
+                        const res = await ERP.api(`/customers${qs}`);
+                        if (res && res.success) {
+                            this.list = res.data || [];
+                            this.renderTable(this.list);
+                            this.updateKPIs(this.list);
+                        }
+                    } catch (err) {
+                        console.error('Failed to load customers:', err);
+                        ERP.toast('Չհաջողվեց բեռնել հաճախորդներին: ' + err.message, 'error');
+                    }
+                },
+
+                updateKPIs: function (list) {
+                    const totalEl = document.getElementById('cust-kpi-total');
+                    const indivEl = document.getElementById('cust-kpi-individual');
+                    const compEl = document.getElementById('cust-kpi-company');
+                    const pointsEl = document.getElementById('cust-kpi-points');
+                    const revEl = document.getElementById('cust-kpi-revenue');
+                    const badgeCountEl = document.getElementById('cust-table-badge-count');
+                    const sideCountEl = document.getElementById('sidebar-customers-count');
+
+                    const total = list.length;
+                    const individuals = list.filter(c => c.type === 'individual').length;
+                    const companies = list.filter(c => c.type === 'company').length;
+                    const points = list.reduce((sum, c) => sum + (parseFloat(c.loyalty_account?.points_balance) || 0), 0);
+                    const spent = list.reduce((sum, c) => sum + (parseFloat(c.total_spent) || 0), 0);
+
+                    if (totalEl) totalEl.textContent = total;
+                    if (indivEl) indivEl.textContent = individuals;
+                    if (compEl) compEl.textContent = companies;
+                    if (pointsEl) pointsEl.textContent = new Intl.NumberFormat('hy-AM').format(Math.round(points));
+                    if (revEl) revEl.textContent = new Intl.NumberFormat('hy-AM').format(Math.round(spent)) + ' ֏';
+                    if (badgeCountEl) badgeCountEl.textContent = total;
+                    if (sideCountEl) sideCountEl.textContent = total;
+                },
+
+                renderTable: function (list) {
+                    const tbody = document.getElementById('directory-customers-table-body');
+                    if (!tbody) return;
+
+                    if (!list || list.length === 0) {
+                        tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: var(--text-muted); padding: 2.5rem;">
+                            <div style="font-size: 1.5rem; margin-bottom: 0.5rem;"><i class="fa-solid fa-users-slash"></i></div>
+                            <div>Համապատասխան հաճախորդներ չեն գտնվել:</div>
+                        </td></tr>`;
+                        return;
+                    }
+
+                    tbody.innerHTML = list.map(c => {
+                        const isComp = c.type === 'company';
+                        const name = c.display_name || (isComp ? (c.company?.legal_name || c.company_name) : `${c.first_name || ''} ${c.last_name || ''}`.trim()) || 'Անանուն';
+                        const initials = name.split(' ').filter(Boolean).map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'ՀԱ';
+                        const tier = (c.loyalty_tier || 'basic').toLowerCase();
+                        const tierColors = {
+                            basic: 'badge-slate',
+                            bronze: 'badge-amber',
+                            silver: 'badge-cyan',
+                            gold: 'badge-amber',
+                            vip: 'badge-purple'
+                        };
+                        const tierBadge = `<span class="badge ${tierColors[tier] || 'badge-slate'}" style="text-transform: uppercase;">${tier}</span>`;
+                        const points = parseFloat(c.loyalty_account?.points_balance || 0);
+                        const discount = parseFloat(c.custom_discount_percent || 0);
+
+                        const addr = c.last_used_address?.street || c.default_address?.street || (c.addresses && c.addresses[0]?.street) || '—';
+                        const city = c.last_used_address?.city || c.default_address?.city || 'Երևան';
+
+                        const score = parseInt(c.customer_score || 50, 10);
+                        let scoreClass = 'score-medium';
+                        if (score >= 75) scoreClass = 'score-high';
+                        else if (score < 40) scoreClass = 'score-low';
+
+                        const statusMap = {
+                            active: '<span class="badge badge-emerald">Ակտիվ</span>',
+                            inactive: '<span class="badge badge-slate">Ոչ ակտիվ</span>',
+                            blocked: '<span class="badge badge-danger">Արգելափակված</span>',
+                            archived: '<span class="badge badge-slate">Արխիվ</span>'
+                        };
+                        const statusBadge = statusMap[c.status] || `<span class="badge badge-slate">${c.status}</span>`;
+
+                        const totalSpent = new Intl.NumberFormat('hy-AM').format(Math.round(parseFloat(c.total_spent || 0)));
+
+                        return `
+                            <tr>
+                                <td>
+                                    <span class="font-mono" style="font-weight: 800; color: var(--color-primary); cursor: pointer;" onclick="ERP.directory.customers.openProfile360('${c.id}')">${c.customer_code || '—'}</span>
+                                </td>
+                                <td>
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        <div class="crm-avatar ${isComp ? 'company' : ''}">${initials}</div>
+                                        <div>
+                                            <div style="font-weight: 800; color: var(--text-heading); cursor: pointer;" onclick="ERP.directory.customers.openProfile360('${c.id}')">${name}</div>
+                                            <div style="display: flex; gap: 4px; align-items: center; margin-top: 2px;">
+                                                <span class="badge ${isComp ? 'badge-purple' : 'badge-primary'}" style="font-size: 0.65rem;">${isComp ? 'B2B' : 'B2C'}</span>
+                                                ${c.tax_id ? `<span class="font-mono" style="font-size: 0.68rem; color: var(--text-muted);"><i class="fa-solid fa-receipt"></i> ${c.tax_id}</span>` : ''}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="font-mono" style="font-size: 0.8rem; font-weight: 700;">
+                                        <i class="fa-solid fa-phone" style="font-size: 0.7rem; color: var(--color-primary);"></i> ${c.primary_phone || c.phone || '—'}
+                                    </div>
+                                    ${(c.primary_email || c.email) ? `<div style="font-size: 0.72rem; color: var(--text-muted);"><i class="fa-regular fa-envelope"></i> ${c.primary_email || c.email}</div>` : ''}
+                                </td>
+                                <td>
+                                    <div style="font-size: 0.82rem; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${addr}">
+                                        <i class="fa-solid fa-location-dot" style="color: #EF4444; font-size: 0.7rem;"></i> ${addr}
+                                    </div>
+                                    <div style="font-size: 0.68rem; color: var(--text-muted);">${city}</div>
+                                </td>
+                                <td>
+                                    <div style="display: flex; align-items: center; gap: 4px;">
+                                        ${tierBadge}
+                                        <span class="font-mono" style="font-weight: 800; font-size: 0.8rem; color: #D97706;">${points} մ.</span>
+                                    </div>
+                                    <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">Զեղչ՝ <strong class="font-mono" style="color: #2563EB;">${discount}%</strong></div>
+                                </td>
+                                <td>
+                                    <div class="font-mono" style="font-weight: 800; color: #059669;">${totalSpent} ֏</div>
+                                    <div style="font-size: 0.7rem; color: var(--text-muted);">${c.orders_count || 0} պատվեր</div>
+                                </td>
+                                <td>
+                                    <span class="score-badge ${scoreClass}">${score}</span>
+                                </td>
+                                <td>
+                                    ${statusBadge}
+                                </td>
+                                <td style="text-align: right;">
+                                    <div style="display: inline-flex; gap: 4px;">
+                                        <button class="btn btn-xs btn-outline-primary" title="CRM 360° Profile" onclick="ERP.directory.customers.openProfile360('${c.id}')">
+                                            <i class="fa-solid fa-eye"></i> 360°
+                                        </button>
+                                        <button class="btn btn-xs btn-outline-secondary" title="Խմբագրել" onclick="ERP.directory.customers.openEditModal('${c.id}')">
+                                            <i class="fa-solid fa-pen-to-square"></i>
+                                        </button>
+                                        <button class="btn btn-xs btn-outline-danger" title="Արխիվացնել" onclick="ERP.directory.customers.archiveCustomer('${c.id}')">
+                                            <i class="fa-solid fa-box-archive"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('');
+                },
+
+                filterType: function (type) {
+                    this.currentFilter = type;
+                    document.querySelectorAll('#customer-type-tabs .directory-tab-btn').forEach(btn => {
+                        if (btn.getAttribute('data-type') === type) {
+                            btn.classList.add('active');
+                        } else {
+                            btn.classList.remove('active');
+                        }
+                    });
+                    this.load();
+                },
+
+                filterStatus: function (status) {
+                    this.currentStatus = status;
+                    this.load();
+                },
+
+                filterBranch: function (branch) {
+                    this.currentBranch = branch;
+                    this.load();
+                },
+
+                filterSource: function (source) {
+                    this.currentSource = source;
+                    this.load();
+                },
+
+                filterTier: function (tier) {
+                    this.currentTier = tier;
+                    this.load();
+                },
+
+                onSearch: function (query) {
+                    this.searchQuery = query.trim();
+                    if (this.searchTimeout) clearTimeout(this.searchTimeout);
+                    this.searchTimeout = setTimeout(() => {
+                        this.load();
+                    }, 300);
+                },
+
+                setFormType: function (type) {
+                    const typeInput = document.getElementById('cust-form-type');
+                    const indivBtn = document.getElementById('cust-type-btn-indiv');
+                    const compBtn = document.getElementById('cust-type-btn-comp');
+                    const indivFields = document.getElementById('cust-fields-individual');
+                    const compFields = document.getElementById('cust-fields-company');
+
+                    if (typeInput) typeInput.value = type;
+
+                    if (type === 'company') {
+                        if (compBtn) {
+                            compBtn.style.border = '2px solid #7C3AED';
+                            compBtn.style.background = '#F5F3FF';
+                            compBtn.style.color = '#7C3AED';
+                        }
+                        if (indivBtn) {
+                            indivBtn.style.border = '1px solid #CBD5E1';
+                            indivBtn.style.background = '#FFFFFF';
+                            indivBtn.style.color = 'var(--text-main)';
+                        }
+                        if (indivFields) indivFields.style.display = 'none';
+                        if (compFields) compFields.style.display = 'block';
+                    } else {
+                        if (indivBtn) {
+                            indivBtn.style.border = '2px solid var(--color-primary)';
+                            indivBtn.style.background = '#EFF6FF';
+                            indivBtn.style.color = 'var(--color-primary)';
+                        }
+                        if (compBtn) {
+                            compBtn.style.border = '1px solid #CBD5E1';
+                            compBtn.style.background = '#FFFFFF';
+                            compBtn.style.color = 'var(--text-main)';
+                        }
+                        if (indivFields) indivFields.style.display = 'block';
+                        if (compFields) compFields.style.display = 'none';
+                    }
+                },
+
+                openCreateModal: function (type = 'individual') {
+                    const form = document.getElementById('directory-customer-form');
+                    if (form) form.reset();
+
+                    document.getElementById('cust-form-id').value = '';
+                    document.getElementById('customer-modal-title').innerHTML = '<i class="fa-solid fa-user-plus" style="color: var(--color-primary);"></i> Նոր Հաճախորդ';
+                    document.getElementById('cust-submit-btn').innerHTML = '<i class="fa-solid fa-check"></i> Պահպանել Հաճախորդին';
+
+                    const warn = document.getElementById('cust-dup-warning-banner');
+                    if (warn) warn.style.display = 'none';
+
+                    this.setFormType(type);
+                    document.getElementById('directory-customer-modal').classList.add('active');
+                },
+
+                openEditModal: function (id) {
+                    const customer = this.list.find(c => c.id === id);
+                    if (!customer) return;
+
+                    document.getElementById('cust-form-id').value = customer.id;
+                    document.getElementById('customer-modal-title').innerHTML = `<i class="fa-solid fa-pen-to-square" style="color: var(--color-primary);"></i> Խմբագրել: ${customer.customer_code}`;
+                    document.getElementById('cust-submit-btn').innerHTML = '<i class="fa-solid fa-check"></i> Թարմացնել Տվյալները';
+
+                    const warn = document.getElementById('cust-dup-warning-banner');
+                    if (warn) warn.style.display = 'none';
+
+                    this.setFormType(customer.type);
+
+                    // Populate fields
+                    if (customer.type === 'company') {
+                        document.getElementById('cust-company-name').value = customer.company?.legal_name || customer.company_name || '';
+                        document.getElementById('cust-tax-id').value = customer.tax_id || customer.company?.tax_id || '';
+                        document.getElementById('cust-registration-country').value = customer.company?.registration_country || 'AM';
+                        document.getElementById('cust-legal-address').value = customer.company?.legal_address || '';
+                        document.getElementById('cust-physical-address').value = customer.company?.physical_address || '';
+                        document.getElementById('cust-director-name').value = customer.company?.director_name || '';
+                        document.getElementById('cust-purchasing-manager').value = customer.company?.purchasing_manager_name || '';
+                        document.getElementById('cust-credit-limit').value = customer.company?.credit_limit || 0;
+                        document.getElementById('cust-payment-terms').value = customer.company?.payment_terms_days || 0;
+                    } else {
+                        document.getElementById('cust-first-name').value = customer.individual?.first_name || customer.first_name || '';
+                        document.getElementById('cust-last-name').value = customer.individual?.last_name || customer.last_name || '';
+                        document.getElementById('cust-birth-date').value = customer.individual?.birth_date ? customer.individual.birth_date.slice(0, 10) : '';
+                    }
+
+                    document.getElementById('cust-phone').value = customer.primary_phone || customer.phone || '';
+                    document.getElementById('cust-email').value = customer.primary_email || customer.email || '';
+                    document.getElementById('cust-website').value = customer.company?.website || '';
+
+                    // Address
+                    const addr = customer.default_address || customer.last_used_address || (customer.addresses && customer.addresses[0]);
+                    if (addr) {
+                        document.getElementById('cust-addr-city').value = addr.city || 'Երևան';
+                        document.getElementById('cust-addr-street').value = addr.street || '';
+                        document.getElementById('cust-addr-apartment').value = addr.apartment || '';
+                        document.getElementById('cust-addr-floor').value = addr.floor || '';
+                        document.getElementById('cust-addr-door-code').value = addr.door_code || '';
+                        document.getElementById('cust-addr-instructions').value = addr.delivery_instructions || '';
+                    }
+
+                    document.getElementById('cust-branch-id').value = customer.primary_branch_id || '';
+                    document.getElementById('cust-source-id').value = customer.acquisition_source_id || '';
+                    document.getElementById('cust-loyalty-tier').value = customer.loyalty_tier || 'basic';
+                    document.getElementById('cust-custom-discount').value = customer.custom_discount_percent || 0;
+                    document.getElementById('cust-status').value = customer.status || 'active';
+                    document.getElementById('cust-notes').value = customer.notes || '';
+
+                    document.getElementById('directory-customer-modal').classList.add('active');
+                },
+
+                checkDuplicates: async function () {
+                    const phone = document.getElementById('cust-phone')?.value.trim();
+                    const email = document.getElementById('cust-email')?.value.trim();
+                    const taxId = document.getElementById('cust-tax-id')?.value.trim();
+                    const excludeId = document.getElementById('cust-form-id')?.value;
+
+                    if (!phone && !email && !taxId) return;
+
+                    try {
+                        const params = new URLSearchParams();
+                        if (phone) params.append('phone', phone);
+                        if (email) params.append('email', email);
+                        if (taxId) params.append('tax_id', taxId);
+                        if (excludeId) params.append('exclude_id', excludeId);
+
+                        const res = await ERP.api(`/customers/check-duplicate?${params.toString()}`);
+                        const banner = document.getElementById('cust-dup-warning-banner');
+                        const text = document.getElementById('cust-dup-warning-text');
+
+                        if (res && res.has_duplicate) {
+                            const d = res.duplicates[0];
+                            if (text) {
+                                text.innerHTML = `<strong>Ուշադրություն.</strong> Համակարգում արդեն կա նույն տվյալներով հաճախորդ՝ <strong>${d.customer_code} (${d.display_name})</strong>:`;
+                            }
+                            if (banner) banner.style.display = 'flex';
+                        } else {
+                            if (banner) banner.style.display = 'none';
+                        }
+                    } catch (err) {
+                        console.warn('Duplicate check skipped:', err);
+                    }
+                },
+
+                onPhoneBlur: function () {
+                    this.checkDuplicates();
+                },
+
+                onEmailBlur: function () {
+                    this.checkDuplicates();
+                },
+
+                onTaxIdBlur: function () {
+                    this.checkDuplicates();
+                },
+
+                saveCustomer: async function (e) {
+                    e.preventDefault();
+                    const submitBtn = document.getElementById('cust-submit-btn');
+                    const id = document.getElementById('cust-form-id')?.value;
+                    const type = document.getElementById('cust-form-type')?.value || 'individual';
+
+                    const payload = {
+                        type,
+                        phone: document.getElementById('cust-phone')?.value.trim(),
+                        email: document.getElementById('cust-email')?.value.trim() || null,
+                        primary_branch_id: document.getElementById('cust-branch-id')?.value || null,
+                        acquisition_source_id: document.getElementById('cust-source-id')?.value || null,
+                        loyalty_tier: document.getElementById('cust-loyalty-tier')?.value || 'basic',
+                        custom_discount_percent: parseFloat(document.getElementById('cust-custom-discount')?.value) || 0,
+                        status: document.getElementById('cust-status')?.value || 'active',
+                        notes: document.getElementById('cust-notes')?.value.trim() || null,
+                        street: document.getElementById('cust-addr-street')?.value.trim() || null,
+                        city: document.getElementById('cust-addr-city')?.value.trim() || 'Երևան',
+                        apartment: document.getElementById('cust-addr-apartment')?.value.trim() || null,
+                        floor: document.getElementById('cust-addr-floor')?.value.trim() || null,
+                        door_code: document.getElementById('cust-addr-door-code')?.value.trim() || null,
+                        delivery_instructions: document.getElementById('cust-addr-instructions')?.value.trim() || null,
+                    };
+
+                    if (type === 'company') {
+                        payload.company_name = document.getElementById('cust-company-name')?.value.trim();
+                        payload.tax_id = document.getElementById('cust-tax-id')?.value.trim() || null;
+                        payload.registration_country = document.getElementById('cust-registration-country')?.value || 'AM';
+                        payload.legal_address = document.getElementById('cust-legal-address')?.value.trim() || null;
+                        payload.physical_address = document.getElementById('cust-physical-address')?.value.trim() || null;
+                        payload.director_name = document.getElementById('cust-director-name')?.value.trim() || null;
+                        payload.purchasing_manager_name = document.getElementById('cust-purchasing-manager')?.value.trim() || null;
+                        payload.credit_limit = parseFloat(document.getElementById('cust-credit-limit')?.value) || 0;
+                        payload.payment_terms_days = parseInt(document.getElementById('cust-payment-terms')?.value, 10) || 0;
+                        payload.website = document.getElementById('cust-website')?.value.trim() || null;
+                    } else {
+                        payload.first_name = document.getElementById('cust-first-name')?.value.trim();
+                        payload.last_name = document.getElementById('cust-last-name')?.value.trim() || null;
+                        payload.birth_date = document.getElementById('cust-birth-date')?.value || null;
+                    }
+
+                    if (!payload.phone) {
+                        ERP.toast('Հեռախոսահամարը պարտադիր է:', 'error');
+                        return;
+                    }
+
+                    if (type === 'individual' && !payload.first_name) {
+                        ERP.toast('Անունը պարտադիր է:', 'error');
+                        return;
+                    }
+
+                    if (type === 'company' && !payload.company_name) {
+                        ERP.toast('Կազմակերպության անվանումը պարտադիր է:', 'error');
+                        return;
+                    }
+
+                    try {
+                        if (submitBtn) {
+                            submitBtn.disabled = true;
+                            submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Պահպանում...';
+                        }
+
+                        let res;
+                        if (id) {
+                            res = await ERP.api(`/customers/${id}`, {
+                                method: 'PUT',
+                                body: JSON.stringify(payload)
+                            });
+                        } else {
+                            res = await ERP.api('/customers', {
+                                method: 'POST',
+                                body: JSON.stringify(payload)
+                            });
+                        }
+
+                        if (res && res.success) {
+                            ERP.toast(id ? 'Հաճախորդի տվյալները թարմացվեցին:' : 'Հաճախորդը հաջողությամբ գրանցվեց:', 'success');
+                            document.getElementById('directory-customer-modal').classList.remove('active');
+                            await this.load();
+                        } else {
+                            throw new Error(res.message || 'Սխալ');
+                        }
+                    } catch (err) {
+                        ERP.toast(err.message, 'error');
+                    } finally {
+                        if (submitBtn) {
+                            submitBtn.disabled = false;
+                            submitBtn.innerHTML = '<i class="fa-solid fa-check"></i> Պահպանել Հաճախորդին';
+                        }
+                    }
+                },
+
+                openProfile360: async function (id) {
+                    try {
+                        const res = await ERP.api(`/customers/${id}`);
+                        if (!res || !res.success) throw new Error(res.message || 'Customer not found');
+
+                        const c = res.data;
+                        this.activeCustomer = c;
+
+                        const isComp = c.type === 'company';
+                        const name = c.display_name || (isComp ? (c.company?.legal_name || c.company_name) : `${c.first_name || ''} ${c.last_name || ''}`.trim());
+                        const initials = name.split(' ').filter(Boolean).map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'ՀԱ';
+
+                        // Header elements
+                        document.getElementById('cprof-name').textContent = name;
+                        document.getElementById('cprof-code').textContent = c.customer_code || '—';
+                        document.getElementById('cprof-phone').textContent = c.primary_phone || c.phone || '—';
+                        document.getElementById('cprof-email').textContent = c.primary_email || c.email || '—';
+                        document.getElementById('cprof-address').textContent = c.last_used_address?.street || c.default_address?.street || '—';
+
+                        const avatar = document.getElementById('cprof-avatar');
+                        if (avatar) {
+                            avatar.textContent = initials;
+                            if (isComp) avatar.classList.add('company');
+                            else avatar.classList.remove('company');
+                        }
+
+                        const typeBadge = document.getElementById('cprof-type-badge');
+                        if (typeBadge) {
+                            typeBadge.textContent = isComp ? 'B2B Company' : 'B2C Individual';
+                            typeBadge.className = isComp ? 'badge badge-purple' : 'badge badge-primary';
+                        }
+
+                        const statusBadge = document.getElementById('cprof-status-badge');
+                        if (statusBadge) {
+                            statusBadge.textContent = c.status;
+                            statusBadge.className = c.status === 'active' ? 'badge badge-emerald' : 'badge badge-slate';
+                        }
+
+                        // Tab counts
+                        document.getElementById('cprof-addr-count').textContent = c.addresses ? c.addresses.length : 0;
+                        document.getElementById('cprof-orders-count').textContent = c.orders ? c.orders.length : (c.orders_count || 0);
+
+                        // Tab 1: Overview
+                        document.getElementById('cprof-kpi-spent').textContent = new Intl.NumberFormat('hy-AM').format(Math.round(parseFloat(c.total_spent || 0))) + ' ֏';
+                        document.getElementById('cprof-kpi-aov').textContent = new Intl.NumberFormat('hy-AM').format(Math.round(parseFloat(c.average_order_value || 0))) + ' ֏';
+                        document.getElementById('cprof-kpi-orders').textContent = c.orders_count || 0;
+                        document.getElementById('cprof-kpi-points').textContent = parseFloat(c.loyalty_account?.points_balance || 0);
+
+                        const score = parseInt(c.customer_score || 50, 10);
+                        const scoreEl = document.getElementById('cprof-kpi-score');
+                        if (scoreEl) {
+                            let scoreClass = 'score-medium';
+                            if (score >= 75) scoreClass = 'score-high';
+                            else if (score < 40) scoreClass = 'score-low';
+                            scoreEl.innerHTML = `<span class="score-badge ${scoreClass}">${score} / 100</span>`;
+                        }
+
+                        document.getElementById('cprof-ov-type').textContent = isComp ? 'Իրավաբանական Անձ (B2B)' : 'Ֆիզիկական Անձ (B2C)';
+                        document.getElementById('cprof-ov-branch').textContent = c.primary_branch?.name || 'Գլխավոր Մասնաճյուղ';
+                        document.getElementById('cprof-ov-source').textContent = c.acquisition_source?.name || c.source || 'Ուղիղ';
+                        document.getElementById('cprof-ov-first-order').textContent = c.first_ordered_at ? new Date(c.first_ordered_at).toLocaleDateString('hy-AM') : '—';
+                        document.getElementById('cprof-ov-last-order').textContent = c.last_ordered_at ? new Date(c.last_ordered_at).toLocaleDateString('hy-AM') : '—';
+                        document.getElementById('cprof-ov-frequency').textContent = (c.average_order_frequency_days || 0) + ' օր';
+
+                        document.getElementById('cprof-ov-card').textContent = c.loyalty_account?.card_number || 'LOY-000000';
+                        document.getElementById('cprof-ov-tier').textContent = (c.loyalty_tier || 'basic').toUpperCase();
+                        document.getElementById('cprof-ov-discount').textContent = (c.custom_discount_percent || 0) + '%';
+                        document.getElementById('cprof-ov-earned-lifetime').textContent = (c.loyalty_account?.lifetime_points_earned || 0) + ' միավոր';
+                        document.getElementById('cprof-ov-spent-lifetime').textContent = (c.loyalty_account?.lifetime_points_spent || 0) + ' միավոր';
+
+                        // Tab 2: Profile Data
+                        const detailsContainer = document.getElementById('cprof-data-details');
+                        if (detailsContainer) {
+                            if (isComp) {
+                                detailsContainer.innerHTML = `
+                                    <div><span style="color:var(--text-muted)">Իրավաբանական անվանում:</span> <strong>${c.company?.legal_name || '—'}</strong></div>
+                                    <div><span style="color:var(--text-muted)">ՀՎՀՀ:</span> <strong class="font-mono">${c.tax_id || c.company?.tax_id || '—'}</strong></div>
+                                    <div><span style="color:var(--text-muted)">Գրանցման երկիր:</span> <strong>${c.company?.registration_country || 'AM'}</strong></div>
+                                    <div><span style="color:var(--text-muted)">Իրավաբանական հասցե:</span> <strong>${c.company?.legal_address || '—'}</strong></div>
+                                    <div><span style="color:var(--text-muted)">Փաստացի հասցե:</span> <strong>${c.company?.physical_address || '—'}</strong></div>
+                                    <div><span style="color:var(--text-muted)">Վեբ կայք:</span> <strong>${c.company?.website || '—'}</strong></div>
+                                    <div><span style="color:var(--text-muted)">Տնօրեն:</span> <strong>${c.company?.director_name || '—'}</strong></div>
+                                    <div><span style="color:var(--text-muted)">Գնումների պատասխանատու:</span> <strong>${c.company?.purchasing_manager_name || '—'}</strong></div>
+                                    <div><span style="color:var(--text-muted)">Գլխավոր հաշվապահ:</span> <strong>${c.company?.accountant_name || '—'}</strong></div>
+                                    <div><span style="color:var(--text-muted)">Վարկային սահմանաչափ:</span> <strong class="font-mono">${new Intl.NumberFormat('hy-AM').format(c.company?.credit_limit || 0)} ֏</strong></div>
+                                    <div><span style="color:var(--text-muted)">Վճարման պայման:</span> <strong>${c.company?.payment_terms_days || 0} օր</strong></div>
+                                    <div><span style="color:var(--text-muted)">Ընթացիկ պարտք:</span> <strong class="font-mono" style="color:#DC2626">${new Intl.NumberFormat('hy-AM').format(c.company?.outstanding_balance || 0)} ֏</strong></div>
+                                `;
+                            } else {
+                                detailsContainer.innerHTML = `
+                                    <div><span style="color:var(--text-muted)">Անուն:</span> <strong>${c.individual?.first_name || c.first_name || '—'}</strong></div>
+                                    <div><span style="color:var(--text-muted)">Ազգանուն:</span> <strong>${c.individual?.last_name || c.last_name || '—'}</strong></div>
+                                    <div><span style="color:var(--text-muted)">Ծննդյան ամսաթիվ:</span> <strong>${c.individual?.birth_date ? c.individual.birth_date.slice(0, 10) : '—'}</strong></div>
+                                    <div><span style="color:var(--text-muted)">Հեռախոսահամար:</span> <strong class="font-mono">${c.primary_phone || c.phone || '—'}</strong></div>
+                                    <div><span style="color:var(--text-muted)">Էլ. փոստ:</span> <strong>${c.primary_email || c.email || '—'}</strong></div>
+                                    <div><span style="color:var(--text-muted)">Լեզվի նախասիրություն:</span> <strong>${c.individual?.preferred_language || 'hy'}</strong></div>
+                                    <div><span style="color:var(--text-muted)">Գրանցման ամսաթիվ:</span> <strong>${new Date(c.created_at).toLocaleDateString('hy-AM')}</strong></div>
+                                    <div><span style="color:var(--text-muted)">SMS համաձայնություն:</span> <strong>${c.marketing_sms_consent ? 'Այո' : 'Ոչ'}</strong></div>
+                                `;
+                            }
+                        }
+
+                        // Tab 3: Addresses
+                        this.renderAddressesList(c.addresses || []);
+
+                        // Tab 4: Orders
+                        this.renderOrdersList(c.orders || []);
+
+                        // Tab 5: Loyalty Card & Ledger
+                        const cardVisual = document.getElementById('cprof-loyalty-card-visual');
+                        if (cardVisual) {
+                            cardVisual.className = 'loyalty-card-visual loyalty-tier-' + (c.loyalty_tier || 'basic');
+                            document.getElementById('cprof-card-tier-badge').textContent = (c.loyalty_tier || 'basic').toUpperCase();
+                            document.getElementById('cprof-card-number').textContent = c.loyalty_account?.card_number || 'LOY-000000';
+                            document.getElementById('cprof-card-holder').textContent = name;
+                            document.getElementById('cprof-card-balance').textContent = `${parseFloat(c.loyalty_account?.points_balance || 0)} մ.`;
+                            document.getElementById('cprof-loyalty-discount').textContent = `${parseFloat(c.custom_discount_percent || 0)}%`;
+                        }
+                        this.renderLoyaltyTransactions(c.loyalty_transactions || []);
+
+                        // Tab 6: Analytics
+                        const topProdTable = document.getElementById('cprof-analytics-top-products');
+                        if (topProdTable) {
+                            const topProds = c.analytics?.top_products || [];
+                            if (topProds.length === 0) {
+                                topProdTable.innerHTML = '<tr><td colspan="3" style="text-align:center; color:var(--text-muted); padding:1rem;">Գնումների պատմություն դեռ չկա</td></tr>';
+                            } else {
+                                topProdTable.innerHTML = topProds.map(p => `
+                                    <tr>
+                                        <td><strong>${p.product_name}</strong></td>
+                                        <td style="text-align:right;" class="font-mono">${p.total_quantity}</td>
+                                        <td style="text-align:right;" class="font-mono">${new Intl.NumberFormat('hy-AM').format(p.total_amount)} ֏</td>
+                                    </tr>
+                                `).join('');
+                            }
+                        }
+                        const bar = document.getElementById('cprof-rfm-score-bar');
+                        const barVal = document.getElementById('cprof-rfm-score-val');
+                        if (bar && barVal) {
+                            bar.style.width = `${Math.min(100, Math.max(0, score))}%`;
+                            barVal.textContent = `${score} / 100`;
+                        }
+                        document.getElementById('cprof-an-freq').textContent = (c.average_order_frequency_days || 0) + ' օրը մեկ';
+                        document.getElementById('cprof-an-canceled').textContent = c.canceled_orders_count || 0;
+                        document.getElementById('cprof-an-returns').textContent = c.returned_orders_count || 0;
+                        document.getElementById('cprof-an-branch').textContent = c.primary_branch?.name || 'Գլխավոր Մասնաճյուղ';
+
+                        // Tab 8: Contacts
+                        const contactsList = document.getElementById('cprof-contacts-list');
+                        if (contactsList) {
+                            const contacts = c.contacts || (c.company?.contacts) || [];
+                            if (contacts.length === 0) {
+                                contactsList.innerHTML = '<div style="color:var(--text-muted); font-size:0.85rem;">Լրացուցիչ կոնտակտային անձինք գրանցված չեն:</div>';
+                            } else {
+                                contactsList.innerHTML = contacts.map(ct => `
+                                    <div class="card" style="padding:0.75rem 1rem; display:flex; justify-content:space-between; align-items:center;">
+                                        <div>
+                                            <div style="font-weight:700;">${ct.name} ${ct.is_primary ? '<span class="badge badge-emerald">Հիմնական</span>' : ''}</div>
+                                            <div style="font-size:0.78rem; color:var(--text-muted);">${ct.position || 'Կոնտակտային անձ'}</div>
+                                        </div>
+                                        <div style="text-align:right; font-size:0.82rem;" class="font-mono">
+                                            <div><i class="fa-solid fa-phone"></i> ${ct.phone}</div>
+                                            ${ct.email ? `<div><i class="fa-regular fa-envelope"></i> ${ct.email}</div>` : ''}
+                                        </div>
+                                    </div>
+                                `).join('');
+                            }
+                        }
+
+                        // Tab 9: Notes
+                        this.renderNotesList(c.notes_list || c.notes_relation || []);
+
+                        this.switchProfileTab('overview');
+                        document.getElementById('customer-profile-modal').classList.add('active');
+                    } catch (err) {
+                        console.error('Failed to open profile:', err);
+                        ERP.toast(err.message, 'error');
+                    }
+                },
+
+                switchProfileTab: function (tab) {
+                    const tabs = ['overview', 'data', 'addresses', 'orders', 'loyalty', 'analytics', 'timeline', 'contacts', 'notes'];
+                    tabs.forEach(t => {
+                        const btn = document.getElementById(`cptab-btn-${t}`);
+                        const content = document.getElementById(`cptab-content-${t}`);
+                        if (t === tab) {
+                            if (btn) btn.classList.add('active');
+                            if (content) content.style.display = 'block';
+                        } else {
+                            if (btn) btn.classList.remove('active');
+                            if (content) content.style.display = 'none';
+                        }
+                    });
+
+                    if (tab === 'timeline') {
+                        this.loadTimeline();
+                    }
+                },
+
+                renderAddressesList: function (addresses) {
+                    const container = document.getElementById('cprof-addresses-list');
+                    if (!container) return;
+
+                    if (addresses.length === 0) {
+                        container.innerHTML = '<div style="color:var(--text-muted); font-size:0.85rem;">Հասցեներ գրանցված չեն: Օգտագործեք «Ավելացնել Հասցե» կոճակը:</div>';
+                        return;
+                    }
+
+                    container.innerHTML = addresses.map(a => `
+                        <div class="card" style="padding:1rem; display:flex; justify-content:space-between; align-items:center;">
+                            <div>
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <strong style="font-size:0.9rem;">${a.title || 'Առաքման Հասցե'}</strong>
+                                    ${a.is_default ? '<span class="badge badge-emerald">Հիմնական (Default)</span>' : ''}
+                                    ${a.is_last_used ? '<span class="badge badge-primary">Վերջին Օգտագործված</span>' : ''}
+                                </div>
+                                <div style="font-size:0.85rem; color:var(--text-heading); margin-top:4px;">
+                                    <i class="fa-solid fa-location-dot" style="color:#EF4444;"></i> ${a.city || 'Երևան'}, ${a.street || ''} ${a.apartment ? `, բն. ${a.apartment}` : ''} ${a.floor ? `, հարկ ${a.floor}` : ''}
+                                </div>
+                                ${a.delivery_instructions ? `<div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">Հրահանգներ՝ ${a.delivery_instructions}</div>` : ''}
+                            </div>
+                        </div>
+                    `).join('');
+                },
+
+                renderOrdersList: function (orders) {
+                    const tbody = document.getElementById('cprof-orders-table-body');
+                    if (!tbody) return;
+
+                    if (orders.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:1.5rem;">Պատվերներ դեռ չկան</td></tr>';
+                        return;
+                    }
+
+                    tbody.innerHTML = orders.map(o => `
+                        <tr>
+                            <td><span class="font-mono" style="font-weight:800; color:var(--color-primary);">${o.order_number || o.id.slice(0, 8)}</span></td>
+                            <td>${o.placed_at ? new Date(o.placed_at).toLocaleDateString('hy-AM') : '—'}</td>
+                            <td><span class="badge badge-slate">${o.delivery_type || 'առաքում'}</span></td>
+                            <td style="font-size:0.8rem;">${o.delivery_address_snapshot?.address_line_1 || '—'}</td>
+                            <td class="font-mono" style="font-weight:700;">${new Intl.NumberFormat('hy-AM').format(Math.round(o.total || 0))} ֏</td>
+                            <td><span class="badge ${o.payment_status === 'paid' ? 'badge-emerald' : 'badge-amber'}">${o.payment_status}</span></td>
+                            <td><span class="badge ${o.status === 'delivered' ? 'badge-emerald' : 'badge-primary'}">${o.status}</span></td>
+                        </tr>
+                    `).join('');
+                },
+
+                renderLoyaltyTransactions: function (transactions) {
+                    const tbody = document.getElementById('cprof-loyalty-tx-table-body');
+                    if (!tbody) return;
+
+                    if (transactions.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:1.5rem;">Լոյալության գործարքներ չեն եղել</td></tr>';
+                        return;
+                    }
+
+                    tbody.innerHTML = transactions.map(t => {
+                        const isPlus = parseFloat(t.points_delta) >= 0;
+                        return `
+                            <tr>
+                                <td><span class="badge ${isPlus ? 'badge-emerald' : 'badge-danger'}">${t.type}</span></td>
+                                <td class="font-mono" style="font-weight:800; color:${isPlus ? '#059669' : '#DC2626'};">${isPlus ? '+' : ''}${t.points_delta} մ.</td>
+                                <td class="font-mono">${t.balance_after} մ.</td>
+                                <td>${t.reason || '—'}</td>
+                                <td style="font-size:0.78rem;">${new Date(t.created_at).toLocaleString('hy-AM')}</td>
+                                <td style="font-size:0.78rem; color:var(--text-muted);">${t.user?.name || 'Համակարգ'}</td>
+                            </tr>
+                        `;
+                    }).join('');
+                },
+
+                renderNotesList: function (notes) {
+                    const container = document.getElementById('cprof-notes-list');
+                    if (!container) return;
+
+                    if (notes.length === 0) {
+                        container.innerHTML = '<div style="color:var(--text-muted); font-size:0.85rem;">Նշումներ դեռ չկան:</div>';
+                        return;
+                    }
+
+                    container.innerHTML = notes.map(n => `
+                        <div class="card" style="padding:0.75rem 1rem; border-left: 3px solid ${n.is_pinned ? '#D97706' : 'var(--color-primary)'};">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                                <div style="display:flex; align-items:center; gap:6px;">
+                                    <span class="badge badge-slate" style="font-size:0.68rem;">${n.category || 'Ընդհանուր'}</span>
+                                    ${n.is_pinned ? '<span class="badge badge-amber" style="font-size:0.68rem;"><i class="fa-solid fa-thumbtack"></i> Pinned</span>' : ''}
+                                </div>
+                                <span style="font-size:0.72rem; color:var(--text-muted);">${new Date(n.created_at).toLocaleString('hy-AM')}</span>
+                            </div>
+                            <div style="font-size:0.85rem; color:var(--text-heading); white-space:pre-wrap;">${n.content}</div>
+                            <div style="font-size:0.7rem; color:var(--text-muted); margin-top:4px;">Հեղինակ՝ ${n.author?.name || 'Աշխատակից'}</div>
+                        </div>
+                    `).join('');
+                },
+
+                toggleAddAddressForm: function () {
+                    const f = document.getElementById('cprof-add-address-form');
+                    if (f) {
+                        f.style.display = f.style.display === 'none' ? 'block' : 'none';
+                    }
+                },
+
+                submitAddress: async function () {
+                    if (!this.activeCustomer) return;
+                    const street = document.getElementById('caddr-street')?.value.trim();
+                    if (!street) {
+                        ERP.toast('Փողոցը / շենքը պարտադիր է:', 'error');
+                        return;
+                    }
+
+                    const payload = {
+                        title: document.getElementById('caddr-title')?.value.trim() || 'Առաքման Հասցե',
+                        street,
+                        city: document.getElementById('caddr-city')?.value.trim() || 'Երևան',
+                        apartment: document.getElementById('caddr-apartment')?.value.trim() || null,
+                        floor: document.getElementById('caddr-floor')?.value.trim() || null,
+                        door_code: document.getElementById('caddr-door-code')?.value.trim() || null,
+                        delivery_instructions: document.getElementById('caddr-instructions')?.value.trim() || null,
+                        is_default: document.getElementById('caddr-is-default')?.checked || false
+                    };
+
+                    try {
+                        const res = await ERP.api(`/customers/${this.activeCustomer.id}/addresses`, {
+                            method: 'POST',
+                            body: JSON.stringify(payload)
+                        });
+                        if (res && res.success) {
+                            ERP.toast('Հասցեն ավելացվեց:', 'success');
+                            this.toggleAddAddressForm();
+                            await this.openProfile360(this.activeCustomer.id);
+                        }
+                    } catch (err) {
+                        ERP.toast(err.message, 'error');
+                    }
+                },
+
+                submitNote: async function () {
+                    if (!this.activeCustomer) return;
+                    const content = document.getElementById('cnote-content')?.value.trim();
+                    if (!content) {
+                        ERP.toast('Գրեք նշման տեքստը:', 'error');
+                        return;
+                    }
+
+                    const payload = {
+                        content,
+                        category: document.getElementById('cnote-category')?.value || 'general',
+                        is_pinned: document.getElementById('cnote-pinned')?.checked || false
+                    };
+
+                    try {
+                        const res = await ERP.api(`/customers/${this.activeCustomer.id}/notes`, {
+                            method: 'POST',
+                            body: JSON.stringify(payload)
+                        });
+                        if (res && res.success) {
+                            ERP.toast('Գրառումը պահպանվեց:', 'success');
+                            document.getElementById('cnote-content').value = '';
+                            await this.openProfile360(this.activeCustomer.id);
+                            this.switchProfileTab('notes');
+                        }
+                    } catch (err) {
+                        ERP.toast(err.message, 'error');
+                    }
+                },
+
+                openLoyaltyAdjustModal: function () {
+                    if (!this.activeCustomer) return;
+                    document.getElementById('loyalty-adj-delta').value = '';
+                    document.getElementById('loyalty-adj-reason').value = '';
+                    document.getElementById('customer-loyalty-adjust-modal').classList.add('active');
+                },
+
+                submitLoyaltyAdjustment: async function () {
+                    if (!this.activeCustomer) return;
+                    const delta = parseFloat(document.getElementById('loyalty-adj-delta')?.value);
+                    const reason = document.getElementById('loyalty-adj-reason')?.value.trim();
+                    const type = document.getElementById('loyalty-adj-type')?.value || 'manual_adj';
+
+                    if (isNaN(delta) || delta === 0) {
+                        ERP.toast('Մուտքագրեք 0-ից տարբեր միավոր:', 'error');
+                        return;
+                    }
+                    if (!reason) {
+                        ERP.toast('Հիմնավորումը պարտադիր է:', 'error');
+                        return;
+                    }
+
+                    try {
+                        const res = await ERP.api(`/customers/${this.activeCustomer.id}/loyalty/adjust`, {
+                            method: 'POST',
+                            body: JSON.stringify({ points_delta: delta, reason, type })
+                        });
+                        if (res && res.success) {
+                            ERP.toast('Լոյալության միավորները ճշգրտվեցին:', 'success');
+                            document.getElementById('customer-loyalty-adjust-modal').classList.remove('active');
+                            await this.openProfile360(this.activeCustomer.id);
+                            this.switchProfileTab('loyalty');
+                        }
+                    } catch (err) {
+                        ERP.toast(err.message, 'error');
+                    }
+                },
+
+                loadTimeline: async function () {
+                    if (!this.activeCustomer) return;
+                    const container = document.getElementById('cprof-timeline-container');
+                    if (!container) return;
+
+                    container.innerHTML = '<div style="color:var(--text-muted);"><i class="fa-solid fa-spinner fa-spin"></i> Բեռնվում է timeline...</div>';
+
+                    try {
+                        const res = await ERP.api(`/customers/${this.activeCustomer.id}/timeline`);
+                        if (res && res.success) {
+                            const activities = res.data || [];
+                            if (activities.length === 0) {
+                                container.innerHTML = '<div style="color:var(--text-muted); font-size:0.85rem;">Ժամանակագրության մեջ դեռ գրառումներ չկան:</div>';
+                                return;
+                            }
+
+                            const icons = {
+                                order_placed: 'fa-cart-shopping',
+                                status_change: 'fa-arrows-rotate',
+                                loyalty_tx: 'fa-award',
+                                note_added: 'fa-note-sticky',
+                                call: 'fa-phone',
+                                email: 'fa-envelope',
+                                merged: 'fa-code-merge'
+                            };
+
+                            container.innerHTML = activities.map(a => `
+                                <div class="crm-timeline-item">
+                                    <div class="crm-timeline-node">
+                                        <i class="fa-solid ${icons[a.type] || 'fa-circle-dot'}"></i>
+                                    </div>
+                                    <div class="crm-timeline-card">
+                                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                                            <strong style="font-size:0.85rem;">${a.title}</strong>
+                                            <span style="font-size:0.72rem; color:var(--text-muted);">${new Date(a.created_at).toLocaleString('hy-AM')}</span>
+                                        </div>
+                                        <div style="font-size:0.82rem; color:var(--text-muted);">${a.content || ''}</div>
+                                        ${a.user ? `<div style="font-size:0.7rem; color:var(--text-subtle); margin-top:2px;">Հեղինակ՝ ${a.user.name}</div>` : ''}
+                                    </div>
+                                </div>
+                            `).join('');
+                        }
+                    } catch (err) {
+                        console.error('Failed to load timeline:', err);
+                        container.innerHTML = `<div style="color:#EF4444; font-size:0.85rem;">Սխալ timeline բեռնելիս: ${err.message}</div>`;
+                    }
+                },
+
+                openMergeModal: function () {
+                    const targetSel = document.getElementById('merge-target-id');
+                    const sourceSel = document.getElementById('merge-source-id');
+
+                    if (targetSel && sourceSel) {
+                        const options = '<option value="">— Ընտրել հաճախորդին —</option>' + this.list.map(c => `
+                            <option value="${c.id}">${c.customer_code} — ${c.display_name} (${c.primary_phone || c.phone})</option>
+                        `).join('');
+                        targetSel.innerHTML = options;
+                        sourceSel.innerHTML = options;
+                    }
+
+                    document.getElementById('customer-merge-modal').classList.add('active');
+                },
+
+                submitMerge: async function () {
+                    const targetId = document.getElementById('merge-target-id')?.value;
+                    const sourceId = document.getElementById('merge-source-id')?.value;
+                    const notes = document.getElementById('merge-notes')?.value.trim();
+
+                    if (!targetId || !sourceId) {
+                        ERP.toast('Ընտրեք երկու հաճախորդներին էլ:', 'error');
+                        return;
+                    }
+                    if (targetId === sourceId) {
+                        ERP.toast('Հիմնական և կլանվող հաճախորդները չեն կարող լինել նույնը:', 'error');
+                        return;
+                    }
+
+                    if (!confirm('Վստա՞հ եք, որ ցանկանում եք միավորել հաճախորդներին: Այս գործողությունը կմիավորի բոլոր տվյալները:')) {
+                        return;
+                    }
+
+                    try {
+                        const res = await ERP.api('/customers/merge', {
+                            method: 'POST',
+                            body: JSON.stringify({
+                                target_customer_id: targetId,
+                                source_customer_id: sourceId,
+                                notes
+                            })
+                        });
+
+                        if (res && res.success) {
+                            ERP.toast('Հաճախորդները հաջողությամբ միավորվեցին:', 'success');
+                            document.getElementById('customer-merge-modal').classList.remove('active');
+                            await this.load();
+                        }
+                    } catch (err) {
+                        ERP.toast(err.message, 'error');
+                    }
+                },
+
+                archiveCustomer: async function (id) {
+                    if (!confirm('Վստա՞հ եք, որ ցանկանում եք արխիվացնել այս հաճախորդին:')) return;
+
+                    try {
+                        const res = await ERP.api(`/customers/${id}`, { method: 'DELETE' });
+                        if (res && res.success) {
+                            ERP.toast('Հաճախորդը արխիվացվեց:', 'success');
+                            await this.load();
+                        }
+                    } catch (err) {
+                        ERP.toast(err.message, 'error');
+                    }
+                },
+
+                archiveCurrent: async function () {
+                    if (!this.activeCustomer) return;
+                    await this.archiveCustomer(this.activeCustomer.id);
+                    document.getElementById('customer-profile-modal').classList.remove('active');
+                },
+
+                openEditCurrent: function () {
+                    if (!this.activeCustomer) return;
+                    document.getElementById('customer-profile-modal').classList.remove('active');
+                    this.openEditModal(this.activeCustomer.id);
+                },
+
+                exportCSV: function () {
+                    if (!this.list || this.list.length === 0) {
+                        ERP.toast('Արտահանման համար տվյալներ չկան:', 'warning');
+                        return;
+                    }
+
+                    const rows = [
+                        ['Կոդ', 'Տեսակ', 'Անվանում', 'ՀՎՀՀ', 'Հեռախոս', 'Էլ. փոստ', 'Tier', 'Միավորներ', 'Զեղչ (%)', 'Ընդհանուր (֏)', 'Պատվերներ', 'Կարգավիճակ']
+                    ];
+
+                    this.list.forEach(c => {
+                        rows.push([
+                            c.customer_code || '',
+                            c.type || '',
+                            `"${(c.display_name || '').replace(/"/g, '""')}"`,
+                            c.tax_id || '',
+                            c.primary_phone || c.phone || '',
+                            c.primary_email || c.email || '',
+                            c.loyalty_tier || '',
+                            c.loyalty_account?.points_balance || 0,
+                            c.custom_discount_percent || 0,
+                            c.total_spent || 0,
+                            c.orders_count || 0,
+                            c.status || ''
+                        ]);
+                    });
+
+                    const csvContent = '\uFEFF' + rows.map(r => r.join(',')).join('\n');
+                    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.setAttribute('href', url);
+                    link.setAttribute('download', `customers_export_${new Date().toISOString().slice(0, 10)}.csv`);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    ERP.toast('CSV ֆայլը հաջողությամբ արտահանվեց:', 'success');
+                }
             }
         },
 
@@ -3713,9 +4745,17 @@
                 ERP.directory.categories.updateSelectDropdowns(ERP.directory.categories.list);
             }
 
+            // Hydrate customers and sources from bootstrap data if available
+            if (window.SERVER_INITIAL_DATA?.customers && window.SERVER_INITIAL_DATA.customers.length > 0) {
+                ERP.directory.customers.list = window.SERVER_INITIAL_DATA.customers;
+            }
+            if (window.SERVER_INITIAL_DATA?.customerSources && window.SERVER_INITIAL_DATA.customerSources.length > 0) {
+                ERP.directory.customers.sources = window.SERVER_INITIAL_DATA.customerSources;
+            }
+
             // Check hash in URL or default to dashboard
             const hash = window.location.hash.replace('#', '') || 'dashboard';
-            const validViews = ['dashboard', 'catalog', 'directory-categories', 'directory-suppliers', 'directory-ingredients', 'procurement', 'pos', 'inventory', 'manufacturing', 'quality', 'delivery', 'users', 'roles', 'billing', 'settings', 'api-console'];
+            const validViews = ['dashboard', 'catalog', 'directory-categories', 'directory-suppliers', 'directory-ingredients', 'directory-customers', 'procurement', 'pos', 'inventory', 'manufacturing', 'quality', 'delivery', 'users', 'roles', 'billing', 'settings', 'api-console'];
             const targetView = validViews.includes(hash) ? hash : 'dashboard';
 
             ERP.navigateTo(targetView);

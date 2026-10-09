@@ -35,6 +35,7 @@
             productCategories: @json($productCategories ?? []),
             ingredientCategories: @json($ingredientCategories ?? []),
             units: @json($units),
+            customerSources: @json($customerSources ?? []),
             customers: @json($customers),
             orders: @json($orders),
             batches: @json($batches),
@@ -90,6 +91,13 @@
                     <!-- Directory Section (Տեղեկագիր) -->
                     <li style="margin-top: 0.5rem; padding: 0.35rem 0.85rem 0.15rem; font-size: 0.68rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-subtle);">
                         <i class="fa-solid fa-book-bookmark" style="margin-right: 4px; color: var(--color-primary);"></i> Տեղեկագիր
+                    </li>
+                    <li>
+                        <a href="#directory-customers" class="nav-item-link" data-view="directory-customers" onclick="ERP.navigateTo('directory-customers')">
+                            <span class="nav-icon"><i class="fa-solid fa-users"></i></span>
+                            <span>Հաճախորդներ</span>
+                            <span class="nav-pill" id="sidebar-customers-count">{{ count($customers) }}</span>
+                        </a>
                     </li>
                     <li>
                         <a href="#catalog" class="nav-item-link" data-view="catalog" onclick="ERP.navigateTo('catalog')">
@@ -1660,6 +1668,179 @@
                                     @empty
                                         <tr><td colspan="18" style="text-align: center; color: var(--text-muted); padding: 2rem;">Բաղադրիչներ գրանցված չեն: Օգտվեք «Ձեռքով Մուտքագրել» կամ «Ներմուծել Ինվոյս (.xml, .xls, .csv)» կոճակներից:</td></tr>
                                     @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ==============================================================
+                     VIEW: DIRECTORY - CUSTOMERS (Տեղեկագիր: Հաճախորդներ & CRM 360°)
+                     ============================================================== -->
+                <section class="view-panel" id="view-directory-customers" style="display: none;">
+                    <div class="welcome-banner">
+                        <div>
+                            <h2 class="welcome-title"><i class="fa-solid fa-users" style="color: var(--color-primary); margin-right: 8px;"></i> Տեղեկագիր: Հաճախորդներ (CRM 360°)</h2>
+                            <p class="welcome-subtitle">Ֆիզիկական և իրավաբանական անձինք, հասցեներ, բազմակի կոնտակտներ, պատվերների վիճակագրություն, լոյալության հաշիվ և Timeline:</p>
+                        </div>
+                        <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                            <button class="btn btn-secondary btn-sm" onclick="ERP.directory.customers.load()">
+                                <i class="fa-solid fa-arrows-rotate"></i> Թարմացնել
+                            </button>
+                            <button class="btn btn-secondary btn-sm" onclick="ERP.directory.customers.exportCSV()">
+                                <i class="fa-solid fa-file-csv"></i> Արտահանել CSV
+                            </button>
+                            <button class="btn btn-secondary btn-sm" onclick="ERP.directory.customers.openMergeModal()">
+                                <i class="fa-solid fa-code-merge"></i> Միավորել
+                            </button>
+                            <button class="btn btn-primary btn-sm" onclick="ERP.directory.customers.openCreateModal('individual')">
+                                <i class="fa-solid fa-user-plus"></i> + Ֆիզիկական
+                            </button>
+                            <button class="btn btn-primary btn-sm" style="background: #7C3AED; border-color: #6D28D9;" onclick="ERP.directory.customers.openCreateModal('company')">
+                                <i class="fa-solid fa-building"></i> + Իրավաբանական
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Customer KPI Cards -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1rem; margin-bottom: 1.25rem;">
+                        <div class="card" style="padding: 1rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Ընդհանուր Հաճախորդներ</div>
+                                    <div class="font-mono" id="cust-kpi-total" style="font-size: 1.5rem; font-weight: 800; color: var(--text-heading); margin-top: 4px;">{{ count($customers) }}</div>
+                                </div>
+                                <div style="width: 38px; height: 38px; border-radius: 8px; background: #EFF6FF; color: #2563EB; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
+                                    <i class="fa-solid fa-users"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card" style="padding: 1rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Ֆիզիկական Անձինք (B2C)</div>
+                                    <div class="font-mono" id="cust-kpi-individual" style="font-size: 1.5rem; font-weight: 800; color: #2563EB; margin-top: 4px;">{{ $customers->where('type', 'individual')->count() }}</div>
+                                </div>
+                                <div style="width: 38px; height: 38px; border-radius: 8px; background: #EEF2FF; color: #4F46E5; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
+                                    <i class="fa-solid fa-user"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card" style="padding: 1rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Իրավաբանական (B2B)</div>
+                                    <div class="font-mono" id="cust-kpi-company" style="font-size: 1.5rem; font-weight: 800; color: #7C3AED; margin-top: 4px;">{{ $customers->where('type', 'company')->count() }}</div>
+                                </div>
+                                <div style="width: 38px; height: 38px; border-radius: 8px; background: #F5F3FF; color: #7C3AED; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
+                                    <i class="fa-solid fa-building"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card" style="padding: 1rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Լոյալության Միավորներ</div>
+                                    <div class="font-mono" id="cust-kpi-points" style="font-size: 1.5rem; font-weight: 800; color: #D97706; margin-top: 4px;">{{ number_format($customers->sum(fn($c) => $c->loyaltyAccount?->points_balance ?? 0), 0) }}</div>
+                                </div>
+                                <div style="width: 38px; height: 38px; border-radius: 8px; background: #FFFBEB; color: #D97706; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
+                                    <i class="fa-solid fa-award"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card" style="padding: 1rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Ընդհանուր Վաճառք (LTV)</div>
+                                    <div class="font-mono" id="cust-kpi-revenue" style="font-size: 1.5rem; font-weight: 800; color: #059669; margin-top: 4px;">{{ number_format($customers->sum('total_spent'), 0) }} ֏</div>
+                                </div>
+                                <div style="width: 38px; height: 38px; border-radius: 8px; background: #ECFDF5; color: #059669; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
+                                    <i class="fa-solid fa-wallet"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Customer Filters & Search -->
+                    <div class="card" style="margin-bottom: 1.25rem; padding: 1rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+                            <div class="directory-tabs" id="customer-type-tabs" style="margin-bottom: 0;">
+                                <button type="button" class="directory-tab-btn active" data-type="all" onclick="ERP.directory.customers.filterType('all')">
+                                    <i class="fa-solid fa-list"></i> Բոլորը (<span id="cust-tab-count-all">{{ count($customers) }}</span>)
+                                </button>
+                                <button type="button" class="directory-tab-btn" data-type="individual" onclick="ERP.directory.customers.filterType('individual')">
+                                    <i class="fa-solid fa-user" style="color: #2563EB;"></i> Ֆիզիկական (<span id="cust-tab-count-individual">{{ $customers->where('type', 'individual')->count() }}</span>)
+                                </button>
+                                <button type="button" class="directory-tab-btn" data-type="company" onclick="ERP.directory.customers.filterType('company')">
+                                    <i class="fa-solid fa-building" style="color: #7C3AED;"></i> Իրավաբանական (<span id="cust-tab-count-company">{{ $customers->where('type', 'company')->count() }}</span>)
+                                </button>
+                            </div>
+
+                            <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                                <div style="position: relative; min-width: 240px;">
+                                    <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-subtle); font-size: 0.85rem;"></i>
+                                    <input type="text" id="cust-search-input" class="form-control" placeholder="Որոնել (անուն, ՀՎՀՀ, հեռախոս, կոդ)..." style="padding-left: 30px; font-size: 0.82rem;" oninput="ERP.directory.customers.onSearch(this.value)">
+                                </div>
+
+                                <select id="cust-filter-status" class="form-control" style="width: 140px; font-size: 0.82rem;" onchange="ERP.directory.customers.filterStatus(this.value)">
+                                    <option value="all">Բոլոր կարգավիճակները</option>
+                                    <option value="active" selected>Ակտիվ</option>
+                                    <option value="inactive">Ոչ ակտիվ</option>
+                                    <option value="blocked">Արգելափակված</option>
+                                    <option value="archived">Արխիվացված</option>
+                                </select>
+
+                                <select id="cust-filter-branch" class="form-control" style="width: 140px; font-size: 0.82rem;" onchange="ERP.directory.customers.filterBranch(this.value)">
+                                    <option value="all">Բոլոր մասնաճյուղերը</option>
+                                    @foreach($branches as $b)
+                                        <option value="{{ $b->id }}">{{ $b->name }}</option>
+                                    @endforeach
+                                </select>
+
+                                <select id="cust-filter-source" class="form-control" style="width: 130px; font-size: 0.82rem;" onchange="ERP.directory.customers.filterSource(this.value)">
+                                    <option value="all">Բոլոր աղբյուրները</option>
+                                    @foreach($customerSources as $s)
+                                        <option value="{{ $s->id }}">{{ $s->name }}</option>
+                                    @endforeach
+                                </select>
+
+                                <select id="cust-filter-tier" class="form-control" style="width: 120px; font-size: 0.82rem;" onchange="ERP.directory.customers.filterTier(this.value)">
+                                    <option value="all">Բոլոր Tier-երը</option>
+                                    <option value="basic">Basic</option>
+                                    <option value="bronze">Bronze</option>
+                                    <option value="silver">Silver</option>
+                                    <option value="gold">Gold</option>
+                                    <option value="vip">VIP</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Customers Table Card -->
+                    <div class="card">
+                        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <h3 style="font-size: 1rem; font-weight: 800; color: var(--text-heading); margin: 0;">Հաճախորդների Ռեգիստր</h3>
+                                <span class="badge badge-primary font-mono" id="cust-table-badge-count">{{ count($customers) }}</span>
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table" id="directory-customers-table">
+                                <thead>
+                                    <tr>
+                                        <th>Կոդ</th>
+                                        <th>Հաճախորդ / Ընկերություն</th>
+                                        <th>Կոնտակտներ</th>
+                                        <th>Առաքման Հասցե</th>
+                                        <th>Լոյալություն &amp; Զեղչ</th>
+                                        <th>Գնումներ (Քանակ / LTV)</th>
+                                        <th>Score</th>
+                                        <th>Կարգավիճակ</th>
+                                        <th style="text-align: right;">Գործողություններ</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="directory-customers-table-body">
+                                    <!-- Rendered dynamically by ERP.directory.customers -->
                                 </tbody>
                             </table>
                         </div>
@@ -3985,6 +4166,656 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="document.getElementById('directory-where-used-modal').classList.remove('active')">Փակել</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==============================================================
+         DIRECTORY MODAL: CREATE / EDIT CUSTOMER
+         ============================================================== -->
+    <div class="modal-backdrop" id="directory-customer-modal">
+        <div class="modal-container" style="max-width: 820px;">
+            <div class="modal-header">
+                <h3 id="customer-modal-title"><i class="fa-solid fa-user-plus" style="color: var(--color-primary);"></i> Նոր Հաճախորդ</h3>
+                <button type="button" onclick="document.getElementById('directory-customer-modal').classList.remove('active')" style="font-size: 1.25rem; color: var(--text-muted); cursor: pointer;">&times;</button>
+            </div>
+            <form id="directory-customer-form" onsubmit="ERP.directory.customers.saveCustomer(event)">
+                <input type="hidden" id="cust-form-id" value="">
+                <div class="modal-body" style="max-height: 75vh; overflow-y: auto;">
+                    <!-- Type Selector Buttons -->
+                    <div style="display: flex; gap: 0.5rem; margin-bottom: 1.25rem;">
+                        <button type="button" class="btn btn-sm" id="cust-type-btn-indiv" style="flex: 1; border: 2px solid var(--color-primary); background: #EFF6FF; color: var(--color-primary); font-weight: 700;" onclick="ERP.directory.customers.setFormType('individual')">
+                            <i class="fa-solid fa-user"></i> Ֆիզիկական Անձ (B2C)
+                        </button>
+                        <button type="button" class="btn btn-sm" id="cust-type-btn-comp" style="flex: 1; border: 1px solid #CBD5E1; background: #FFFFFF; color: var(--text-main); font-weight: 700;" onclick="ERP.directory.customers.setFormType('company')">
+                            <i class="fa-solid fa-building"></i> Իրավաբանական Անձ (B2B)
+                        </button>
+                    </div>
+                    <input type="hidden" id="cust-form-type" value="individual">
+
+                    <!-- Duplicate Warning Banner -->
+                    <div id="cust-dup-warning-banner" class="duplicate-warning-banner">
+                        <i class="fa-solid fa-triangle-exclamation" style="font-size: 1.1rem; color: #D97706;"></i>
+                        <span id="cust-dup-warning-text">Ուշադրություն. գտնվել է նույն հեռախոսով/էլ.փոստով հաճախորդ:</span>
+                    </div>
+
+                    <!-- Individual Fields (B2C) -->
+                    <div id="cust-fields-individual">
+                        <div style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem;">Անձնական Տվյալներ</div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem;">
+                            <div>
+                                <label class="form-label">Անուն <span style="color: #EF4444;">*</span></label>
+                                <input type="text" id="cust-first-name" class="form-control" placeholder="Օր.՝ Գևորգ">
+                            </div>
+                            <div>
+                                <label class="form-label">Ազգանուն</label>
+                                <input type="text" id="cust-last-name" class="form-control" placeholder="Օր.՝ Հակոբյան">
+                            </div>
+                            <div>
+                                <label class="form-label">Ծննդյան Ամսաթիվ</label>
+                                <input type="date" id="cust-birth-date" class="form-control">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Company Fields (B2B) -->
+                    <div id="cust-fields-company" style="display: none;">
+                        <div style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: #7C3AED; margin-bottom: 0.5rem;">Կազմակերպության Տվյալներ</div>
+                        <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
+                            <div>
+                                <label class="form-label">Կազմակերպության Անվանում <span style="color: #EF4444;">*</span></label>
+                                <input type="text" id="cust-company-name" class="form-control" placeholder="Օր.՝ «Անի Ռեստորանային Համալիր» ՍՊԸ">
+                            </div>
+                            <div>
+                                <label class="form-label">ՀՎՀՀ (Tax ID)</label>
+                                <input type="text" id="cust-tax-id" class="form-control font-mono" placeholder="02511448" onblur="ERP.directory.customers.onTaxIdBlur()">
+                            </div>
+                            <div>
+                                <label class="form-label">Երկիր</label>
+                                <select id="cust-registration-country" class="form-control">
+                                    <option value="AM" selected>Հայաստան (AM)</option>
+                                    <option value="RU">Ռուսաստան (RU)</option>
+                                    <option value="GE">Վրաստան (GE)</option>
+                                    <option value="US">ԱՄՆ (US)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
+                            <div>
+                                <label class="form-label">Իրավաբանական Հասցե</label>
+                                <input type="text" id="cust-legal-address" class="form-control" placeholder="ք. Երևան, Մաշտոցի պող. 15">
+                            </div>
+                            <div>
+                                <label class="form-label">Փաստացի Հասցե</label>
+                                <input type="text" id="cust-physical-address" class="form-control" placeholder="ք. Երևան, Պռոշյան 1-ին նրբ. 25">
+                            </div>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem;">
+                            <div>
+                                <label class="form-label">Տնօրեն</label>
+                                <input type="text" id="cust-director-name" class="form-control" placeholder="Կարեն Պետրոսյան">
+                            </div>
+                            <div>
+                                <label class="form-label">Գնումների Պատասխանատու</label>
+                                <input type="text" id="cust-purchasing-manager" class="form-control" placeholder="Արմեն Դավթյան">
+                            </div>
+                            <div>
+                                <label class="form-label">Վարկային Սահմանաչափ (֏)</label>
+                                <input type="number" id="cust-credit-limit" class="form-control font-mono" placeholder="0" min="0" step="1000">
+                            </div>
+                            <div>
+                                <label class="form-label">Վճարման Պայման (օր)</label>
+                                <input type="number" id="cust-payment-terms" class="form-control font-mono" placeholder="0" min="0">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Contact Details (Common) -->
+                    <div style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem;">Կապի Տվյալներ</div>
+                    <div style="display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem;">
+                        <div>
+                            <label class="form-label">Հեռախոսահամար <span style="color: #EF4444;">*</span></label>
+                            <input type="text" id="cust-phone" class="form-control font-mono" placeholder="+374 91 123456" onblur="ERP.directory.customers.onPhoneBlur()">
+                            <div style="font-size: 0.68rem; color: var(--text-muted); margin-top: 2px;">Աջակցում է ՀՀ (+374), ՌԴ (+7) և E.164 ձևաչափ:</div>
+                        </div>
+                        <div>
+                            <label class="form-label">Էլ. Փոստ</label>
+                            <input type="email" id="cust-email" class="form-control" placeholder="example@mail.am" onblur="ERP.directory.customers.onEmailBlur()">
+                        </div>
+                        <div>
+                            <label class="form-label">Վեբ Կայք</label>
+                            <input type="text" id="cust-website" class="form-control" placeholder="https://example.am">
+                        </div>
+                    </div>
+
+                    <!-- Primary Address Section -->
+                    <div style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem;">Առաքման Հիմնական Հասցե</div>
+                    <div style="display: grid; grid-template-columns: 1fr 2fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
+                        <div>
+                            <label class="form-label">Քաղաք</label>
+                            <input type="text" id="cust-addr-city" class="form-control" value="Երևան">
+                        </div>
+                        <div>
+                            <label class="form-label">Փողոց / Շենք</label>
+                            <input type="text" id="cust-addr-street" class="form-control" placeholder="Սայաթ-Նովա պող. 10">
+                        </div>
+                        <div>
+                            <label class="form-label">Բնակարան / Սենյակ</label>
+                            <input type="text" id="cust-addr-apartment" class="form-control" placeholder="18">
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 2fr; gap: 0.75rem; margin-bottom: 1rem;">
+                        <div>
+                            <label class="form-label">Հարկ</label>
+                            <input type="text" id="cust-addr-floor" class="form-control" placeholder="4">
+                        </div>
+                        <div>
+                            <label class="form-label">Դռան / Դոմոֆոնի Կոդ</label>
+                            <input type="text" id="cust-addr-door-code" class="form-control" placeholder="45K">
+                        </div>
+                        <div>
+                            <label class="form-label">Առաքման Հրահանգներ</label>
+                            <input type="text" id="cust-addr-instructions" class="form-control" placeholder="Մուտքը բակի կողմից, զանգահարել ժամանելիս">
+                        </div>
+                    </div>
+
+                    <!-- CRM & Loyalty Settings -->
+                    <div style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem;">CRM, Լոյալություն &amp; Կարգավիճակ</div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem;">
+                        <div>
+                            <label class="form-label">Մասնաճյուղ</label>
+                            <select id="cust-branch-id" class="form-control">
+                                <option value="">— Ընտրել —</option>
+                                @foreach($branches as $b)
+                                    <option value="{{ $b->id }}">{{ $b->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label">Աղբյուր (Source)</label>
+                            <select id="cust-source-id" class="form-control">
+                                <option value="">— Ընտրել —</option>
+                                @foreach($customerSources as $s)
+                                    <option value="{{ $s->id }}">{{ $s->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label">Լոյալության Tier</label>
+                            <select id="cust-loyalty-tier" class="form-control">
+                                <option value="basic">Basic (0%)</option>
+                                <option value="bronze">Bronze (2%)</option>
+                                <option value="silver">Silver (5%)</option>
+                                <option value="gold">Gold (7%)</option>
+                                <option value="vip">VIP (10%)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label">Անհատական Զեղչ (%)</label>
+                            <input type="number" id="cust-custom-discount" class="form-control font-mono" placeholder="0" min="0" max="100" step="0.5">
+                        </div>
+                        <div>
+                            <label class="form-label">Կարգավիճակ</label>
+                            <select id="cust-status" class="form-control">
+                                <option value="active" selected>Ակտիվ</option>
+                                <option value="inactive">Ոչ ակտիվ</option>
+                                <option value="blocked">Արգելափակված</option>
+                                <option value="archived">Արխիվացված</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="form-label">Նշումներ (CRM Notes)</label>
+                        <textarea id="cust-notes" class="form-control" rows="2" placeholder="Հաճախորդի հետ կապված հատուկ նշումներ, նախասիրություններ..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer" style="display: flex; justify-content: space-between;">
+                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('directory-customer-modal').classList.remove('active')">Չեղարկել</button>
+                    <button type="submit" class="btn btn-primary" id="cust-submit-btn">
+                        <i class="fa-solid fa-check"></i> Պահպանել Հաճախորդին
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==============================================================
+         DIRECTORY MODAL: CUSTOMER 360° PROFILE MODAL
+         ============================================================== -->
+    <div class="modal-backdrop" id="customer-profile-modal">
+        <div class="modal-container" style="max-width: 1050px; max-height: 90vh; display: flex; flex-direction: column;">
+            <!-- Modal Header with Customer Quick Card -->
+            <div class="modal-header" style="padding: 1.25rem 1.5rem; border-bottom: 1px solid #E2E8F0; background: #FAFAFA;">
+                <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+                    <div id="cprof-avatar" class="crm-avatar" style="width: 48px; height: 48px; font-size: 1.1rem;">ԳՀ</div>
+                    <div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <h3 id="cprof-name" style="margin: 0; font-size: 1.25rem; font-weight: 800; color: var(--text-heading);">Գևորգ Հակոբյան</h3>
+                            <span id="cprof-type-badge" class="badge badge-primary">B2C</span>
+                            <span id="cprof-code" class="badge badge-slate font-mono">CUST-000001</span>
+                            <span id="cprof-status-badge" class="badge badge-emerald">Ակտիվ</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 12px; font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">
+                            <span><i class="fa-solid fa-phone"></i> <span id="cprof-phone">+374 91 223344</span></span>
+                            <span><i class="fa-solid fa-envelope"></i> <span id="cprof-email">gevorg@example.am</span></span>
+                            <span><i class="fa-solid fa-location-dot"></i> <span id="cprof-address">Սայաթ-Նովա պող. 10</span></span>
+                        </div>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="ERP.directory.customers.openEditCurrent()">
+                        <i class="fa-solid fa-pen-to-square"></i> Խմբագրել
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="ERP.directory.customers.openLoyaltyAdjustModal()">
+                        <i class="fa-solid fa-coins"></i> Ճշգրտել Միավորներ
+                    </button>
+                    <button type="button" onclick="document.getElementById('customer-profile-modal').classList.remove('active')" style="font-size: 1.5rem; color: var(--text-muted); cursor: pointer; border: none; background: transparent;">&times;</button>
+                </div>
+            </div>
+
+            <!-- Profile Tabs Navigation -->
+            <div style="background: #FFFFFF; border-bottom: 1px solid #E2E8F0; padding: 0 1.5rem; display: flex; gap: 1rem; overflow-x: auto;">
+                <button type="button" class="directory-tab-btn active" id="cptab-btn-overview" onclick="ERP.directory.customers.switchProfileTab('overview')">
+                    <i class="fa-solid fa-chart-pie"></i> Ընդհանուր
+                </button>
+                <button type="button" class="directory-tab-btn" id="cptab-btn-data" onclick="ERP.directory.customers.switchProfileTab('data')">
+                    <i class="fa-solid fa-id-card"></i> Տվյալներ
+                </button>
+                <button type="button" class="directory-tab-btn" id="cptab-btn-addresses" onclick="ERP.directory.customers.switchProfileTab('addresses')">
+                    <i class="fa-solid fa-location-dot"></i> Հասցեներ (<span id="cprof-addr-count">1</span>)
+                </button>
+                <button type="button" class="directory-tab-btn" id="cptab-btn-orders" onclick="ERP.directory.customers.switchProfileTab('orders')">
+                    <i class="fa-solid fa-cart-shopping"></i> Պատվերներ (<span id="cprof-orders-count">0</span>)
+                </button>
+                <button type="button" class="directory-tab-btn" id="cptab-btn-loyalty" onclick="ERP.directory.customers.switchProfileTab('loyalty')">
+                    <i class="fa-solid fa-award"></i> Լոյալություն
+                </button>
+                <button type="button" class="directory-tab-btn" id="cptab-btn-analytics" onclick="ERP.directory.customers.switchProfileTab('analytics')">
+                    <i class="fa-solid fa-chart-line"></i> Վերլուծություն
+                </button>
+                <button type="button" class="directory-tab-btn" id="cptab-btn-timeline" onclick="ERP.directory.customers.switchProfileTab('timeline')">
+                    <i class="fa-solid fa-clock-rotate-left"></i> Timeline
+                </button>
+                <button type="button" class="directory-tab-btn" id="cptab-btn-contacts" onclick="ERP.directory.customers.switchProfileTab('contacts')">
+                    <i class="fa-solid fa-address-book"></i> Կոնտակտներ
+                </button>
+                <button type="button" class="directory-tab-btn" id="cptab-btn-notes" onclick="ERP.directory.customers.switchProfileTab('notes')">
+                    <i class="fa-solid fa-note-sticky"></i> Նշումներ
+                </button>
+            </div>
+
+            <!-- Profile Tab Contents -->
+            <div class="modal-body" style="padding: 1.5rem; flex: 1; overflow-y: auto;">
+                <!-- TAB 1: OVERVIEW -->
+                <div id="cptab-content-overview">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+                        <div class="card" style="padding: 1rem;">
+                            <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Ընդհանուր LTV (Վաճառք)</div>
+                            <div class="font-mono" id="cprof-kpi-spent" style="font-size: 1.35rem; font-weight: 800; color: #059669; margin-top: 4px;">0 ֏</div>
+                        </div>
+                        <div class="card" style="padding: 1rem;">
+                            <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Միջին Չեք (AOV)</div>
+                            <div class="font-mono" id="cprof-kpi-aov" style="font-size: 1.35rem; font-weight: 800; color: #2563EB; margin-top: 4px;">0 ֏</div>
+                        </div>
+                        <div class="card" style="padding: 1rem;">
+                            <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Ավարտված Պատվերներ</div>
+                            <div class="font-mono" id="cprof-kpi-orders" style="font-size: 1.35rem; font-weight: 800; color: var(--text-heading); margin-top: 4px;">0</div>
+                        </div>
+                        <div class="card" style="padding: 1rem;">
+                            <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Լոյալության Միավորներ</div>
+                            <div class="font-mono" id="cprof-kpi-points" style="font-size: 1.35rem; font-weight: 800; color: #D97706; margin-top: 4px;">0</div>
+                        </div>
+                        <div class="card" style="padding: 1rem;">
+                            <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Customer Score</div>
+                            <div id="cprof-kpi-score" style="margin-top: 4px;">
+                                <span class="score-badge score-high">88 / 100</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="card" style="padding: 1.25rem;">
+                            <h4 style="font-size: 0.95rem; font-weight: 800; margin-bottom: 0.75rem;"><i class="fa-solid fa-circle-info" style="color: var(--color-primary);"></i> Հիմնական Ամփոփում</h4>
+                            <div style="display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.85rem;">
+                                <div style="display: flex; justify-content: space-between;"><span style="color: var(--text-muted);">Հաճախորդի տեսակ:</span> <span id="cprof-ov-type" style="font-weight: 700;">Ֆիզիկական</span></div>
+                                <div style="display: flex; justify-content: space-between;"><span style="color: var(--text-muted);">Հիմնական մասնաճյուղ:</span> <span id="cprof-ov-branch" style="font-weight: 700;">Գլխավոր</span></div>
+                                <div style="display: flex; justify-content: space-between;"><span style="color: var(--text-muted);">Գրանցման աղբյուր:</span> <span id="cprof-ov-source" style="font-weight: 700;">Instagram</span></div>
+                                <div style="display: flex; justify-content: space-between;"><span style="color: var(--text-muted);">Առաջին գնում:</span> <span id="cprof-ov-first-order" style="font-weight: 700;">—</span></div>
+                                <div style="display: flex; justify-content: space-between;"><span style="color: var(--text-muted);">Վերջին գնում:</span> <span id="cprof-ov-last-order" style="font-weight: 700;">—</span></div>
+                                <div style="display: flex; justify-content: space-between;"><span style="color: var(--text-muted);">Պատվերների միջին պարբերություն:</span> <span id="cprof-ov-frequency" style="font-weight: 700;">— օր</span></div>
+                            </div>
+                        </div>
+
+                        <div class="card" style="padding: 1.25rem;">
+                            <h4 style="font-size: 0.95rem; font-weight: 800; margin-bottom: 0.75rem;"><i class="fa-solid fa-award" style="color: #D97706;"></i> Լոյալության &amp; Զեղչի Կարգավիճակ</h4>
+                            <div style="display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.85rem;">
+                                <div style="display: flex; justify-content: space-between;"><span style="color: var(--text-muted);">Քարտի համար:</span> <span id="cprof-ov-card" class="font-mono" style="font-weight: 700;">LOY-000001</span></div>
+                                <div style="display: flex; justify-content: space-between;"><span style="color: var(--text-muted);">Ընթացիկ մակարդակ:</span> <span id="cprof-ov-tier" class="badge badge-amber" style="text-transform: uppercase;">GOLD</span></div>
+                                <div style="display: flex; justify-content: space-between;"><span style="color: var(--text-muted);">Գործող զեղչ:</span> <span id="cprof-ov-discount" class="font-mono" style="font-weight: 700; color: #2563EB;">5.0%</span></div>
+                                <div style="display: flex; justify-content: space-between;"><span style="color: var(--text-muted);">Կուտակված ընդհանուր:</span> <span id="cprof-ov-earned-lifetime" class="font-mono">500 միավոր</span></div>
+                                <div style="display: flex; justify-content: space-between;"><span style="color: var(--text-muted);">Օգտագործված ընդհանուր:</span> <span id="cprof-ov-spent-lifetime" class="font-mono">50 միավոր</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 2: PROFILE DATA -->
+                <div id="cptab-content-data" style="display: none;">
+                    <div class="card" style="padding: 1.25rem;">
+                        <h4 style="font-size: 0.95rem; font-weight: 800; margin-bottom: 1rem;"><i class="fa-solid fa-id-card-clip"></i> Ամբողջական Անկետա</h4>
+                        <div id="cprof-data-details" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; font-size: 0.85rem;">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 3: ADDRESSES -->
+                <div id="cptab-content-addresses" style="display: none;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h4 style="font-size: 0.95rem; font-weight: 800; margin: 0;"><i class="fa-solid fa-map-location-dot"></i> Գրանցված Հասցեներ</h4>
+                        <button type="button" class="btn btn-primary btn-xs" onclick="ERP.directory.customers.toggleAddAddressForm()">
+                            <i class="fa-solid fa-plus"></i> Ավելացնել Հասցե
+                        </button>
+                    </div>
+
+                    <!-- Add Address Quick Form -->
+                    <div id="cprof-add-address-form" class="card" style="display: none; padding: 1rem; margin-bottom: 1rem; background: #F8FAFC; border: 1px dashed var(--color-primary);">
+                        <div style="font-weight: 800; font-size: 0.85rem; margin-bottom: 0.5rem;">Նոր Առաքման Հասցե</div>
+                        <div style="display: grid; grid-template-columns: 1fr 2fr 1fr 1fr; gap: 0.5rem; margin-bottom: 0.5rem;">
+                            <input type="text" id="caddr-title" class="form-control" placeholder="Անվանում (օր.՝ Գրասենյակ)">
+                            <input type="text" id="caddr-street" class="form-control" placeholder="Փողոց / Շենք *">
+                            <input type="text" id="caddr-city" class="form-control" placeholder="Քաղաք" value="Երևան">
+                            <input type="text" id="caddr-apartment" class="form-control" placeholder="Բնակարան">
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 2fr; gap: 0.5rem; margin-bottom: 0.5rem;">
+                            <input type="text" id="caddr-floor" class="form-control" placeholder="Հարկ">
+                            <input type="text" id="caddr-door-code" class="form-control" placeholder="Դռան կոդ">
+                            <input type="text" id="caddr-instructions" class="form-control" placeholder="Հրահանգներ (օր.՝ 2-րդ մուտք)">
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <label style="font-size: 0.8rem; display: flex; align-items: center; gap: 6px;">
+                                <input type="checkbox" id="caddr-is-default"> Դարձնել հիմնական հասցե
+                            </label>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <button type="button" class="btn btn-secondary btn-xs" onclick="ERP.directory.customers.toggleAddAddressForm()">Չեղարկել</button>
+                                <button type="button" class="btn btn-primary btn-xs" onclick="ERP.directory.customers.submitAddress()">Պահպանել Հասցեն</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Addresses List Container -->
+                    <div id="cprof-addresses-list" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                        <!-- Dynamically populated -->
+                    </div>
+                </div>
+
+                <!-- TAB 4: ORDERS -->
+                <div id="cptab-content-orders" style="display: none;">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Պատվերի #</th>
+                                    <th>Ամսաթիվ</th>
+                                    <th>Տեսակ</th>
+                                    <th>Հասցե</th>
+                                    <th>Գումար</th>
+                                    <th>Վճարում</th>
+                                    <th>Կարգավիճակ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cprof-orders-table-body">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- TAB 5: LOYALTY & POINTS -->
+                <div id="cptab-content-loyalty" style="display: none;">
+                    <div style="display: grid; grid-template-columns: 320px 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+                        <div id="cprof-loyalty-card-visual" class="loyalty-card-visual">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                                <div style="font-size: 0.8rem; font-weight: 700; opacity: 0.8; letter-spacing: 0.05em;">ERPLANNET LOYALTY</div>
+                                <span id="cprof-card-tier-badge" class="badge" style="background: rgba(255,255,255,0.2); color: #FFF; text-transform: uppercase;">GOLD</span>
+                            </div>
+                            <div id="cprof-card-number" class="font-mono" style="font-size: 1.25rem; font-weight: 800; letter-spacing: 0.1em; margin-bottom: 1.5rem;">LOY-000001</div>
+                            <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+                                <div>
+                                    <div style="font-size: 0.68rem; opacity: 0.7;">ՀԱՃԱԽՈՐԴ</div>
+                                    <div id="cprof-card-holder" style="font-weight: 700; font-size: 0.95rem;">Գևորգ Հակոբյան</div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div style="font-size: 0.68rem; opacity: 0.7;">ՄՆԱՑՈՐԴ</div>
+                                    <div id="cprof-card-balance" class="font-mono" style="font-size: 1.25rem; font-weight: 800; color: #FCD34D;">450 մ.</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card" style="padding: 1.25rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                                <h4 style="font-size: 0.95rem; font-weight: 800; margin: 0;"><i class="fa-solid fa-calculator"></i> Միավորների Կառավարում</h4>
+                                <button type="button" class="btn btn-outline-primary btn-xs" onclick="ERP.directory.customers.openLoyaltyAdjustModal()">
+                                    <i class="fa-solid fa-plus-minus"></i> Ձեռքով Ճշգրտում
+                                </button>
+                            </div>
+                            <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+                                Միավորների կուտակումը և ծախսը գրանցվում են անհերքելի transaction ledger-ում: Յուրաքանչյուր պատվերի համար կուտակումը կատարվում է idempotent սկզբունքով:
+                            </p>
+                            <div style="display: flex; gap: 1rem; font-size: 0.85rem;">
+                                <div><span style="color: var(--text-muted);">Քարտի կարգավիճակ:</span> <span id="cprof-loyalty-frozen" class="badge badge-emerald">Ակտիվ</span></div>
+                                <div><span style="color: var(--text-muted);">Զեղչի տոկոս:</span> <span id="cprof-loyalty-discount" class="font-mono" style="font-weight: 700;">5.0%</span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h4 style="font-size: 0.95rem; font-weight: 800; margin-bottom: 0.75rem;"><i class="fa-solid fa-list-check"></i> Լոյալության Գործարքների Պատմություն (Ledger)</h4>
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Տեսակ</th>
+                                    <th>Միավորներ (+/-)</th>
+                                    <th>Մնացորդ հետո</th>
+                                    <th>Պատճառ / Մեկնաբանություն</th>
+                                    <th>Ամսաթիվ</th>
+                                    <th>Աշխատակից</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cprof-loyalty-tx-table-body">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- TAB 6: ANALYTICS -->
+                <div id="cptab-content-analytics" style="display: none;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+                        <div class="card" style="padding: 1.25rem;">
+                            <h4 style="font-size: 0.95rem; font-weight: 800; margin-bottom: 0.75rem;"><i class="fa-solid fa-fire" style="color: #EF4444;"></i> Ամենահաճախ Գնվող Ապրանքներ</h4>
+                            <div class="table-responsive">
+                                <table class="table" style="font-size: 0.82rem;">
+                                    <thead>
+                                        <tr>
+                                            <th>Ապրանք</th>
+                                            <th style="text-align: right;">Քանակ</th>
+                                            <th style="text-align: right;">Ընդհանուր (֏)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="cprof-analytics-top-products">
+                                        <!-- Dynamically populated -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="card" style="padding: 1.25rem;">
+                            <h4 style="font-size: 0.95rem; font-weight: 800; margin-bottom: 0.75rem;"><i class="fa-solid fa-chart-column" style="color: #2563EB;"></i> RFM &amp; Պահվածքի Վերլուծություն</h4>
+                            <div style="display: flex; flex-direction: column; gap: 0.75rem; font-size: 0.85rem;">
+                                <div>
+                                    <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                                        <span style="color: var(--text-muted);">Customer Score (RFM)</span>
+                                        <span id="cprof-rfm-score-val" style="font-weight: 800;">88 / 100</span>
+                                    </div>
+                                    <div style="height: 8px; border-radius: 4px; background: #E2E8F0; overflow: hidden;">
+                                        <div id="cprof-rfm-score-bar" style="height: 100%; width: 88%; background: #10B981;"></div>
+                                    </div>
+                                </div>
+                                <div style="display: flex; justify-content: space-between;"><span style="color: var(--text-muted);">Գնումների ռիթմ (հաճախականություն):</span> <span id="cprof-an-freq" style="font-weight: 700;">2 օրը մեկ</span></div>
+                                <div style="display: flex; justify-content: space-between;"><span style="color: var(--text-muted);">Չեղարկված պատվերներ:</span> <span id="cprof-an-canceled" class="badge badge-slate">0</span></div>
+                                <div style="display: flex; justify-content: space-between;"><span style="color: var(--text-muted);">Վերադարձներ:</span> <span id="cprof-an-returns" class="badge badge-slate">0</span></div>
+                                <div style="display: flex; justify-content: space-between;"><span style="color: var(--text-muted);">Նախընտրելի մասնաճյուղ:</span> <span id="cprof-an-branch" style="font-weight: 700;">Գլխավոր Մասնաճյուղ</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 7: TIMELINE -->
+                <div id="cptab-content-timeline" style="display: none;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+                        <h4 style="font-size: 0.95rem; font-weight: 800; margin: 0;"><i class="fa-solid fa-timeline"></i> Իրադարձությունների Ժամանակագրություն (CRM Timeline)</h4>
+                        <button type="button" class="btn btn-secondary btn-xs" onclick="ERP.directory.customers.loadTimeline()">
+                            <i class="fa-solid fa-arrows-rotate"></i> Թարմացնել Timeline
+                        </button>
+                    </div>
+                    <div id="cprof-timeline-container" class="crm-timeline-list">
+                        <!-- Dynamically populated from /v1/customers/{id}/timeline -->
+                    </div>
+                </div>
+
+                <!-- TAB 8: CONTACTS (B2B Multi-contacts) -->
+                <div id="cptab-content-contacts" style="display: none;">
+                    <h4 style="font-size: 0.95rem; font-weight: 800; margin-bottom: 1rem;"><i class="fa-solid fa-address-book"></i> Կոնտակտային Անձինք</h4>
+                    <div id="cprof-contacts-list" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                        <!-- Dynamically populated -->
+                    </div>
+                </div>
+
+                <!-- TAB 9: NOTES -->
+                <div id="cptab-content-notes" style="display: none;">
+                    <!-- Add Note Quick Form -->
+                    <div class="card" style="padding: 1rem; margin-bottom: 1.25rem; background: #F8FAFC;">
+                        <div style="font-weight: 800; font-size: 0.85rem; margin-bottom: 0.5rem;"><i class="fa-solid fa-plus"></i> Ավելացնել Նոր Գրառում</div>
+                        <div style="margin-bottom: 0.5rem;">
+                            <textarea id="cnote-content" class="form-control" rows="2" placeholder="Գրեք նշում հաճախորդի, հանդիպման կամ պահանջի մասին..."></textarea>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div style="display: flex; gap: 0.75rem; align-items: center;">
+                                <select id="cnote-category" class="form-control" style="width: 150px; font-size: 0.8rem;">
+                                    <option value="general">Ընդհանուր</option>
+                                    <option value="preference">Նախասիրություն</option>
+                                    <option value="complaint">Բողոք / Դիտողություն</option>
+                                    <option value="financial">Ֆինանսական</option>
+                                </select>
+                                <label style="font-size: 0.8rem; display: flex; align-items: center; gap: 4px;">
+                                    <input type="checkbox" id="cnote-pinned"> Ամրացնել (Pin)
+                                </label>
+                            </div>
+                            <button type="button" class="btn btn-primary btn-sm" onclick="ERP.directory.customers.submitNote()">
+                                <i class="fa-solid fa-paper-plane"></i> Պահպանել Նշումը
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Notes Feed -->
+                    <div id="cprof-notes-list" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                        <!-- Dynamically populated -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer" style="display: flex; justify-content: space-between;">
+                <div>
+                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="ERP.directory.customers.archiveCurrent()">
+                        <i class="fa-solid fa-box-archive"></i> Արխիվացնել
+                    </button>
+                </div>
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('customer-profile-modal').classList.remove('active')">Փակել</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==============================================================
+         DIRECTORY MODAL: MERGE CUSTOMERS MODAL
+         ============================================================== -->
+    <div class="modal-backdrop" id="customer-merge-modal">
+        <div class="modal-container" style="max-width: 580px;">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-code-merge" style="color: var(--color-primary);"></i> Միավորել Կրկնվող Հաճախորդներին</h3>
+                <button type="button" onclick="document.getElementById('customer-merge-modal').classList.remove('active')" style="font-size: 1.25rem; color: var(--text-muted); cursor: pointer;">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
+                    Միավորման արդյունքում աղբյուր հանդիսացող հաճախորդի բոլոր պատվերները, հասցեները, լոյալության միավորները և պատմությունը կտեղափոխվեն հիմնական հաճախորդի քարտ:
+                </p>
+                <div style="margin-bottom: 1rem;">
+                    <label class="form-label">Հիմնական (Target) Հաճախորդ <span style="color: #EF4444;">*</span></label>
+                    <select id="merge-target-id" class="form-control">
+                        <option value="">— Ընտրել հիմնական հաճախորդին —</option>
+                        @foreach($customers as $c)
+                            <option value="{{ $c->id }}">{{ $c->customer_code }} — {{ $c->display_name }} ({{ $c->phone }})</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label class="form-label">Կլանվող (Source) Հաճախորդ <span style="color: #EF4444;">*</span></label>
+                    <select id="merge-source-id" class="form-control">
+                        <option value="">— Ընտրել կլանվող հաճախորդին —</option>
+                        @foreach($customers as $c)
+                            <option value="{{ $c->id }}">{{ $c->customer_code }} — {{ $c->display_name }} ({{ $c->phone }})</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label class="form-label">Միավորման Պատճառ / Նշումներ</label>
+                    <input type="text" id="merge-notes" class="form-control" placeholder="Օր.՝ Կրկնվող գրանցում նույն հեռախոսահամարով">
+                </div>
+            </div>
+            <div class="modal-footer" style="display: flex; justify-content: space-between;">
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('customer-merge-modal').classList.remove('active')">Չեղարկել</button>
+                <button type="button" class="btn btn-primary" onclick="ERP.directory.customers.submitMerge()">
+                    <i class="fa-solid fa-code-merge"></i> Հաստատել Միավորումը
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==============================================================
+         DIRECTORY MODAL: ADJUST LOYALTY POINTS MODAL
+         ============================================================== -->
+    <div class="modal-backdrop" id="customer-loyalty-adjust-modal">
+        <div class="modal-container" style="max-width: 480px;">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-coins" style="color: #D97706;"></i> Լոյալության Միավորների Ճշգրտում</h3>
+                <button type="button" onclick="document.getElementById('customer-loyalty-adjust-modal').classList.remove('active')" style="font-size: 1.25rem; color: var(--text-muted); cursor: pointer;">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="margin-bottom: 1rem;">
+                    <label class="form-label">Միավորների Փոփոխություն (+ / -) <span style="color: #EF4444;">*</span></label>
+                    <input type="number" id="loyalty-adj-delta" class="form-control font-mono" placeholder="Օր.՝ 100 կամ -50" step="1">
+                    <div style="font-size: 0.68rem; color: var(--text-muted); margin-top: 2px;">Դրական թիվը ավելացնում է, բացասականը՝ դուրս գրում:</div>
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label class="form-label">Տեսակ</label>
+                    <select id="loyalty-adj-type" class="form-control">
+                        <option value="manual_adj">Ձեռքով ճշգրտում (Manual Adjustment)</option>
+                        <option value="birthday_gift">Ծննդյան նվեր (Birthday Gift)</option>
+                        <option value="earn">Կուտակում (Earn)</option>
+                        <option value="redeem">Օգտագործում (Redeem)</option>
+                    </select>
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label class="form-label">Պատճառ / Հիմնավորում <span style="color: #EF4444;">*</span></label>
+                    <input type="text" id="loyalty-adj-reason" class="form-control" placeholder="Օր.՝ Ակցիայի բոնուս կամ սխալի ուղղում">
+                </div>
+            </div>
+            <div class="modal-footer" style="display: flex; justify-content: space-between;">
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('customer-loyalty-adjust-modal').classList.remove('active')">Չեղարկել</button>
+                <button type="button" class="btn btn-primary" onclick="ERP.directory.customers.submitLoyaltyAdjustment()">
+                    <i class="fa-solid fa-check"></i> Կատարել Գործարքը
+                </button>
             </div>
         </div>
     </div>

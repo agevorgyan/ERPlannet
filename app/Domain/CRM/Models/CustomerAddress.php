@@ -18,21 +18,31 @@ class CustomerAddress extends Model
         'tenant_id',
         'customer_id',
         'title',
+        'country',
+        'province',
         'city',
-        'address_line_1',
-        'address_line_2',
+        'postal_code',
+        'street',
+        'building',
+        'entrance',
         'floor',
         'apartment',
+        'door_code',
+        'address_line_1',
+        'address_line_2',
         'entry_code',
         'latitude',
         'longitude',
+        'delivery_instructions',
         'is_default',
+        'is_last_used',
     ];
 
     protected $casts = [
         'latitude' => 'decimal:7',
         'longitude' => 'decimal:7',
         'is_default' => 'boolean',
+        'is_last_used' => 'boolean',
     ];
 
     public function customer(): BelongsTo
@@ -42,17 +52,58 @@ class CustomerAddress extends Model
 
     public function getFormattedAddressAttribute(): string
     {
-        $parts = [$this->city, $this->address_line_1];
+        $parts = [];
+
+        if ($this->city) {
+            $parts[] = $this->city;
+        }
+
+        if ($this->street) {
+            $streetPart = $this->street;
+            if ($this->building) {
+                $streetPart .= " {$this->building}";
+            }
+            $parts[] = $streetPart;
+        } elseif ($this->address_line_1) {
+            $parts[] = $this->address_line_1;
+        }
+
         if ($this->address_line_2) {
             $parts[] = $this->address_line_2;
         }
-        if ($this->floor) {
-            $parts[] = "Floor {$this->floor}";
-        }
-        if ($this->apartment) {
-            $parts[] = "Apt {$this->apartment}";
+
+        if ($this->entrance) {
+            $parts[] = "մուտք {$this->entrance}";
         }
 
-        return implode(', ', $parts);
+        if ($this->floor) {
+            $parts[] = "հարկ {$this->floor}";
+        }
+
+        if ($this->apartment) {
+            $parts[] = "բն. {$this->apartment}";
+        }
+
+        return implode(', ', $parts) ?: ($this->address_line_1 ?: 'Հասցե');
+    }
+
+    public function toSnapshot(): array
+    {
+        return [
+            'id' => $this->id,
+            'title' => $this->title,
+            'country' => $this->country,
+            'province' => $this->province,
+            'city' => $this->city,
+            'street' => $this->street,
+            'building' => $this->building,
+            'entrance' => $this->entrance,
+            'floor' => $this->floor,
+            'apartment' => $this->apartment,
+            'door_code' => $this->door_code,
+            'delivery_instructions' => $this->delivery_instructions,
+            'formatted_address' => $this->formatted_address,
+            'snapshot_at' => now()->toIso8601String(),
+        ];
     }
 }

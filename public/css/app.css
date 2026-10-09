@@ -2081,6 +2081,134 @@ button {
     background: #EFF6FF;
 }
 
+/* ==========================================================================
+   CRM & Customer 360° Management Module Styles
+   ========================================================================== */
+.crm-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #3B82F6, #1D4ED8);
+    color: #FFFFFF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+}
+.crm-avatar.company {
+    background: linear-gradient(135deg, #8B5CF6, #6D28D9);
+    border-radius: 10px;
+}
+.loyalty-card-visual {
+    background: linear-gradient(135deg, #1E293B, #0F172A);
+    border-radius: 14px;
+    padding: 1.25rem;
+    color: #FFFFFF;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.3);
+}
+.loyalty-card-visual::after {
+    content: '';
+    position: absolute;
+    top: -50px;
+    right: -50px;
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.05);
+}
+.loyalty-tier-gold {
+    background: linear-gradient(135deg, #B45309, #78350F) !important;
+}
+.loyalty-tier-vip {
+    background: linear-gradient(135deg, #6D28D9, #4C1D95) !important;
+}
+.loyalty-tier-silver {
+    background: linear-gradient(135deg, #475569, #334155) !important;
+}
+.crm-timeline-list {
+    position: relative;
+    padding-left: 28px;
+}
+.crm-timeline-list::before {
+    content: '';
+    position: absolute;
+    top: 6px;
+    bottom: 6px;
+    left: 10px;
+    width: 2px;
+    background: #E2E8F0;
+}
+.crm-timeline-item {
+    position: relative;
+    margin-bottom: 1.25rem;
+}
+.crm-timeline-node {
+    position: absolute;
+    left: -28px;
+    top: 2px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #FFFFFF;
+    border: 2px solid var(--color-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.65rem;
+    color: var(--color-primary);
+    box-shadow: 0 0 0 3px #EFF6FF;
+}
+.crm-timeline-card {
+    background: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    transition: all 0.2s ease;
+}
+.crm-timeline-card:hover {
+    background: #FFFFFF;
+    border-color: #CBD5E1;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
+}
+.score-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+}
+.score-high {
+    background: #DCFCE7;
+    color: #15803D;
+}
+.score-medium {
+    background: #FEF3C7;
+    color: #B45309;
+}
+.score-low {
+    background: #FEE2E2;
+    color: #B91C1C;
+}
+.duplicate-warning-banner {
+    display: none;
+    background: #FFFBEB;
+    border: 1px solid #FCD34D;
+    color: #92400E;
+    padding: 0.65rem 0.85rem;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    margin-bottom: 1rem;
+    align-items: center;
+    gap: 8px;
+}
+
 
 
 

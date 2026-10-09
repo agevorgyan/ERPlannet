@@ -48,6 +48,7 @@ class Order extends Model
         'payment_status', // unpaid, partially_paid, paid, refunded, partially_refunded
         'customer_notes',
         'internal_notes',
+        'delivery_address_snapshot',
         'placed_at',
         'scheduled_for',
         'delivered_at',
@@ -60,6 +61,7 @@ class Order extends Model
         'delivery_fee' => 'decimal:2',
         'tax' => 'decimal:2',
         'total' => 'decimal:2',
+        'delivery_address_snapshot' => 'array',
         'placed_at' => 'datetime',
         'scheduled_for' => 'datetime',
         'delivered_at' => 'datetime',

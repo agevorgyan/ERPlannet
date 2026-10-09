@@ -10,7 +10,15 @@ use App\Domain\Catalog\Models\Product;
 use App\Domain\Catalog\Models\ProductVariant;
 use App\Domain\Catalog\Models\Unit;
 use App\Domain\CRM\Models\Customer;
+use App\Domain\CRM\Models\CustomerActivity;
 use App\Domain\CRM\Models\CustomerAddress;
+use App\Domain\CRM\Models\CustomerCompany;
+use App\Domain\CRM\Models\CustomerContact;
+use App\Domain\CRM\Models\CustomerIndividual;
+use App\Domain\CRM\Models\CustomerLoyaltyAccount;
+use App\Domain\CRM\Models\CustomerLoyaltyTransaction;
+use App\Domain\CRM\Models\CustomerNote;
+use App\Domain\CRM\Models\CustomerSource;
 use App\Domain\Delivery\Models\DeliveryDriver;
 use App\Domain\Delivery\Models\DeliveryProof;
 use App\Domain\Delivery\Models\DeliveryShipment;
@@ -290,31 +298,298 @@ class DemoTenantSeeder extends Seeder
             ]
         );
 
-        // 8. Customer
+        // 8. CRM Sources & Customers
+        $sourcesData = [
+            ['name' => 'Facebook', 'code' => 'facebook', 'icon' => 'fab fa-facebook', 'sort_order' => 1],
+            ['name' => 'Instagram', 'code' => 'instagram', 'icon' => 'fab fa-instagram', 'sort_order' => 2],
+            ['name' => 'Կայք', 'code' => 'website', 'icon' => 'fas fa-globe', 'sort_order' => 3],
+            ['name' => 'Google', 'code' => 'google', 'icon' => 'fab fa-google', 'sort_order' => 4],
+            ['name' => 'WhatsApp', 'code' => 'whatsapp', 'icon' => 'fab fa-whatsapp', 'sort_order' => 5],
+            ['name' => 'Viber', 'code' => 'viber', 'icon' => 'fab fa-viber', 'sort_order' => 6],
+            ['name' => 'Հեռախոսազանգ', 'code' => 'phone_call', 'icon' => 'fas fa-phone-alt', 'sort_order' => 7],
+            ['name' => 'Ընկերոջ առաջարկություն', 'code' => 'referral', 'icon' => 'fas fa-user-friends', 'sort_order' => 8],
+            ['name' => 'Ֆիզիկական մասնաճյուղ', 'code' => 'physical_branch', 'icon' => 'fas fa-store', 'sort_order' => 9],
+            ['name' => 'Գովազդ', 'code' => 'ad', 'icon' => 'fas fa-ad', 'sort_order' => 10],
+            ['name' => 'Այլ', 'code' => 'other', 'icon' => 'fas fa-tag', 'sort_order' => 11],
+        ];
+
+        $sourceMap = [];
+        foreach ($sourcesData as $s) {
+            $sourceMap[$s['code']] = CustomerSource::firstOrCreate(
+                ['tenant_id' => $tenant->id, 'code' => $s['code']],
+                [
+                    'name' => $s['name'],
+                    'icon' => $s['icon'],
+                    'is_active' => true,
+                    'sort_order' => $s['sort_order'],
+                ]
+            );
+        }
+
+        // 8.1 Customer 1: Individual (B2C)
         $customer = Customer::firstOrCreate(
             ['tenant_id' => $tenant->id, 'phone' => '+37491223344'],
             [
+                'customer_code' => 'CUST-000001',
+                'type' => Customer::TYPE_INDIVIDUAL,
                 'first_name' => 'Գևորգ',
                 'last_name' => 'Հակոբյան',
                 'email' => 'gevorg@example.am',
                 'company_name' => 'Հակոբյան Գրուպ',
                 'tax_id' => '01234567',
-                'notes' => 'VIP Customer',
+                'primary_branch_id' => $branchMain->id,
+                'acquisition_source_id' => $sourceMap['instagram']->id ?? null,
+                'created_by_user_id' => $owner->id,
+                'assigned_manager_id' => $owner->id,
+                'status' => Customer::STATUS_ACTIVE,
+                'loyalty_tier' => 'gold',
+                'customer_score' => 88,
+                'custom_discount_percent' => 5.0,
+                'notes' => 'VIP Customer, նախընտրում է արագ առաքում',
                 'total_spent' => 12400.00,
                 'orders_count' => 1,
                 'last_ordered_at' => now()->subDays(2),
             ]
         );
 
+        CustomerIndividual::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'customer_id' => $customer->id],
+            [
+                'first_name' => 'Գևորգ',
+                'last_name' => 'Հակոբյան',
+                'birth_date' => '1988-06-15',
+            ]
+        );
+
+        CustomerContact::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'customer_id' => $customer->id, 'phone' => '+37491223344'],
+            [
+                'name' => 'Գևորգ Հակոբյան',
+                'position' => 'Հաճախորդ',
+                'phone' => '+37491223344',
+                'email' => 'gevorg@example.am',
+                'is_primary' => true,
+            ]
+        );
+
         $address = CustomerAddress::firstOrCreate(
-            ['tenant_id' => $tenant->id, 'customer_id' => $customer->id, 'address_line_1' => 'Սայաթ-Նովա պող. 10'],
+            ['tenant_id' => $tenant->id, 'customer_id' => $customer->id, 'street' => 'Սայաթ-Նովա պող.'],
             [
                 'title' => 'Գրասենյակ',
+                'country' => 'AM',
                 'city' => 'Երևան',
+                'street' => 'Սայաթ-Նովա պող.',
+                'building' => '10',
                 'floor' => '4',
                 'apartment' => '18',
-                'entry_code' => '45K',
+                'door_code' => '45K',
+                'address_line_1' => 'Սայաթ-Նովա պող. 10',
                 'is_default' => true,
+                'is_last_used' => true,
+            ]
+        );
+
+        $loyalty1 = CustomerLoyaltyAccount::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'customer_id' => $customer->id],
+            [
+                'card_number' => 'LOY-000001',
+                'points_balance' => 450.00,
+                'lifetime_points_earned' => 500.00,
+                'lifetime_points_spent' => 50.00,
+                'current_tier' => 'gold',
+                'active_discount_percent' => 5.0,
+                'is_frozen' => false,
+            ]
+        );
+
+        CustomerLoyaltyTransaction::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'loyalty_account_id' => $loyalty1->id, 'type' => 'earn'],
+            [
+                'customer_id' => $customer->id,
+                'points_delta' => 500.00,
+                'balance_after' => 500.00,
+                'reason' => 'Գնման կուտակում',
+                'performed_by_user_id' => $owner->id,
+            ]
+        );
+
+        CustomerNote::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'customer_id' => $customer->id, 'content' => 'Նախընտրում է առաքումը 14:00-ից հետո:'],
+            [
+                'author_user_id' => $owner->id,
+                'category' => CustomerNote::CATEGORY_PREFERENCE,
+                'is_pinned' => true,
+            ]
+        );
+
+        CustomerActivity::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'customer_id' => $customer->id, 'title' => 'Հաճախորդի ստեղծում'],
+            [
+                'type' => CustomerActivity::TYPE_STATUS_CHANGED,
+                'content' => 'Հաճախորդը գրանցվել է ERP համակարգում',
+                'user_id' => $owner->id,
+            ]
+        );
+
+        // 8.2 Customer 2: Company (B2B / HoReCa)
+        $customerB2B = Customer::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'tax_id' => '02511448'],
+            [
+                'customer_code' => 'CUST-000002',
+                'type' => Customer::TYPE_COMPANY,
+                'company_name' => '«Անի Ռեստորանային Համալիր» ՍՊԸ',
+                'tax_id' => '02511448',
+                'phone' => '+37410556677',
+                'email' => 'info@anirestaurant.am',
+                'primary_branch_id' => $branchMain->id,
+                'acquisition_source_id' => $sourceMap['referral']->id ?? null,
+                'created_by_user_id' => $owner->id,
+                'assigned_manager_id' => $owner->id,
+                'status' => Customer::STATUS_ACTIVE,
+                'loyalty_tier' => 'vip',
+                'custom_discount_percent' => 10.0,
+                'notes' => 'HoReCa գործընկեր, շաբաթական մատակարարումներ',
+                'total_spent' => 285000.00,
+                'orders_count' => 12,
+                'last_ordered_at' => now()->subDay(),
+            ]
+        );
+
+        CustomerCompany::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'customer_id' => $customerB2B->id],
+            [
+                'legal_name' => '«Անի Ռեստորանային Համալիր» ՍՊԸ',
+                'trade_name' => 'Անի Ռեստորան',
+                'tax_id' => '02511448',
+                'registration_country' => 'AM',
+                'legal_address' => 'ք. Երևան, Մաշտոցի պող. 15',
+                'physical_address' => 'ք. Երևան, Պռոշյան 1-ին նրբ. 25',
+                'website' => 'https://anirestaurant.am',
+                'director_name' => 'Կարեն Պետրոսյան',
+                'purchasing_manager_name' => 'Արմեն Դավթյան',
+                'accountant_name' => 'Լիլիթ Սարգսյան',
+                'credit_limit' => 500000.00,
+                'payment_terms_days' => 14,
+                'outstanding_balance' => 45000.00,
+            ]
+        );
+
+        CustomerContact::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'customer_id' => $customerB2B->id, 'name' => 'Կարեն Պետրոսյան'],
+            [
+                'name' => 'Կարեն Պետրոսյան',
+                'position' => 'Տնօրեն',
+                'phone' => '+37493112233',
+                'email' => 'director@anirestaurant.am',
+                'is_primary' => true,
+            ]
+        );
+
+        CustomerContact::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'customer_id' => $customerB2B->id, 'name' => 'Լիլիթ Սարգսյան'],
+            [
+                'name' => 'Լիլիթ Սարգսյան',
+                'position' => 'Գլխավոր հաշվապահ',
+                'phone' => '+37494223344',
+                'email' => 'finance@anirestaurant.am',
+                'is_primary' => false,
+            ]
+        );
+
+        CustomerContact::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'customer_id' => $customerB2B->id, 'name' => 'Արմեն Դավթյան'],
+            [
+                'name' => 'Արմեն Դավթյան',
+                'position' => 'Գնումների պատասխանատու',
+                'phone' => '+37499334455',
+                'is_primary' => false,
+            ]
+        );
+
+        $addressB2B = CustomerAddress::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'customer_id' => $customerB2B->id, 'street' => 'Պռոշյան 1-ին նրբ.'],
+            [
+                'title' => 'Ռեստորանի մուտք (Առաքում)',
+                'country' => 'AM',
+                'city' => 'Երևան',
+                'street' => 'Պռոշյան 1-ին նրբ.',
+                'building' => '25',
+                'address_line_1' => 'Պռոշյան 1-ին նրբ. 25',
+                'delivery_instructions' => 'Մուտքը հետնամասից՝ պահեստային դարպասով',
+                'is_default' => true,
+                'is_last_used' => true,
+            ]
+        );
+
+        CustomerLoyaltyAccount::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'customer_id' => $customerB2B->id],
+            [
+                'card_number' => 'LOY-000002',
+                'points_balance' => 1200.00,
+                'lifetime_points_earned' => 1200.00,
+                'current_tier' => 'vip',
+                'active_discount_percent' => 10.0,
+                'is_frozen' => false,
+            ]
+        );
+
+        // 8.3 Customer 3: Individual (B2C)
+        $customer3 = Customer::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'phone' => '+37477889900'],
+            [
+                'customer_code' => 'CUST-000003',
+                'type' => Customer::TYPE_INDIVIDUAL,
+                'first_name' => 'Աննա',
+                'last_name' => 'Գրիգորյան',
+                'email' => 'anna.grigoryan@gmail.com',
+                'primary_branch_id' => $branchMain->id,
+                'acquisition_source_id' => $sourceMap['facebook']->id ?? null,
+                'created_by_user_id' => $owner->id,
+                'status' => Customer::STATUS_ACTIVE,
+                'loyalty_tier' => 'silver',
+                'customer_score' => 72,
+                'custom_discount_percent' => 3.0,
+                'notes' => 'Հաճախակի պատվիրատու',
+                'total_spent' => 45000.00,
+                'orders_count' => 4,
+                'last_ordered_at' => now()->subDays(5),
+            ]
+        );
+
+        CustomerIndividual::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'customer_id' => $customer3->id],
+            [
+                'first_name' => 'Աննա',
+                'last_name' => 'Գրիգորյան',
+                'birth_date' => '1995-11-20',
+            ]
+        );
+
+        CustomerAddress::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'customer_id' => $customer3->id, 'street' => 'Կոմիտասի պող.'],
+            [
+                'title' => 'Բնակարան',
+                'country' => 'AM',
+                'city' => 'Երևան',
+                'street' => 'Կոմիտասի պող.',
+                'building' => '45',
+                'apartment' => '12',
+                'floor' => '3',
+                'address_line_1' => 'Կոմիտասի պող. 45, բն. 12',
+                'is_default' => true,
+                'is_last_used' => true,
+            ]
+        );
+
+        CustomerLoyaltyAccount::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'customer_id' => $customer3->id],
+            [
+                'card_number' => 'LOY-000003',
+                'points_balance' => 150.00,
+                'lifetime_points_earned' => 150.00,
+                'current_tier' => 'silver',
+                'active_discount_percent' => 3.0,
+                'is_frozen' => false,
             ]
         );
 
