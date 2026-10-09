@@ -2,6 +2,7 @@
 
 namespace App\Domain\Catalog\Models;
 
+use App\Domain\Manufacturing\Models\RecipeItem;
 use App\Domain\Sales\Models\OrderItem;
 use App\Infrastructure\MultiTenancy\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -13,7 +14,21 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Product extends Model
 {
-    use HasFactory, HasUuids, BelongsToTenant, SoftDeletes;
+    use BelongsToTenant, HasFactory, HasUuids, SoftDeletes;
+
+    public const TYPE_RAW_MATERIAL = 'raw_material';
+
+    public const TYPE_INGREDIENT = 'ingredient';
+
+    public const TYPE_SEMI_FINISHED = 'semi_finished';
+
+    public const TYPE_FINISHED_PRODUCT = 'finished_product';
+
+    public const TYPE_PACKAGING = 'packaging';
+
+    public const TYPE_SERVICE = 'service';
+
+    public const TYPE_MODIFIER = 'modifier';
 
     protected $table = 'products';
 
@@ -21,6 +36,7 @@ class Product extends Model
         'tenant_id',
         'category_id',
         'unit_id',
+        'type',
         'sku',
         'barcode',
         'name',
@@ -69,9 +85,33 @@ class Product extends Model
         return $this->hasMany(OrderItem::class, 'product_id');
     }
 
-    public function getLocalizedName(string $locale = null): string
+    /**
+     * Reverse lookup: find all recipes / BOMs where this item is used as an ingredient or component.
+     */
+    public function recipesWhereUsed(): HasMany
+    {
+        return $this->hasMany(RecipeItem::class, 'product_id');
+    }
+
+    public function isRawMaterial(): bool
+    {
+        return $this->type === self::TYPE_RAW_MATERIAL;
+    }
+
+    public function isIngredient(): bool
+    {
+        return in_array($this->type, [self::TYPE_INGREDIENT, self::TYPE_RAW_MATERIAL, self::TYPE_SEMI_FINISHED]);
+    }
+
+    public function isSemiFinished(): bool
+    {
+        return $this->type === self::TYPE_SEMI_FINISHED;
+    }
+
+    public function getLocalizedName(?string $locale = null): string
     {
         $locale = $locale ?: app()->getLocale();
+
         return $this->name[$locale] ?? $this->name['hy'] ?? $this->name['en'] ?? '';
     }
 }

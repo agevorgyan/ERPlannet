@@ -3,18 +3,22 @@
 use App\Http\Controllers\Api\V1\Platform\PlanManagementController;
 use App\Http\Controllers\Api\V1\Platform\PlatformAuthController;
 use App\Http\Controllers\Api\V1\Platform\TenantManagementController;
+use App\Http\Controllers\Api\V1\Tenant\AccountingExportController;
 use App\Http\Controllers\Api\V1\Tenant\BranchController;
 use App\Http\Controllers\Api\V1\Tenant\Catalog\CategoryController;
 use App\Http\Controllers\Api\V1\Tenant\Catalog\ProductController;
 use App\Http\Controllers\Api\V1\Tenant\Catalog\UnitController;
 use App\Http\Controllers\Api\V1\Tenant\CRM\CustomerController;
-use App\Http\Controllers\Api\V1\Tenant\Manufacturing\ProductionOrderController;
-use App\Http\Controllers\Api\V1\Tenant\Manufacturing\RecipeController;
-use App\Http\Controllers\Api\V1\Tenant\PaymentController;
 use App\Http\Controllers\Api\V1\Tenant\Delivery\CodSettlementController;
 use App\Http\Controllers\Api\V1\Tenant\Delivery\DeliveryDriverController;
 use App\Http\Controllers\Api\V1\Tenant\Delivery\DeliveryDriverShiftController;
 use App\Http\Controllers\Api\V1\Tenant\Delivery\DeliveryShipmentController;
+use App\Http\Controllers\Api\V1\Tenant\InboundWebhookController;
+use App\Http\Controllers\Api\V1\Tenant\IntegrationController;
+use App\Http\Controllers\Api\V1\Tenant\Manufacturing\ProductionOrderController;
+use App\Http\Controllers\Api\V1\Tenant\Manufacturing\RecipeController;
+use App\Http\Controllers\Api\V1\Tenant\NotificationTemplateController;
+use App\Http\Controllers\Api\V1\Tenant\PaymentController;
 use App\Http\Controllers\Api\V1\Tenant\Payments\OrderPaymentController;
 use App\Http\Controllers\Api\V1\Tenant\POS\PosCheckoutController;
 use App\Http\Controllers\Api\V1\Tenant\POS\PosRefundController;
@@ -27,16 +31,14 @@ use App\Http\Controllers\Api\V1\Tenant\RoleController;
 use App\Http\Controllers\Api\V1\Tenant\Sales\OrderController;
 use App\Http\Controllers\Api\V1\Tenant\SubscriptionController;
 use App\Http\Controllers\Api\V1\Tenant\TenantAuthController;
+use App\Http\Controllers\Api\V1\Tenant\UserController;
 use App\Http\Controllers\Api\V1\Tenant\Warehouse\StockBatchController;
 use App\Http\Controllers\Api\V1\Tenant\Warehouse\StockLevelController;
 use App\Http\Controllers\Api\V1\Tenant\Warehouse\StockMovementController;
 use App\Http\Controllers\Api\V1\Tenant\Warehouse\StockTransferController;
 use App\Http\Controllers\Api\V1\Tenant\Warehouse\WarehouseController;
-use App\Http\Controllers\Api\V1\Tenant\IntegrationController;
 use App\Http\Controllers\Api\V1\Tenant\WebhookSubscriptionController;
-use App\Http\Controllers\Api\V1\Tenant\NotificationTemplateController;
-use App\Http\Controllers\Api\V1\Tenant\AccountingExportController;
-use App\Http\Controllers\Api\V1\Tenant\InboundWebhookController;
+use App\Http\Controllers\AuthController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -64,6 +66,7 @@ Route::prefix('v1')->group(function () {
 
         if (file_exists($path)) {
             $content = json_decode(file_get_contents($path), true);
+
             return response()->json([
                 'success' => true,
                 'locale' => $lang,
@@ -104,6 +107,16 @@ Route::prefix('v1')->group(function () {
 
     /*
     |--------------------------------------------------------------------------
+    | PUBLIC AUTHENTICATION & ONBOARDING ENDPOINTS
+    |--------------------------------------------------------------------------
+    */
+    Route::post('/auth/register', [AuthController::class, 'register']);
+    Route::post('/auth/forgot-password', [AuthController::class, 'requestPasswordReset']);
+    Route::post('/auth/reset-password', [AuthController::class, 'confirmPasswordReset']);
+    Route::post('/auth/lookup-account', [AuthController::class, 'lookupAccount']);
+
+    /*
+    |--------------------------------------------------------------------------
     | TENANT LEVEL ROUTES (SaaS Customers & Company Staff)
     |--------------------------------------------------------------------------
     */
@@ -117,6 +130,7 @@ Route::prefix('v1')->group(function () {
 
             // Roles & RBAC
             Route::apiResource('roles', RoleController::class);
+            Route::apiResource('users', UserController::class);
 
             // Branches
             Route::apiResource('branches', BranchController::class);
@@ -129,6 +143,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/inventory/batches', [StockBatchController::class, 'index']);
             Route::get('/inventory/movements', [StockMovementController::class, 'index']);
             Route::post('/inventory/adjust', [StockMovementController::class, 'adjust']);
+            Route::post('/inventory/scrap', [StockMovementController::class, 'scrap']);
             Route::apiResource('inventory/transfers', StockTransferController::class)->only(['index', 'store', 'show']);
             Route::post('/inventory/transfers/{id}/ship', [StockTransferController::class, 'ship']);
             Route::post('/inventory/transfers/{id}/receive', [StockTransferController::class, 'receive']);
@@ -240,4 +255,3 @@ Route::prefix('v1')->group(function () {
         Route::post('/payments/webhooks/{gateway}', [OrderPaymentController::class, 'webhook']);
     });
 });
-

@@ -105,6 +105,20 @@ class PurchaseOrderController extends Controller
 
     public function receive(Request $request, string $id, ReceivePurchaseOrderAction $action): JsonResponse
     {
+        if (! $request->has('items') || empty($request->input('items'))) {
+            $poRecord = PurchaseOrder::with('items')->findOrFail($id);
+            $autoItems = $poRecord->items->map(function ($item) {
+                return [
+                    'item_id' => $item->id,
+                    'quantity' => (float) max(0, $item->quantity_ordered - $item->quantity_received),
+                    'batch_number' => 'LOT-'.date('Ymd').'-'.substr($item->id, 0, 4),
+                    'expiry_date' => now()->addDays(90)->toDateString(),
+                ];
+            })->filter(fn ($i) => $i['quantity'] > 0)->values()->toArray();
+
+            $request->merge(['items' => $autoItems]);
+        }
+
         $validated = $request->validate([
             'items' => ['required', 'array', 'min:1'],
             'items.*.item_id' => ['required', 'uuid', 'exists:purchase_order_items,id'],
@@ -117,7 +131,7 @@ class PurchaseOrderController extends Controller
         $po = $action->execute(
             purchaseOrderId: $id,
             receivedItems: $validated['items'],
-            userId: $request->user()->id
+            userId: $request->user()?->id
         );
 
         return response()->json([

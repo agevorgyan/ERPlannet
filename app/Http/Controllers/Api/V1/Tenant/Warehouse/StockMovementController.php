@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1\Tenant\Warehouse;
 
 use App\Domain\Warehouse\Actions\AdjustStockAction;
+use App\Domain\Warehouse\Actions\RecordStockMovementAction;
 use App\Domain\Warehouse\Models\StockMovement;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
@@ -73,5 +74,36 @@ class StockMovementController extends Controller
             'message' => $movement ? 'Stock adjusted successfully.' : 'No difference detected. Stock balance unchanged.',
             'data' => $movement,
         ], $movement ? 200 : 200);
+    }
+
+    public function scrap(Request $request, RecordStockMovementAction $action): JsonResponse
+    {
+        $validated = $request->validate([
+            'warehouse_id' => ['required', 'uuid', 'exists:warehouses,id'],
+            'product_id' => ['required', 'uuid', 'exists:products,id'],
+            'quantity' => ['required', 'numeric', 'min:0.0001'],
+            'reason' => ['required', 'string', 'in:expired,spoilage,production_loss,kitchen_waste,damaged,unknown_loss'],
+            'notes' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $movement = $action->execute(
+            warehouseId: $validated['warehouse_id'],
+            productId: $validated['product_id'],
+            productVariantId: null,
+            type: 'scrap',
+            quantity: (float) $validated['quantity'],
+            unitCost: 0.0,
+            stockBatchId: null,
+            userId: $request->user()?->id,
+            referenceType: 'WasteScrap',
+            referenceId: null,
+            notes: "[Waste: {$validated['reason']}] ".($validated['notes'] ?? ''),
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Խոտանագրումը հաջողությամբ գրանցվեց (Waste Logged):',
+            'data' => $movement,
+        ]);
     }
 }

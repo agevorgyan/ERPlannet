@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Unit extends Model
 {
-    use HasFactory, HasUuids, BelongsToTenant;
+    use BelongsToTenant, HasFactory, HasUuids;
 
     protected $table = 'units';
 
@@ -33,9 +33,10 @@ class Unit extends Model
         return $this->hasMany(Product::class, 'unit_id');
     }
 
-    public function getLocalizedName(string $locale = null): string
+    public function getLocalizedName(?string $locale = null): string
     {
         $locale = $locale ?: app()->getLocale();
+
         return $this->name[$locale] ?? $this->name['hy'] ?? $this->code;
     }
 }

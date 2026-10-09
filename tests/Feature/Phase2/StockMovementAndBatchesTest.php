@@ -5,13 +5,13 @@ namespace Tests\Feature\Phase2;
 use App\Domain\Catalog\Models\Product;
 use App\Domain\IAM\Models\User;
 use App\Domain\Tenant\Models\Tenant;
-use App\Domain\Warehouse\Actions\AdjustStockAction;
 use App\Domain\Warehouse\Actions\RecordStockMovementAction;
 use App\Domain\Warehouse\Actions\ReleaseStockAction;
 use App\Domain\Warehouse\Actions\ReserveStockAction;
 use App\Domain\Warehouse\Models\StockBatch;
 use App\Domain\Warehouse\Models\StockLevel;
 use App\Domain\Warehouse\Models\Warehouse;
+use App\Infrastructure\MultiTenancy\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -20,8 +20,11 @@ class StockMovementAndBatchesTest extends TestCase
     use RefreshDatabase;
 
     protected Tenant $tenant;
+
     protected User $user;
+
     protected Warehouse $warehouse;
+
     protected Product $product;
 
     protected function setUp(): void
@@ -34,7 +37,7 @@ class StockMovementAndBatchesTest extends TestCase
         $this->warehouse = Warehouse::where('tenant_id', $this->tenant->id)->where('code', 'WH-MAIN')->firstOrFail();
         $this->product = Product::where('tenant_id', $this->tenant->id)->where('sku', 'CHEESE-LORI')->firstOrFail();
 
-        app(\App\Infrastructure\MultiTenancy\TenantContext::class)->setCurrentTenant($this->tenant);
+        app(TenantContext::class)->setCurrentTenant($this->tenant);
     }
 
     public function test_inbound_movement_increments_stock_level_and_creates_immutable_log(): void
@@ -226,6 +229,43 @@ class StockMovementAndBatchesTest extends TestCase
             'warehouse_id' => $this->warehouse->id,
             'product_id' => $this->product->id,
             'quantity_on_hand' => $targetQty,
+        ]);
+    }
+
+    public function test_stock_scrap_via_api_creates_scrap_audit_movement(): void
+    {
+        // Ensure initial stock
+        $action = app(RecordStockMovementAction::class);
+        $action->execute(
+            warehouseId: $this->warehouse->id,
+            productId: $this->product->id,
+            productVariantId: null,
+            type: 'purchase_receipt',
+            quantity: 20.0,
+            unitCost: 1000.0,
+            userId: $this->user->id
+        );
+
+        $response = $this->actingAs($this->user)
+            ->withHeader('X-Tenant-Slug', $this->tenant->slug)
+            ->postJson('/api/v1/inventory/scrap', [
+                'warehouse_id' => $this->warehouse->id,
+                'product_id' => $this->product->id,
+                'quantity' => 4.0,
+                'reason' => 'kitchen_waste',
+                'notes' => 'Damaged during prep work',
+            ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.type', 'scrap')
+            ->assertJsonPath('data.quantity', 4);
+
+        $this->assertDatabaseHas('stock_movements', [
+            'warehouse_id' => $this->warehouse->id,
+            'product_id' => $this->product->id,
+            'type' => 'scrap',
+            'quantity' => 4.0,
         ]);
     }
 }

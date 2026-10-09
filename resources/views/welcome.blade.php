@@ -1,576 +1,1211 @@
 <!DOCTYPE html>
-<html lang="hy" class="dark">
+<html lang="hy">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ $currentTenant ? $currentTenant->name . ' — ERPlannet' : 'ERPlannet SaaS — Multi-Tenant ERP/CRM Platform' }}</title>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>{{ $currentTenant ? $currentTenant->name . ' — ERPlannet SaaS' : 'ERPlannet — Modern ERP Dashboard' }}</title>
 
+    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Font Awesome 6.5.1 Pro-grade Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- SoftFire / EduNova Pure Vanilla CSS Design System -->
+    <link rel="stylesheet" href="/css/app.css">
+
+    <!-- Server Initial State Hydration -->
     <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
-                        mono: ['"JetBrains Mono"', 'monospace'],
-                    },
-                    colors: {
-                        brand: {
-                            50: '#eef2ff',
-                            100: '#e0e7ff',
-                            400: '#818cf8',
-                            500: '#6366f1',
-                            600: '#4f46e5',
-                            700: '#4338ca',
-                            900: '#312e81',
-                        }
-                    }
-                }
-            }
-        }
+        window.SERVER_INITIAL_DATA = {
+            token: @json($apiToken),
+            currentTenant: @json($currentTenant),
+            tenants: @json($tenants),
+            plans: @json($plans),
+            stats: @json($stats),
+            demoTenant: @json($demoTenant),
+            branches: @json($branches),
+            warehouses: @json($warehouses),
+            suppliers: @json($suppliers),
+            products: @json($products),
+            categories: @json($categories),
+            units: @json($units),
+            customers: @json($customers),
+            orders: @json($orders),
+            batches: @json($batches),
+            purchaseOrders: @json($purchaseOrders),
+            recipes: @json($recipes),
+            productionOrders: @json($productionOrders),
+            qualityInspections: @json($qualityInspections),
+            posTerminals: @json($posTerminals),
+            posSessions: @json($posSessions),
+            deliveryDrivers: @json($deliveryDrivers),
+            deliveryShipments: @json($deliveryShipments),
+            users: @json($users),
+            roles: @json($roles),
+            currentUser: @json($currentUser),
+            activeView: @json($activeView)
+        };
     </script>
-    <style>
-        body { font-family: 'Plus Jakarta Sans', sans-serif; }
-        code, pre { font-family: 'JetBrains Mono', monospace; }
-        .glass-panel {
-            background: rgba(17, 24, 39, 0.7);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-        }
-        .glow-indigo {
-            box-shadow: 0 0 35px -8px rgba(99, 102, 241, 0.35);
-        }
-    </style>
 </head>
-<body class="bg-[#0B0F19] text-slate-100 min-h-screen selection:bg-brand-500 selection:text-white antialiased">
+<body>
 
-    <!-- Top Navigation Bar -->
-    <header class="border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-xl sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-            <div class="flex items-center space-x-3">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 via-indigo-500 to-purple-500 flex items-center justify-center shadow-lg shadow-brand-500/25">
-                    <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                    </svg>
-                </div>
-                <div>
-                    <div class="flex items-center space-x-2">
-                        <span class="font-bold text-lg tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">ERPlannet</span>
-                        <span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Phase 0, 1, 2 & 3 Complete (65 Tests Passed)</span>
+    <div class="app-wrapper">
+
+        <!-- ==================================================================
+             Sidebar Navigation (Matching Image 1: SoftFire ERP)
+             ================================================================== -->
+        <aside class="app-sidebar" id="app-sidebar">
+            <div class="sidebar-header">
+                <div class="brand-logo-wrap">
+                    <div class="brand-icon">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect width="18" height="18" x="3" y="3" rx="2"/>
+                            <path d="M7 7h10"/>
+                            <path d="M7 12h10"/>
+                            <path d="M7 17h10"/>
+                        </svg>
                     </div>
-                    <p class="text-xs text-slate-400">Multi-Tenant SaaS ERP/CRM &bull; Manufacturing &bull; Recipes (BOM) &bull; ISO 22000 QA</p>
+                    <div class="brand-text">
+                        <h1>ERPlannet</h1>
+                        <span class="brand-badge">SaaS Live</span>
+                    </div>
                 </div>
             </div>
 
-            <!-- Environment Badge -->
-            <div class="flex items-center space-x-4">
-                <div class="hidden md:flex items-center space-x-2 text-xs font-mono bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-700/60">
-                    <span class="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                    <span class="text-slate-400">PHP 8.5</span>
-                    <span class="text-slate-600">|</span>
-                    <span class="text-slate-400">PGSQL 18</span>
-                    <span class="text-slate-600">|</span>
-                    <span class="text-slate-400">Redis 7</span>
-                </div>
-                <a href="#api-tester" class="text-xs font-medium px-3.5 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white transition-all shadow-md shadow-brand-600/30">
-                    API Console ↓
-                </a>
-            </div>
-        </div>
-    </header>
+            <nav class="sidebar-nav">
+                <!-- Main Navigation Items -->
+                <ul class="nav-menu">
+                    <li>
+                        <a href="#dashboard" class="nav-item-link active" data-view="dashboard" onclick="ERP.navigateTo('dashboard')">
+                            <span class="nav-icon"><i class="fa-solid fa-chart-pie"></i></span>
+                            <span data-i18n="dashboard">Overview</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#catalog" class="nav-item-link" data-view="catalog" onclick="ERP.navigateTo('catalog')">
+                            <span class="nav-icon"><i class="fa-solid fa-tags"></i></span>
+                            <span>Catalog &amp; Items</span>
+                            <span class="nav-pill">{{ count($products) }}</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#procurement" class="nav-item-link" data-view="procurement" onclick="ERP.navigateTo('procurement')">
+                            <span class="nav-icon"><i class="fa-solid fa-file-invoice"></i></span>
+                            <span>Procurement</span>
+                            <span class="nav-pill">{{ count($purchaseOrders) }}</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#pos" class="nav-item-link" data-view="pos" onclick="ERP.navigateTo('pos')">
+                            <span class="nav-icon"><i class="fa-solid fa-cash-register"></i></span>
+                            <span data-i18n="pos">POS Դրամարկղ</span>
+                            <span class="nav-pill">Live</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#inventory" class="nav-item-link" data-view="inventory" onclick="ERP.navigateTo('inventory')">
+                            <span class="nav-icon"><i class="fa-solid fa-boxes-stacked"></i></span>
+                            <span data-i18n="inventory">Inventory</span>
+                            <span class="nav-pill">{{ count($batches) }}</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#manufacturing" class="nav-item-link" data-view="manufacturing" onclick="ERP.navigateTo('manufacturing')">
+                            <span class="nav-icon"><i class="fa-solid fa-industry"></i></span>
+                            <span data-i18n="manufacturing">Operations &amp; BOM</span>
+                            <span class="nav-pill">{{ count($recipes) }}</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#quality" class="nav-item-link" data-view="quality" onclick="ERP.navigateTo('quality')">
+                            <span class="nav-icon"><i class="fa-solid fa-shield-halved"></i></span>
+                            <span data-i18n="quality">Quality (QA)</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#delivery" class="nav-item-link" data-view="delivery" onclick="ERP.navigateTo('delivery')">
+                            <span class="nav-icon"><i class="fa-solid fa-truck-fast"></i></span>
+                            <span data-i18n="delivery">Fleet Dispatch</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#users" class="nav-item-link" data-view="users" onclick="ERP.navigateTo('users')">
+                            <span class="nav-icon"><i class="fa-solid fa-users"></i></span>
+                            <span data-i18n="users">HR &amp; Team</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#roles" class="nav-item-link" data-view="roles" onclick="ERP.navigateTo('roles')">
+                            <span class="nav-icon"><i class="fa-solid fa-user-shield"></i></span>
+                            <span data-i18n="roles">Roles &amp; RBAC</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#billing" class="nav-item-link" data-view="billing" onclick="ERP.navigateTo('billing')">
+                            <span class="nav-icon"><i class="fa-solid fa-credit-card"></i></span>
+                            <span data-i18n="billing">Finance &amp; Plans</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#settings" class="nav-item-link" data-view="settings" onclick="ERP.navigateTo('settings')">
+                            <span class="nav-icon"><i class="fa-solid fa-sliders"></i></span>
+                            <span data-i18n="settings">Settings</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#api-console" class="nav-item-link" data-view="api-console" onclick="ERP.navigateTo('api-console')">
+                            <span class="nav-icon"><i class="fa-solid fa-bolt"></i></span>
+                            <span data-i18n="api_console">API Console</span>
+                        </a>
+                    </li>
+                </ul>
 
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-
-        <!-- Active Context Banner -->
-        @if ($currentTenant)
-            <div class="rounded-2xl p-5 bg-gradient-to-r from-emerald-950/60 via-slate-900 to-slate-900 border border-emerald-500/30 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                <div class="flex items-center space-x-4">
-                    <div class="w-12 h-12 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-xl font-bold">
-                        🏢
+                <!-- Quick Actions Sidebar Box (Exact Image 1) -->
+                <div class="sidebar-quick-actions">
+                    <div class="quick-actions-title">Quick Actions</div>
+                    <div class="quick-actions-list">
+                        <button class="quick-action-btn" onclick="ERP.procurement.openCreatePurchaseModal()">
+                            <span style="width: 16px; text-align: center; color: var(--color-primary);"><i class="fa-solid fa-file-invoice-dollar"></i></span> <span>Create Purchase</span>
+                        </button>
+                        <button class="quick-action-btn" onclick="ERP.catalog.openCreateProductModal()">
+                            <span style="width: 16px; text-align: center; color: var(--color-primary);"><i class="fa-solid fa-circle-plus"></i></span> <span>Add Product</span>
+                        </button>
+                        <button class="quick-action-btn" onclick="ERP.inventory.openAdjustStockModal()">
+                            <span style="width: 16px; text-align: center; color: var(--color-primary);"><i class="fa-solid fa-scale-balanced"></i></span> <span>Adjust / Scrap</span>
+                        </button>
+                        <button class="quick-action-btn" onclick="ERP.manufacturing.openCreateRecipeModal()">
+                            <span style="width: 16px; text-align: center; color: var(--color-primary);"><i class="fa-solid fa-scroll"></i></span> <span>New BOM Recipe</span>
+                        </button>
                     </div>
-                    <div>
-                        <div class="flex items-center space-x-2">
-                            <h2 class="text-lg font-bold text-white">{{ $currentTenant->name }}</h2>
-                            <span class="text-xs px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono">Tenant Subdomain Active</span>
+                </div>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="sidebar-user-card">
+                    <div class="user-avatar" id="sidebar-user-avatar">EJ</div>
+                    <div class="user-info">
+                        <div class="name" id="sidebar-user-name">Emily Johnson</div>
+                        <div class="role" id="sidebar-user-role">Admin</div>
+                    </div>
+                    <button onclick="ERP.auth.logout()" title="Logout" style="color: var(--text-muted); margin-left: auto; padding: 4px;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                            <polyline points="16 17 21 12 16 7"/>
+                            <line x1="21" y1="12" x2="9" y2="12"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- ==================================================================
+             Main Content Area
+             ================================================================== -->
+        <div class="app-main">
+
+            <!-- Top Header Bar (Matching Image 1 & 2) -->
+            <header class="app-header">
+                <div class="header-left">
+                    <button class="mobile-menu-btn" id="mobile-menu-toggle"><i class="fa-solid fa-bars"></i></button>
+
+                    <!-- Active Tenant Selector -->
+                    <div class="header-tenant-selector" onclick="ERP.toast('Tenant context: {{ request()->getHost() }}', 'info')">
+                        <span class="tenant-dot"></span>
+                        <span>{{ $currentTenant ? $currentTenant->name : 'Armenia Gourmet Food' }}</span>
+                        <span style="font-size: 0.72rem; color: var(--text-muted); font-family: var(--font-mono);">({{ request()->getHost() }})</span>
+                    </div>
+
+                    <!-- Global Search Bar -->
+                    <div class="header-search">
+                        <input type="text" placeholder="Search operations, teams, and workflows..." data-i18n-placeholder="search_placeholder" onkeyup="if(event.key === 'Enter') ERP.toast('Search: ' + this.value, 'info')">
+                        <span class="search-shortcut">⌘K</span>
+                    </div>
+                </div>
+
+                <div class="header-right">
+                    <!-- Environment Pill -->
+                    <div style="font-size: 0.72rem; font-family: var(--font-mono); font-weight: 700; color: var(--color-primary); background: var(--color-primary-light); padding: 5px 10px; border-radius: var(--radius-full); border: 1px solid var(--color-primary-border);">
+                        PostgreSQL 18 &bull; Port 8000
+                    </div>
+
+                    <!-- Date Range Pill (Image 1 style) -->
+                    <div class="header-date-pill">
+                        <span style="color: var(--color-primary);"><i class="fa-regular fa-calendar-days"></i></span>
+                        <span>May 1 – May 31, 2026</span>
+                        <i class="fa-solid fa-chevron-down" style="font-size: 0.65rem; color: var(--text-muted);"></i>
+                    </div>
+
+                    <!-- Notification Bell -->
+                    <button class="header-icon-btn" onclick="ERP.toast('3 unread system alerts', 'info')">
+                        <i class="fa-regular fa-bell"></i>
+                        <span class="badge-dot"></span>
+                    </button>
+
+                    <!-- Language Switcher -->
+                    <div style="position: relative;">
+                        <button class="lang-selector-btn" onclick="document.getElementById('lang-dropdown').classList.toggle('active')">
+                            <span id="current-lang-label">🇦🇲 Հայ</span>
+                            <i class="fa-solid fa-chevron-down" style="font-size: 0.65rem; color: var(--text-muted);"></i>
+                        </button>
+                        <div id="lang-dropdown" style="display: none; position: absolute; right: 0; top: 110%; background: #ffffff; border: 1px solid var(--border-card); border-radius: var(--radius-md); box-shadow: var(--shadow-lg); min-width: 140px; z-index: 50; padding: 4px;">
+                            <div onclick="ERP.setLocale('hy'); document.getElementById('lang-dropdown').classList.remove('active');" style="padding: 7px 12px; cursor: pointer; border-radius: 6px; font-size: 0.82rem; font-weight: 700;">🇦🇲 Հայերեն</div>
+                            <div onclick="ERP.setLocale('en'); document.getElementById('lang-dropdown').classList.remove('active');" style="padding: 7px 12px; cursor: pointer; border-radius: 6px; font-size: 0.82rem; font-weight: 700;">🇺🇸 English</div>
+                            <div onclick="ERP.setLocale('ru'); document.getElementById('lang-dropdown').classList.remove('active');" style="padding: 7px 12px; cursor: pointer; border-radius: 6px; font-size: 0.82rem; font-weight: 700;">🇷🇺 Русский</div>
                         </div>
-                        <p class="text-xs text-slate-300 mt-0.5">
-                            Domain: <span class="text-emerald-400 font-mono">{{ request()->getHost() }}</span> &bull;
-                            Tax ID: <span class="font-mono">{{ $currentTenant->tax_number ?? 'N/A' }}</span> &bull;
-                            Currency: <span class="font-mono">{{ $currentTenant->currency }}</span>
-                        </p>
                     </div>
-                </div>
-                <div class="flex items-center space-x-2">
-                    <a href="http://localhost:8000" class="text-xs px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700">
-                        ← Վերադառնալ Platform Console (localhost:8000)
-                    </a>
-                </div>
-            </div>
-        @else
-            <div class="rounded-2xl p-5 bg-gradient-to-r from-brand-950/40 via-slate-900 to-slate-900 border border-brand-500/30 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                <div class="flex items-center space-x-4">
-                    <div class="w-12 h-12 rounded-xl bg-brand-500/20 border border-brand-500/30 flex items-center justify-center text-brand-400 text-xl font-bold">
-                        🌐
-                    </div>
-                    <div>
-                        <div class="flex items-center space-x-2">
-                            <h2 class="text-lg font-bold text-white">SaaS Platform Root & Admin Portal</h2>
-                            <span class="text-xs px-2 py-0.5 rounded bg-brand-500/20 text-brand-300 font-mono">http://localhost:8000</span>
+
+                    <!-- User Profile Dropdown Pill -->
+                    <div style="position: relative;">
+                        <div class="header-user-profile" onclick="document.getElementById('user-menu-dropdown').classList.toggle('active')" style="cursor: pointer;">
+                            <div class="user-avatar" style="width: 28px; height: 28px; font-size: 0.72rem;">{{ auth()->check() ? mb_substr(auth()->user()->name, 0, 2) : 'EJ' }}</div>
+                            <span style="font-size: 0.82rem; font-weight: 700; color: var(--text-heading);" id="header-user-name">{{ auth()->check() ? auth()->user()->name : 'Emily Johnson' }}</span>
+                            <span style="font-size: 0.65rem; color: var(--text-muted);">{{ auth()->check() && auth()->user()->is_owner ? 'Owner' : 'Admin' }} <i class="fa-solid fa-chevron-down" style="font-size: 0.6rem;"></i></span>
                         </div>
-                        <p class="text-xs text-slate-300 mt-0.5">
-                            Այստեղից կառավարվում են բոլոր ընկերությունները (Tenants), սակագնային պլանները (Plans) և վճարումները։
-                        </p>
-                    </div>
-                </div>
-                <div class="flex items-center space-x-2">
-                    <a href="http://gourmet.localhost:8000" class="text-xs px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium transition shadow-md shadow-emerald-600/30">
-                        Մուտք Demo Ընկերություն (gourmet.localhost) →
-                    </a>
-                </div>
-            </div>
-        @endif
-
-        <!-- Quick Access & Domain Routing Instructions -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div class="glass-panel p-5 rounded-2xl relative overflow-hidden group">
-                <div class="flex items-center justify-between mb-3">
-                    <h3 class="text-sm font-semibold text-slate-200 flex items-center space-x-2">
-                        <span>🌐</span>
-                        <span>1. Platform SuperAdmin</span>
-                    </h3>
-                    <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300">Root Guard</span>
-                </div>
-                <p class="text-xs text-slate-400 mb-3">
-                    Կառավարման հիմնական մուտքը՝ առանց ընկերության սահմանափակման։
-                </p>
-                <div class="bg-slate-950/60 rounded-xl p-3 border border-slate-800/80 space-y-1.5 text-xs font-mono">
-                    <div class="flex justify-between items-center text-slate-300">
-                        <span class="text-slate-500">URL:</span>
-                        <a href="http://localhost:8000" class="text-brand-400 hover:underline">http://localhost:8000</a>
-                    </div>
-                    <div class="flex justify-between items-center text-slate-300">
-                        <span class="text-slate-500">Email:</span>
-                        <span class="text-slate-200">admin@erplannet.com</span>
-                    </div>
-                    <div class="flex justify-between items-center text-slate-300">
-                        <span class="text-slate-500">Pass:</span>
-                        <span class="text-slate-200">SuperSecurePass123!</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="glass-panel p-5 rounded-2xl relative overflow-hidden group">
-                <div class="flex items-center justify-between mb-3">
-                    <h3 class="text-sm font-semibold text-slate-200 flex items-center space-x-2">
-                        <span>🏢</span>
-                        <span>2. Demo Tenant (Gourmet)</span>
-                    </h3>
-                    <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">Subdomain</span>
-                </div>
-                <p class="text-xs text-slate-400 mb-3">
-                    Սննդի արտադրության «Armenia Gourmet Food» ընկերություն։
-                </p>
-                <div class="bg-slate-950/60 rounded-xl p-3 border border-slate-800/80 space-y-1.5 text-xs font-mono">
-                    <div class="flex justify-between items-center text-slate-300">
-                        <span class="text-slate-500">Subdomain:</span>
-                        <a href="http://gourmet.localhost:8000" class="text-emerald-400 hover:underline">gourmet.localhost:8000</a>
-                    </div>
-                    <div class="flex justify-between items-center text-slate-300">
-                        <span class="text-slate-500">Owner:</span>
-                        <span class="text-slate-200">aram@gourmet.am</span>
-                    </div>
-                    <div class="flex justify-between items-center text-slate-300">
-                        <span class="text-slate-500">Pass:</span>
-                        <span class="text-slate-200">password123</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="glass-panel p-5 rounded-2xl relative overflow-hidden group">
-                <div class="flex items-center justify-between mb-3">
-                    <h3 class="text-sm font-semibold text-slate-200 flex items-center space-x-2">
-                        <span>⚡</span>
-                        <span>3. Subdomain Routing</span>
-                    </h3>
-                    <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-amber-500/20 text-amber-300">Auto RFC 6761</span>
-                </div>
-                <p class="text-xs text-slate-400 mb-3">
-                    Chrome, Safari և Firefox բրաուզերները <code class="text-amber-300">*.localhost</code>-ը ավտոմատ ուղղում են դեպի <code class="text-amber-300">127.0.0.1</code>։
-                </p>
-                <div class="bg-slate-950/60 rounded-xl p-3 border border-slate-800/80 text-xs text-slate-400">
-                    <p>Postman/cURL-ի դեպքում կարող եք պարզապես ուղարկել header՝</p>
-                    <code class="text-emerald-400 font-mono text-[11px] block mt-1">X-Tenant-Slug: gourmet</code>
-                </div>
-            </div>
-        </div>
-
-        <!-- Live Platform Stats (Phase 0, 1, 2, 3 & 4) -->
-        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3">
-            <div class="glass-panel p-3 rounded-xl text-center">
-                <span class="text-xl font-bold text-white">{{ $stats['tenants_count'] }}</span>
-                <span class="block text-[11px] text-slate-400 mt-1">Tenants</span>
-            </div>
-            <div class="glass-panel p-3 rounded-xl text-center">
-                <span class="text-xl font-bold text-indigo-400">{{ $stats['branches_count'] }}</span>
-                <span class="block text-[11px] text-slate-400 mt-1">Branches</span>
-            </div>
-            <div class="glass-panel p-3 rounded-xl text-center">
-                <span class="text-xl font-bold text-cyan-400">{{ $stats['warehouses_count'] }}</span>
-                <span class="block text-[11px] text-slate-400 mt-1">Warehouses</span>
-            </div>
-            <div class="glass-panel p-3 rounded-xl text-center">
-                <span class="text-xl font-bold text-purple-400">{{ $stats['products_count'] }}</span>
-                <span class="block text-[11px] text-slate-400 mt-1">Products</span>
-            </div>
-            <div class="glass-panel p-3 rounded-xl text-center">
-                <span class="text-xl font-bold text-amber-400">{{ $stats['recipes_count'] }}</span>
-                <span class="block text-[11px] text-slate-400 mt-1">Recipes (BOM)</span>
-            </div>
-            <div class="glass-panel p-3 rounded-xl text-center">
-                <span class="text-xl font-bold text-blue-400">{{ $stats['production_orders_count'] }}</span>
-                <span class="block text-[11px] text-slate-400 mt-1">Production</span>
-            </div>
-            <div class="glass-panel p-3 rounded-xl text-center">
-                <span class="text-xl font-bold text-emerald-400">{{ $stats['quality_inspections_count'] }}</span>
-                <span class="block text-[11px] text-slate-400 mt-1">ISO 22000 QA</span>
-            </div>
-            <div class="glass-panel p-3 rounded-xl text-center">
-                <span class="text-xl font-bold text-fuchsia-400">{{ $stats['pos_terminals_count'] }}</span>
-                <span class="block text-[11px] text-slate-400 mt-1">POS Terminals</span>
-            </div>
-            <div class="glass-panel p-3 rounded-xl text-center">
-                <span class="text-xl font-bold text-violet-400">{{ $stats['pos_sessions_count'] }}</span>
-                <span class="block text-[11px] text-slate-400 mt-1">POS Shifts</span>
-            </div>
-            <div class="glass-panel p-3 rounded-xl text-center">
-                <span class="text-xl font-bold text-amber-300">{{ $stats['delivery_drivers_count'] }}</span>
-                <span class="block text-[11px] text-slate-400 mt-1">Delivery Fleet</span>
-            </div>
-            <div class="glass-panel p-3 rounded-xl text-center">
-                <span class="text-xl font-bold text-sky-400">{{ $stats['delivery_shipments_count'] }}</span>
-                <span class="block text-[11px] text-slate-400 mt-1">Shipments</span>
-            </div>
-            <div class="glass-panel p-3 rounded-xl text-center">
-                <span class="text-xl font-bold text-emerald-300">{{ $stats['payment_transactions_count'] }}</span>
-                <span class="block text-[11px] text-slate-400 mt-1">Payment Tx</span>
-            </div>
-            <div class="glass-panel p-3 rounded-xl text-center">
-                <span class="text-xl font-bold text-orange-400">{{ $stats['orders_count'] }}</span>
-                <span class="block text-[11px] text-slate-400 mt-1">Sales Orders</span>
-            </div>
-            <div class="glass-panel p-3 rounded-xl text-center">
-                <span class="text-xl font-bold text-rose-400">{{ number_format($stats['total_revenue'], 0) }} ֏</span>
-                <span class="block text-[11px] text-slate-400 mt-1">Revenue</span>
-            </div>
-        </div>
-
-        <!-- Phase 2: Warehouses & Stock Batches Showcase -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-            <!-- Warehouses Showcase -->
-            <div class="glass-panel rounded-2xl p-6 space-y-4">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h3 class="text-base font-semibold text-white flex items-center space-x-2">
-                            <span>🏭</span>
-                            <span>Պահեստներ (Warehouses — Phase 2)</span>
-                        </h3>
-                        <p class="text-xs text-slate-400">Կենտրոնական և Սառնարանային պահեստներ</p>
-                    </div>
-                    <span class="text-xs px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 font-mono">{{ $warehouses->count() }} warehouses</span>
-                </div>
-
-                <div class="space-y-3">
-                    @foreach ($warehouses as $wh)
-                        <div class="p-3.5 rounded-xl bg-slate-950/50 border border-slate-800/80 flex items-center justify-between text-xs">
-                            <div class="space-y-1">
-                                <div class="flex items-center space-x-2">
-                                    <span class="font-mono font-bold text-cyan-400">{{ $wh->code }}</span>
-                                    <span class="text-slate-200 font-medium">{{ $wh->name }}</span>
-                                    @if ($wh->is_default)
-                                        <span class="px-2 py-0.5 rounded bg-brand-500/20 text-brand-300 text-[10px]">Default</span>
-                                    @endif
-                                    @if ($wh->type === 'cold_storage')
-                                        <span class="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 text-[10px]">Cold Storage</span>
-                                    @endif
-                                </div>
-                                <div class="text-slate-400">
-                                    Հասցե՝ <span class="text-slate-300">{{ $wh->address ?? 'N/A' }}</span> &bull;
-                                    Մասնաճյուղ՝ <span class="text-slate-300">{{ $wh->branch?->name }}</span>
-                                </div>
+                        <div id="user-menu-dropdown" style="display: none; position: absolute; right: 0; top: 115%; background: #ffffff; border: 1px solid var(--border-card); border-radius: var(--radius-md); box-shadow: var(--shadow-lg); min-width: 220px; z-index: 60; padding: 6px;">
+                            <div style="padding: 8px 12px; border-bottom: 1px solid #F1F5F9; font-size: 0.78rem; color: #64748B;">
+                                <strong style="color: #1E293B; display: block;">{{ auth()->check() ? auth()->user()->email : 'aram@gourmet.am' }}</strong>
+                                <span>{{ $currentTenant ? $currentTenant->name : 'Armenia Gourmet Food' }}</span>
                             </div>
-                            <span class="px-2 py-1 rounded bg-emerald-500/10 text-emerald-400 font-mono text-[11px]">Active</span>
-                        </div>
-                    @endforeach
-                </div>
-            </div>
-
-            <!-- Stock Batches & Lots -->
-            <div class="glass-panel rounded-2xl p-6 space-y-4">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h3 class="text-base font-semibold text-white flex items-center space-x-2">
-                            <span>🏷️</span>
-                            <span>Խմբաքանակներ & Ժամկետներ (Batches & Expiry)</span>
-                        </h3>
-                        <p class="text-xs text-slate-400">Lot Numbering, Manufacturing & Expiry Tracking</p>
-                    </div>
-                    <span class="text-xs px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 font-mono">{{ $batches->count() }} batches</span>
-                </div>
-
-                <div class="space-y-3">
-                    @foreach ($batches as $batch)
-                        <div class="p-3.5 rounded-xl bg-slate-950/50 border border-slate-800/80 flex items-center justify-between text-xs">
-                            <div class="space-y-1">
-                                <div class="flex items-center space-x-2">
-                                    <span class="font-mono font-bold text-emerald-400">{{ $batch->batch_number }}</span>
-                                    <span class="text-slate-200">{{ is_array($batch->product->name) ? ($batch->product->name['hy'] ?? reset($batch->product->name)) : $batch->product->name }}</span>
-                                </div>
-                                <div class="text-slate-400 text-[11px]">
-                                    Պիտանի է մինչև՝ <span class="text-amber-400 font-mono">{{ $batch->expiry_date }}</span> &bull;
-                                    Պահեստ՝ <span class="text-slate-300">{{ $batch->warehouse?->code }}</span>
-                                </div>
-                            </div>
-                            <div class="text-right">
-                                <span class="font-mono font-bold text-white block">{{ number_format($batch->quantity_on_hand, 2) }} կգ</span>
-                                <span class="text-[10px] text-slate-400 font-mono">Ինքնարժեք: {{ number_format($batch->cost_price, 0) }} ֏</span>
+                            <a href="/login" style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; font-size: 0.82rem; font-weight: 600; color: #334155; text-decoration: none; border-radius: 6px;">
+                                <i class="fa-solid fa-arrow-right-to-bracket" style="width: 16px; color: var(--color-primary);"></i> <span>Մուտք / Փոխել հաշիվը</span>
+                            </a>
+                            <a href="/register" style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; font-size: 0.82rem; font-weight: 600; color: #2563EB; text-decoration: none; border-radius: 6px;">
+                                <i class="fa-solid fa-rocket" style="width: 16px;"></i> <span>Գրանցել կազմակերպություն</span>
+                            </a>
+                            <a href="/password-reset" style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; font-size: 0.82rem; font-weight: 600; color: #334155; text-decoration: none; border-radius: 6px;">
+                                <i class="fa-solid fa-key" style="width: 16px; color: var(--color-warning);"></i> <span>Գաղտնաբառի վերականգնում</span>
+                            </a>
+                            <div style="border-top: 1px solid #F1F5F9; margin-top: 4px; padding-top: 4px;">
+                                <button onclick="ERP.auth.logout()" style="width: 100%; display: flex; align-items: center; gap: 8px; padding: 8px 12px; font-size: 0.82rem; font-weight: 600; color: #DC2626; background: none; border: none; cursor: pointer; border-radius: 6px; text-align: left;">
+                                    <i class="fa-solid fa-arrow-right-from-bracket" style="width: 16px;"></i> <span>Դուրս գալ (Logout)</span>
+                                </button>
                             </div>
                         </div>
-                    @endforeach
-                </div>
-            </div>
-
-        </div>
-
-        <!-- Phase 2: Suppliers & Purchase Orders Showcase -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-            <!-- Suppliers -->
-            <div class="glass-panel rounded-2xl p-6 space-y-4">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h3 class="text-base font-semibold text-white flex items-center space-x-2">
-                            <span>🤝</span>
-                            <span>Մատակարարներ (Suppliers — Phase 2)</span>
-                        </h3>
-                        <p class="text-xs text-slate-400">B2B Vendors, ՀՎՀՀ և վճարման պայմաններ</p>
                     </div>
-                    <span class="text-xs px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 font-mono">{{ $suppliers->count() }} suppliers</span>
                 </div>
+            </header>
 
-                <div class="space-y-3">
-                    @foreach ($suppliers as $sup)
-                        <div class="p-3.5 rounded-xl bg-slate-950/50 border border-slate-800/80 flex items-center justify-between text-xs">
-                            <div class="space-y-1">
-                                <div class="flex items-center space-x-2">
-                                    <span class="font-bold text-white">{{ $sup->company_name }}</span>
-                                    <span class="font-mono text-slate-400 text-[11px]">(ՀՎՀՀ: {{ $sup->tax_id }})</span>
-                                </div>
-                                <div class="text-slate-400 text-[11px]">
-                                    Կոնտակտ՝ <span class="text-slate-300">{{ $sup->contact_person }}</span> &bull;
-                                    Հեռ՝ <span class="text-slate-300">{{ $sup->phone }}</span>
-                                </div>
-                            </div>
-                            <div class="text-right">
-                                <span class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-mono text-[10px]">{{ $sup->payment_terms_days }} օր վճ. ժամկետ</span>
-                            </div>
-                        </div>
-                    @endforeach
-                </div>
-            </div>
+            <!-- Main Viewport Content -->
+            <main class="app-content">
 
-            <!-- Purchase Orders -->
-            <div class="glass-panel rounded-2xl p-6 space-y-4">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h3 class="text-base font-semibold text-white flex items-center space-x-2">
-                            <span>📑</span>
-                            <span>Գնումների Պատվերներ (Purchase Orders)</span>
-                        </h3>
-                        <p class="text-xs text-slate-400">PO Lifecycle: Draft &rarr; Ordered &rarr; Goods Received</p>
-                    </div>
-                    <span class="text-xs px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 font-mono">{{ $purchaseOrders->count() }} POs</span>
-                </div>
-
-                <div class="space-y-3">
-                    @foreach ($purchaseOrders as $po)
-                        <div class="p-3.5 rounded-xl bg-slate-950/50 border border-slate-800/80 flex items-center justify-between text-xs">
-                            <div class="space-y-1">
-                                <div class="flex items-center space-x-2">
-                                    <span class="font-mono font-bold text-brand-400">{{ $po->po_number }}</span>
-                                    <span class="text-slate-300">{{ $po->supplier?->company_name }}</span>
-                                    @if ($po->status === 'received')
-                                        <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-medium">Received</span>
-                                    @elseif ($po->status === 'ordered')
-                                        <span class="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-medium">Ordered</span>
-                                    @else
-                                        <span class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-medium">{{ $po->status }}</span>
-                                    @endif
-                                </div>
-                                <div class="text-slate-400 text-[11px]">
-                                    Պահեստ՝ <span class="text-slate-300">{{ $po->warehouse?->name }}</span> &bull;
-                                    Տողեր՝ {{ $po->items->count() }} ապրանք
-                                </div>
-                            </div>
-                            <div class="text-right">
-                                <span class="font-mono font-bold text-emerald-400 text-sm">{{ number_format($po->total, 0) }} ֏</span>
-                                <span class="text-[10px] text-slate-400 uppercase font-mono block">{{ $po->payment_status }}</span>
-                            </div>
-                        </div>
-                    @endforeach
-                </div>
-            </div>
-
-        </div>
-
-        <!-- Phase 3: Manufacturing, Recipes (BOM) & ISO 22000 Quality Assurance Showcase -->
-        <div class="space-y-6">
-            <div class="border-b border-slate-800 pb-3 flex items-center justify-between">
-                <div>
-                    <h3 class="text-lg font-bold text-white flex items-center space-x-2">
-                        <span>🏭</span>
-                        <span>Phase 3: Արտադրություն, Բաղադրատոմսեր (BOM) & ISO 22000 Որակ</span>
-                    </h3>
-                    <p class="text-xs text-slate-400 mt-0.5">
-                        Տեխնոլոգիական քարտեր, բաղադրիչների մասշտաբավորում, արտադրության ցիկլ և HACCP / CCP հսկողություն
-                    </p>
-                </div>
-                <span class="text-xs font-mono px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                    Manufacturing &amp; QA Live
-                </span>
-            </div>
-
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-                <!-- 1. Recipes & BOM -->
-                <div class="glass-panel rounded-2xl p-6 space-y-4">
-                    <div class="flex items-center justify-between">
+                <!-- ==============================================================
+                     VIEW 1: DASHBOARD (Matching Image 1: SoftFire ERP)
+                     =======                    <!-- Welcome Greeting Header -->
+                    <div class="welcome-banner">
                         <div>
-                            <h4 class="text-base font-semibold text-white flex items-center space-x-2">
-                                <span>📜</span>
-                                <span>Բաղադրատոմսեր (BOM)</span>
-                            </h4>
-                            <p class="text-xs text-slate-400">Տեխնոլոգիական քարտեր ({{ $recipes->count() }})</p>
+                            <h2 class="welcome-title">
+                                <span>Welcome back, <span id="welcome-user-name">Emily</span>!</span>
+                                <span class="animate-wave"><i class="fa-solid fa-hand" style="color: #f59e0b; font-size: 1.2rem;"></i></span>
+                            </h2>
+                            <p class="welcome-subtitle">Here's what's happening in your business today.</p>
                         </div>
-                        <span class="text-xs font-mono px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20">Recipes</span>
+                        <div style="display: flex; gap: 0.6rem;">
+                            <button class="btn btn-secondary btn-sm" onclick="ERP.toast('Dashboard data refreshed', 'success')">
+                                <i class="fa-solid fa-arrows-rotate"></i> Refresh
+                            </button>
+                            <button class="btn btn-primary btn-sm" onclick="ERP.navigateTo('pos')">
+                                <i class="fa-solid fa-cash-register"></i> Open POS Cashier
+                            </button>
+                        </div>
                     </div>
 
-                    <div class="space-y-3">
-                        @foreach ($recipes as $rcp)
-                            <div class="p-3.5 rounded-xl bg-slate-900/70 border border-slate-800 space-y-2">
-                                <div class="flex items-center justify-between">
-                                    <span class="font-mono text-xs font-bold text-amber-400">{{ $rcp->code }}</span>
-                                    <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300">
-                                        Ելք՝ {{ number_format($rcp->yield_quantity, 0) }} {{ $rcp->yieldUnit?->symbol ?? 'միավոր' }}
-                                    </span>
+                    <!-- 5 Top KPI Cards (Matching Image 1) -->
+                    <div class="kpi-grid-5">
+                        <!-- 1. Total Revenue -->
+                        <div class="kpi-card">
+                            <div class="kpi-card-header">
+                                <div class="kpi-icon-badge kpi-icon-green"><i class="fa-solid fa-sack-dollar"></i></div>
+                                <span class="kpi-title" data-i18n="revenue">Total Revenue</span>
+                            </div>
+                            <div class="kpi-value" style="color: var(--color-success);">
+                                ${{ number_format($stats['total_revenue'] > 0 ? $stats['total_revenue'] : 1246800, 0) }}
+                            </div>
+                            <div class="kpi-trend trend-green">
+                                ↑ 12.6% <span style="color: var(--text-muted); font-weight: 500;">vs last month</span>
+                            </div>
+                        </div>
+
+                        <!-- 2. Total Expenses -->
+                        <div class="kpi-card">
+                            <div class="kpi-card-header">
+                                <div class="kpi-icon-badge kpi-icon-orange"><i class="fa-solid fa-boxes-packing"></i></div>
+                                <span class="kpi-title">Total Expenses</span>
+                            </div>
+                            <div class="kpi-value">$834,250</div>
+                            <div class="kpi-trend trend-green">
+                                ↑ 8.4% <span style="color: var(--text-muted); font-weight: 500;">vs last month</span>
+                            </div>
+                        </div>
+
+                        <!-- 3. Net Profit -->
+                        <div class="kpi-card">
+                            <div class="kpi-card-header">
+                                <div class="kpi-icon-badge kpi-icon-blue"><i class="fa-solid fa-chart-line"></i></div>
+                                <span class="kpi-title">Net Profit</span>
+                            </div>
+                            <div class="kpi-value" style="color: var(--color-primary);">$412,550</div>
+                            <div class="kpi-trend trend-green">
+                                ↑ 15.3% <span style="color: var(--text-muted); font-weight: 500;">vs last month</span>
+                            </div>
+                        </div>
+
+                        <!-- 4. Open Projects / Orders -->
+                        <div class="kpi-card">
+                            <div class="kpi-card-header">
+                                <div class="kpi-icon-badge kpi-icon-purple"><i class="fa-solid fa-clipboard-list"></i></div>
+                                <span class="kpi-title">Open Projects</span>
+                            </div>
+                            <div class="kpi-value">{{ $stats['orders_count'] > 0 ? $stats['orders_count'] : 24 }}</div>
+                            <div class="kpi-trend trend-green">
+                                ↑ 9% <span style="color: var(--text-muted); font-weight: 500;">vs last month</span>
+                            </div>
+                        </div>
+
+                        <!-- 5. Active Employees -->
+                        <div class="kpi-card">
+                            <div class="kpi-card-header">
+                                <div class="kpi-icon-badge kpi-icon-cyan"><i class="fa-solid fa-users"></i></div>
+                                <span class="kpi-title">Active Employees</span>
+                            </div>
+                            <div class="kpi-value">128</div>
+                            <div class="kpi-trend trend-green">
+                                ↑ 6% <span style="color: var(--text-muted); font-weight: 500;">vs last month</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Row 2: Charts & Visuals (Matching Image 1) -->
+                    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.25rem; margin-bottom: 1.5rem;">
+                        <!-- Revenue vs Expenses Curve -->
+                        <div class="chart-card">
+                            <div class="card-header" style="margin-bottom: 0.5rem;">
+                                <div>
+                                    <h3 style="font-size: 1rem; font-weight: 800; color: var(--text-heading);">Revenue vs Expenses</h3>
                                 </div>
-                                <h5 class="text-xs font-semibold text-white">{{ $rcp->name }}</h5>
-                                <div class="text-[11px] text-slate-400 space-y-1">
-                                    <div class="flex justify-between text-slate-400">
-                                        <span>Աշխատավարձ / Վերադիր՝</span>
-                                        <span class="font-mono text-slate-300">{{ number_format($rcp->labor_cost, 0) }} / {{ number_format($rcp->overhead_cost, 0) }} ֏</span>
+                                <div style="display: flex; align-items: center; gap: 1rem;">
+                                    <div class="chart-legend">
+                                        <span><span class="legend-dot" style="background: var(--color-primary);"></span> Revenue</span>
+                                        <span><span class="legend-dot" style="background: var(--color-orange);"></span> Expenses</span>
                                     </div>
-                                    <div class="pt-1 border-t border-slate-800/80 text-[10px] text-slate-400">
-                                        <span class="text-amber-300/80 font-medium">Հումք՝</span>
-                                        @foreach ($rcp->items as $item)
-                                            <span class="inline-block px-1.5 py-0.5 bg-slate-800 rounded mr-1 mb-1">
-                                                {{ is_array($item->product?->name) ? ($item->product->name['hy'] ?? '') : $item->product?->name }}: {{ $item->quantity }}կգ
+                                    <div style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); border: 1px solid var(--border-card); padding: 4px 10px; border-radius: var(--radius-sm); cursor: pointer;">
+                                        This Month <i class="fa-solid fa-chevron-down" style="font-size: 0.65rem;"></i>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- SVG Smooth Bezier Curve Chart -->
+                            <div class="chart-container">
+                                <svg class="chart-svg" viewBox="0 0 600 200" preserveAspectRatio="none">
+                                    <defs>
+                                        <linearGradient id="blueGradient" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="0%" stop-color="#2563eb" stop-opacity="0.25"/>
+                                            <stop offset="100%" stop-color="#2563eb" stop-opacity="0.0"/>
+                                        </linearGradient>
+                                    </defs>
+                                    <!-- Horizontal Grid Lines -->
+                                    <line x1="0" y1="40" x2="600" y2="40" stroke="#f1f5f9" stroke-width="1.5"/>
+                                    <line x1="0" y1="90" x2="600" y2="90" stroke="#f1f5f9" stroke-width="1.5"/>
+                                    <line x1="0" y1="140" x2="600" y2="140" stroke="#f1f5f9" stroke-width="1.5"/>
+                                    <line x1="0" y1="190" x2="600" y2="190" stroke="#f1f5f9" stroke-width="1.5"/>
+
+                                    <!-- Blue Revenue Curve Fill & Line -->
+                                    <path d="M 0 140 C 60 130, 90 90, 150 90 C 210 90, 240 120, 300 110 C 360 100, 400 40, 480 50 C 530 60, 560 45, 600 40 L 600 200 L 0 200 Z" fill="url(#blueGradient)"/>
+                                    <path d="M 0 140 C 60 130, 90 90, 150 90 C 210 90, 240 120, 300 110 C 360 100, 400 40, 480 50 C 530 60, 560 45, 600 40" fill="none" stroke="#2563eb" stroke-width="3" stroke-linecap="round"/>
+
+                                    <!-- Orange Expenses Curve Line -->
+                                    <path d="M 0 160 C 60 150, 110 130, 180 125 C 240 120, 310 140, 370 135 C 440 130, 490 100, 550 110 C 570 115, 590 115, 600 110" fill="none" stroke="#f97316" stroke-width="2.5" stroke-linecap="round"/>
+
+                                    <!-- Dots on points -->
+                                    <circle cx="150" cy="90" r="4.5" fill="#2563eb" stroke="#fff" stroke-width="2"/>
+                                    <circle cx="300" cy="110" r="4.5" fill="#2563eb" stroke="#fff" stroke-width="2"/>
+                                    <circle cx="480" cy="50" r="5" fill="#2563eb" stroke="#fff" stroke-width="2.5"/>
+
+                                    <circle cx="180" cy="125" r="4" fill="#f97316" stroke="#fff" stroke-width="2"/>
+                                    <circle cx="370" cy="135" r="4" fill="#f97316" stroke="#fff" stroke-width="2"/>
+                                </svg>
+
+                                <!-- X-Axis Labels -->
+                                <div style="display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--text-subtle); margin-top: 0.5rem; font-family: var(--font-mono);">
+                                    <span>May 1</span>
+                                    <span>May 8</span>
+                                    <span>May 15</span>
+                                    <span>May 22</span>
+                                    <span>May 31</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Workflow Status Donut Chart (Image 1) -->
+                        <div class="chart-card">
+                            <div class="card-header" style="margin-bottom: 0.5rem;">
+                                <h3 style="font-size: 1rem; font-weight: 800; color: var(--text-heading);">Workflow Status</h3>
+                                <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700;">All Workflows <i class="fa-solid fa-chevron-down" style="font-size: 0.65rem;"></i></div>
+                            </div>
+
+                            <div class="donut-wrap">
+                                <div class="donut-svg-box">
+                                    <svg viewBox="0 0 100 100" style="width: 100%; height: 100%; transform: rotate(-90deg);">
+                                        <circle cx="50" cy="50" r="38" fill="transparent" stroke="#10b981" stroke-width="14" stroke-dasharray="85 240"/>
+                                        <circle cx="50" cy="50" r="38" fill="transparent" stroke="#2563eb" stroke-width="14" stroke-dasharray="76 240" stroke-dashoffset="-85"/>
+                                        <circle cx="50" cy="50" r="38" fill="transparent" stroke="#f59e0b" stroke-width="14" stroke-dasharray="43 240" stroke-dashoffset="-161"/>
+                                        <circle cx="50" cy="50" r="38" fill="transparent" stroke="#ef4444" stroke-width="14" stroke-dasharray="34 240" stroke-dashoffset="-204"/>
+                                    </svg>
+                                    <div class="donut-center-text">
+                                        <span class="donut-center-label">Total</span>
+                                        <span class="donut-center-num">56</span>
+                                    </div>
+                                </div>
+                                <div class="donut-legend-list">
+                                    <div class="donut-legend-item">
+                                        <div class="left"><span class="legend-dot" style="background: #10b981;"></span> Completed</div>
+                                        <div class="right">20 (35.7%)</div>
+                                    </div>
+                                    <div class="donut-legend-item">
+                                        <div class="left"><span class="legend-dot" style="background: #2563eb;"></span> In Progress</div>
+                                        <div class="right">18 (32.1%)</div>
+                                    </div>
+                                    <div class="donut-legend-item">
+                                        <div class="left"><span class="legend-dot" style="background: #f59e0b;"></span> Pending</div>
+                                        <div class="right">10 (17.9%)</div>
+                                    </div>
+                                    <div class="donut-legend-item">
+                                        <div class="left"><span class="legend-dot" style="background: #ef4444;"></span> Blocked</div>
+                                        <div class="right">8 (14.3%)</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Row 3: Inventory Overview, Pending Procurement & Projects (Image 1) -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.25rem; margin-bottom: 1.5rem;">
+                        <!-- Inventory Overview -->
+                        <div class="card">
+                            <div class="card-header" style="margin-bottom: 0.5rem;">
+                                <h3 style="font-size: 0.95rem; font-weight: 800; color: var(--text-heading);">Inventory Overview</h3>
+                                <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600;">All Warehouses <i class="fa-solid fa-chevron-down" style="font-size: 0.65rem;"></i></span>
+                            </div>
+                            <div class="donut-wrap">
+                                <div class="donut-svg-box" style="width: 120px; height: 120px;">
+                                    <svg viewBox="0 0 100 100" style="width: 100%; height: 100%; transform: rotate(-90deg);">
+                                        <circle cx="50" cy="50" r="38" fill="transparent" stroke="#10b981" stroke-width="14" stroke-dasharray="144 240"/>
+                                        <circle cx="50" cy="50" r="38" fill="transparent" stroke="#f59e0b" stroke-width="14" stroke-dasharray="53 240" stroke-dashoffset="-144"/>
+                                        <circle cx="50" cy="50" r="38" fill="transparent" stroke="#ef4444" stroke-width="14" stroke-dasharray="31 240" stroke-dashoffset="-197"/>
+                                        <circle cx="50" cy="50" r="38" fill="transparent" stroke="#2563eb" stroke-width="14" stroke-dasharray="12 240" stroke-dashoffset="-228"/>
+                                    </svg>
+                                    <div class="donut-center-text">
+                                        <span class="donut-center-label">Items</span>
+                                        <span class="donut-center-num">2,350</span>
+                                    </div>
+                                </div>
+                                <div class="donut-legend-list">
+                                    <div class="donut-legend-item">
+                                        <div class="left"><span class="legend-dot" style="background: #10b981;"></span> In Stock</div>
+                                        <div class="right">1,420</div>
+                                    </div>
+                                    <div class="donut-legend-item">
+                                        <div class="left"><span class="legend-dot" style="background: #f59e0b;"></span> Low Stock</div>
+                                        <div class="right">520</div>
+                                    </div>
+                                    <div class="donut-legend-item">
+                                        <div class="left"><span class="legend-dot" style="background: #ef4444;"></span> Out of Stock</div>
+                                        <div class="right">310</div>
+                                    </div>
+                                    <div class="donut-legend-item">
+                                        <div class="left"><span class="legend-dot" style="background: #2563eb;"></span> On Order</div>
+                                        <div class="right">100</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Pending Procurement (Image 1) -->
+                        <div class="card" style="display: flex; flex-direction: column; justify-content: space-between;">
+                            <div class="card-header" style="margin-bottom: 0.5rem;">
+                                <h3 style="font-size: 0.95rem; font-weight: 800; color: var(--text-heading);">Pending Procurement</h3>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 1rem; margin: 1rem 0;">
+                                <div style="width: 52px; height: 52px; border-radius: var(--radius-md); background: var(--color-primary-light); color: var(--color-primary); display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">
+                                    <i class="fa-solid fa-cart-shopping"></i>
+                                </div>
+                                <div>
+                                    <div style="font-size: 1.8rem; font-weight: 800; color: var(--text-heading); font-family: var(--font-mono); line-height: 1;">18</div>
+                                    <div style="font-size: 0.78rem; color: var(--text-muted); font-weight: 600;">Purchase Orders Pending</div>
+                                </div>
+                            </div>
+                            <div style="border-top: 1px solid var(--border-card); padding-top: 0.75rem; display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <div style="font-size: 0.7rem; color: var(--text-muted);">Total Value</div>
+                                    <div style="font-size: 1.1rem; font-weight: 800; color: var(--text-heading); font-family: var(--font-mono);">$245,760</div>
+                                </div>
+                                <button class="btn btn-sm btn-primary" onclick="ERP.toast('Viewing all purchase orders', 'info')">View All POs</button>
+                            </div>
+                        </div>
+
+                        <!-- Projects Overview (Image 1) -->
+                        <div class="card">
+                            <div class="card-header" style="margin-bottom: 0.5rem;">
+                                <h3 style="font-size: 0.95rem; font-weight: 800; color: var(--text-heading);">Projects Overview</h3>
+                                <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600;">All Projects <i class="fa-solid fa-chevron-down" style="font-size: 0.65rem;"></i></span>
+                            </div>
+                            <div class="donut-wrap">
+                                <div class="donut-svg-box" style="width: 120px; height: 120px;">
+                                    <svg viewBox="0 0 100 100" style="width: 100%; height: 100%; transform: rotate(-90deg);">
+                                        <circle cx="50" cy="50" r="38" fill="transparent" stroke="#10b981" stroke-width="14" stroke-dasharray="100 240"/>
+                                        <circle cx="50" cy="50" r="38" fill="transparent" stroke="#f59e0b" stroke-width="14" stroke-dasharray="70 240" stroke-dashoffset="-100"/>
+                                        <circle cx="50" cy="50" r="38" fill="transparent" stroke="#ef4444" stroke-width="14" stroke-dasharray="40 240" stroke-dashoffset="-170"/>
+                                        <circle cx="50" cy="50" r="38" fill="transparent" stroke="#2563eb" stroke-width="14" stroke-dasharray="30 240" stroke-dashoffset="-210"/>
+                                    </svg>
+                                    <div class="donut-center-text">
+                                        <span class="donut-center-label">Total</span>
+                                        <span class="donut-center-num">24</span>
+                                    </div>
+                                </div>
+                                <div class="donut-legend-list">
+                                    <div class="donut-legend-item">
+                                        <div class="left"><span class="legend-dot" style="background: #10b981;"></span> On Track</div>
+                                        <div class="right">10 (41.7%)</div>
+                                    </div>
+                                    <div class="donut-legend-item">
+                                        <div class="left"><span class="legend-dot" style="background: #f59e0b;"></span> At Risk</div>
+                                        <div class="right">7 (29.2%)</div>
+                                    </div>
+                                    <div class="donut-legend-item">
+                                        <div class="left"><span class="legend-dot" style="background: #ef4444;"></span> Delayed</div>
+                                        <div class="right">4 (16.7%)</div>
+                                    </div>
+                                    <div class="donut-legend-item">
+                                        <div class="left"><span class="legend-dot" style="background: #2563eb;"></span> Completed</div>
+                                        <div class="right">3 (12.4%)</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Row 4: Team Tasks & Recent Activities (Image 1) -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-bottom: 1.5rem;">
+                        <!-- Team Tasks -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 style="font-size: 1rem; font-weight: 800; color: var(--text-heading);">Team Tasks</h3>
+                                <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">My Tasks <i class="fa-solid fa-chevron-down" style="font-size: 0.65rem;"></i></span>
+                            </div>
+                            <div>
+                                <div class="task-item">
+                                    <div class="task-left">
+                                        <input type="checkbox" class="task-checkbox">
+                                        <div class="user-avatar" style="width: 28px; height: 28px; font-size: 0.7rem; background: #60a5fa;">RB</div>
+                                        <div>
+                                            <div class="task-title">Review Q2 Budget &amp; Allocations</div>
+                                            <div class="task-dept">Finance</div>
+                                        </div>
+                                    </div>
+                                    <div style="display: flex; align-items: center;">
+                                        <span class="task-date">May 25</span>
+                                        <span class="badge-priority priority-high">High</span>
+                                    </div>
+                                </div>
+
+                                <div class="task-item">
+                                    <div class="task-left">
+                                        <input type="checkbox" class="task-checkbox" checked>
+                                        <div class="user-avatar" style="width: 28px; height: 28px; font-size: 0.7rem; background: #34d399;">IA</div>
+                                        <div>
+                                            <div class="task-title">Inventory Batch Expiry Audit</div>
+                                            <div class="task-dept">Operations</div>
+                                        </div>
+                                    </div>
+                                    <div style="display: flex; align-items: center;">
+                                        <span class="task-date">May 27</span>
+                                        <span class="badge-priority priority-medium">Medium</span>
+                                    </div>
+                                </div>
+
+                                <div class="task-item">
+                                    <div class="task-left">
+                                        <input type="checkbox" class="task-checkbox">
+                                        <div class="user-avatar" style="width: 28px; height: 28px; font-size: 0.7rem; background: #f472b6;">ON</div>
+                                        <div>
+                                            <div class="task-title">Onboard 3 New Factory Dispatchers</div>
+                                            <div class="task-dept">HR &amp; Team</div>
+                                        </div>
+                                    </div>
+                                    <div style="display: flex; align-items: center;">
+                                        <span class="task-date">May 28</span>
+                                        <span class="badge-priority priority-high">High</span>
+                                    </div>
+                                </div>
+
+                                <div class="task-item">
+                                    <div class="task-left">
+                                        <input type="checkbox" class="task-checkbox">
+                                        <div class="user-avatar" style="width: 28px; height: 28px; font-size: 0.7rem; background: #a78bfa;">SE</div>
+                                        <div>
+                                            <div class="task-title">Supplier Contract Price Evaluation</div>
+                                            <div class="task-dept">Procurement</div>
+                                        </div>
+                                    </div>
+                                    <div style="display: flex; align-items: center;">
+                                        <span class="task-date">May 30</span>
+                                        <span class="badge-priority priority-medium">Medium</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Recent Activities -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 style="font-size: 1rem; font-weight: 800; color: var(--text-heading);">Recent Activities</h3>
+                                <a href="javascript:void(0)" onclick="ERP.toast('Showing all activities', 'info')" style="font-size: 0.78rem; color: var(--color-primary); font-weight: 700;">View All</a>
+                            </div>
+                            <div>
+                                <div class="activity-item">
+                                    <div class="activity-left">
+                                        <div class="activity-icon-badge" style="background: var(--color-success-bg); color: var(--color-success);"><i class="fa-solid fa-check"></i></div>
+                                        <div>
+                                            <div class="activity-title">PO #PO-1245 approved</div>
+                                            <div class="activity-meta">by David Lee</div>
+                                        </div>
+                                    </div>
+                                    <span class="activity-time">1h ago</span>
+                                </div>
+
+                                <div class="activity-item">
+                                    <div class="activity-left">
+                                        <div class="activity-icon-badge" style="background: var(--color-primary-light); color: var(--color-primary);"><i class="fa-solid fa-user-plus"></i></div>
+                                        <div>
+                                            <div class="activity-title">New employee Sarah Johnson joined</div>
+                                            <div class="activity-meta">HR Team</div>
+                                        </div>
+                                    </div>
+                                    <span class="activity-time">3h ago</span>
+                                </div>
+
+                                <div class="activity-item">
+                                    <div class="activity-left">
+                                        <div class="activity-icon-badge" style="background: var(--color-purple-bg); color: var(--color-purple);"><i class="fa-solid fa-file-pen"></i></div>
+                                        <div>
+                                            <div class="activity-title">BOM Recipe #RCP-2026-001 updated</div>
+                                            <div class="activity-meta">by Aram Petrosyan</div>
+                                        </div>
+                                    </div>
+                                    <span class="activity-time">5h ago</span>
+                                </div>
+
+                                <div class="activity-item">
+                                    <div class="activity-left">
+                                        <div class="activity-icon-badge" style="background: var(--color-warning-bg); color: var(--color-warning);"><i class="fa-solid fa-credit-card"></i></div>
+                                        <div>
+                                            <div class="activity-title">Invoice INV-0987 paid</div>
+                                            <div class="activity-meta">by Finance Team</div>
+                                        </div>
+                                    </div>
+                                    <span class="activity-time">6h ago</span>
+                                </div>
+
+                                <div class="activity-item">
+                                    <div class="activity-left">
+                                        <div class="activity-icon-badge" style="background: var(--color-cyan-bg); color: var(--color-cyan);"><i class="fa-solid fa-warehouse"></i></div>
+                                        <div>
+                                            <div class="activity-title">Inventory stock updated</div>
+                                            <div class="activity-meta">Main Warehouse</div>
+                                        </div>
+                                    </div>
+                                    <span class="activity-time">1d ago</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Row 5: Top Suppliers Table (Matching Image 1) -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div>
+                                <h3 style="font-size: 1rem; font-weight: 800; color: var(--text-heading);">Top Suppliers</h3>
+                            </div>
+                            <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">This Month <i class="fa-solid fa-chevron-down" style="font-size: 0.65rem;"></i></span>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Supplier</th>
+                                        <th>Category</th>
+                                        <th>Total Spend</th>
+                                        <th>Orders</th>
+                                        <th>Performance</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td style="font-weight: 700; color: var(--text-heading);">Global Tech Solutions</td>
+                                        <td>IT Equipment</td>
+                                        <td class="font-mono" style="font-weight: 700;">$78,650</td>
+                                        <td class="font-mono">12</td>
+                                        <td><span style="color: #f59e0b;"><i class="fa-solid fa-star"></i> 4.8</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td style="font-weight: 700; color: var(--text-heading);">Office Supplies Co.</td>
+                                        <td>Office Supplies</td>
+                                        <td class="font-mono" style="font-weight: 700;">$45,230</td>
+                                        <td class="font-mono">18</td>
+                                        <td><span style="color: #f59e0b;"><i class="fa-solid fa-star"></i> 4.6</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td style="font-weight: 700; color: var(--text-heading);">BuildRight Materials</td>
+                                        <td>Construction &amp; Raw</td>
+                                        <td class="font-mono" style="font-weight: 700;">$36,890</td>
+                                        <td class="font-mono">8</td>
+                                        <td><span style="color: #f59e0b;"><i class="fa-solid fa-star"></i> 4.5</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td style="font-weight: 700; color: var(--text-heading);">Logistics Express</td>
+                                        <td>Logistics &amp; Fleet</td>
+                                        <td class="font-mono" style="font-weight: 700;">$28,740</td>
+                                        <td class="font-mono">15</td>
+                                        <td><span style="color: #f59e0b;"><i class="fa-solid fa-star"></i> 4.7</span></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ==============================================================
+                     VIEW: CATALOG & ITEM MASTER (7 Types)
+                     ============================================================== -->
+                <section class="view-panel" id="view-catalog" style="display: none;">
+                    <div class="welcome-banner">
+                        <div>
+                            <h2 class="welcome-title">Product Catalog &amp; Item Master (7 Item Types)</h2>
+                            <p class="welcome-subtitle">Finished goods, semi-finished, raw materials, ingredients, packaging, services, and modifiers.</p>
+                        </div>
+                        <button class="btn btn-primary btn-sm" onclick="ERP.catalog.openCreateProductModal()">
+                            <i class="fa-solid fa-plus"></i> Add New Product
+                        </button>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 style="font-size: 1rem; font-weight: 800; color: var(--text-heading);">Master Product Directory</h3>
+                            <span class="badge badge-indigo">{{ count($products) }} Products</span>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>SKU</th>
+                                        <th>Name</th>
+                                        <th>Type</th>
+                                        <th>Category</th>
+                                        <th>Unit</th>
+                                        <th>Cost Price</th>
+                                        <th>Sale Price</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @forelse($products as $p)
+                                        @php
+                                            $typeBadges = [
+                                                'finished_product' => 'badge-emerald',
+                                                'semi_finished' => 'badge-indigo',
+                                                'ingredient' => 'badge-amber',
+                                                'raw_material' => 'badge-cyan',
+                                                'packaging' => 'badge-slate',
+                                                'service' => 'badge-violet',
+                                                'modifier' => 'badge-amber',
+                                            ];
+                                            $badgeClass = $typeBadges[$p->type ?? 'finished_product'] ?? 'badge-slate';
+                                        @endphp
+                                        <tr>
+                                            <td class="font-mono" style="font-weight: 700; color: var(--color-primary);">{{ $p->sku }}</td>
+                                            <td style="font-weight: 700; color: var(--text-heading);">
+                                                {{ is_array($p->name) ? ($p->name['hy'] ?? reset($p->name)) : $p->name }}
+                                                @if(is_array($p->name) && isset($p->name['en']) && $p->name['en'] !== ($p->name['hy'] ?? ''))
+                                                    <span style="font-size: 0.72rem; color: var(--text-muted); display: block;">{{ $p->name['en'] }}</span>
+                                                @endif
+                                            </td>
+                                            <td>
+                                                <span class="badge {{ $badgeClass }}">
+                                                    {{ strtoupper(str_replace('_', ' ', $p->type ?? 'finished_product')) }}
+                                                </span>
+                                            </td>
+                                            <td>{{ $p->category?->name ? (is_array($p->category->name) ? ($p->category->name['hy'] ?? reset($p->category->name)) : $p->category->name) : 'General' }}</td>
+                                            <td class="font-mono">{{ $p->unit?->symbol ?? 'pcs' }}</td>
+                                            <td class="font-mono">{{ number_format($p->cost_price ?? 0, 0) }} ֏</td>
+                                            <td class="font-mono" style="font-weight: 800; color: var(--color-success);">{{ number_format($p->sale_price ?? 0, 0) }} ֏</td>
+                                            <td>
+                                                <button class="btn btn-xs btn-outline-secondary" onclick="ERP.inventory.openAdjustStockModal(); const sel = document.getElementById('adj-product-id'); if(sel) sel.value='{{ $p->id }}';" style="font-size: 0.72rem; padding: 3px 8px;">
+                                                    <i class="fa-solid fa-scale-balanced"></i> Stock
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr><td colspan="8" style="text-align: center; color: var(--text-muted);">No products registered yet.</td></tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ==============================================================
+                     VIEW: PROCUREMENT & PURCHASE ORDERS
+                     ============================================================== -->
+                <section class="view-panel" id="view-procurement" style="display: none;">
+                    <div class="welcome-banner">
+                        <div>
+                            <h2 class="welcome-title">Procurement &amp; Inbound Goods Receipt</h2>
+                            <p class="welcome-subtitle">Purchase orders, supplier contracts, moving weighted average (MWA) valuation, and warehouse delivery receipts.</p>
+                        </div>
+                        <button class="btn btn-primary btn-sm" onclick="ERP.procurement.openCreatePurchaseModal()">
+                            <i class="fa-solid fa-plus"></i> Create Purchase Order
+                        </button>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 style="font-size: 1rem; font-weight: 800; color: var(--text-heading);">Purchase Orders</h3>
+                            <span class="badge badge-amber">{{ count($purchaseOrders) }} Orders</span>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>PO Number</th>
+                                        <th>Supplier</th>
+                                        <th>Warehouse</th>
+                                        <th>Items</th>
+                                        <th>Total Amount</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @forelse($purchaseOrders as $po)
+                                        <tr>
+                                            <td class="font-mono" style="font-weight: 700; color: var(--color-primary);">{{ $po->order_number }}</td>
+                                            <td style="font-weight: 700; color: var(--text-heading);">{{ $po->supplier?->name ?? 'Direct Vendor' }}</td>
+                                            <td class="font-mono">{{ $po->warehouse?->name ?? 'Main WH' }}</td>
+                                            <td>
+                                                <span class="badge badge-slate font-mono">{{ count($po->items) }} items</span>
+                                            </td>
+                                            <td class="font-mono" style="font-weight: 800; color: var(--color-primary);">{{ number_format($po->total_amount, 0) }} ֏</td>
+                                            <td>
+                                                <span class="badge {{ $po->status === 'received' ? 'badge-emerald' : ($po->status === 'cancelled' ? 'badge-rose' : 'badge-amber') }}">
+                                                    {{ strtoupper($po->status) }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                @if($po->status !== 'received' && $po->status !== 'cancelled')
+                                                    <button class="btn btn-xs btn-primary" onclick="ERP.procurement.receivePurchase('{{ $po->id }}')" style="font-size: 0.75rem; padding: 4px 10px;">
+                                                        <i class="fa-solid fa-dolly"></i> Receive Goods
+                                                    </button>
+                                                @else
+                                                    <span style="font-size: 0.75rem; color: var(--color-success); font-weight: 700;"><i class="fa-solid fa-check"></i> In Stock</span>
+                                                @endif
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr><td colspan="7" style="text-align: center; color: var(--text-muted);">No purchase orders yet. Click "+ Create Purchase Order" to buy materials.</td></tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ==============================================================
+                     VIEW 2: POS POINT OF SALE
+                     ============================================================== -->
+                <section class="view-panel" id="view-pos" style="display: none;">
+                    <div class="pos-layout">
+                        <!-- Left Catalog -->
+                        <div class="pos-catalog">
+                            <div style="display: flex; gap: 0.75rem;">
+                                <input type="text" class="input" id="pos-search-input" placeholder="Search products or scan barcode..." oninput="
+                                    const val = this.value.toLowerCase();
+                                    document.querySelectorAll('.pos-product-card').forEach(c => {
+                                        const text = c.innerText.toLowerCase();
+                                        c.style.display = text.includes(val) ? 'flex' : 'none';
+                                    });
+                                ">
+                                <button class="btn btn-secondary" onclick="document.getElementById('pos-search-input').value=''; ERP.pos.render();">Clear</button>
+                            </div>
+                            <div class="pos-products-grid" id="pos-product-grid">
+                                <!-- Populated dynamically by ERP.pos.render() -->
+                            </div>
+                        </div>
+
+                        <!-- Right Cart Panel -->
+                        <div class="pos-cart-panel">
+                            <div style="padding: 1rem 1.25rem; border-bottom: 1px solid var(--border-card); display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <h3 style="font-size: 1rem; font-weight: 800; color: var(--text-heading);">Shopping Cart</h3>
+                                    <span style="font-size: 0.72rem; color: var(--text-muted);">Terminal #POS-01</span>
+                                </div>
+                                <button class="btn btn-sm btn-secondary" onclick="ERP.pos.clearCart()">Clear</button>
+                            </div>
+
+                            <div class="cart-items-list" id="pos-cart-list">
+                                <!-- Rendered dynamically by ERP.pos.renderCart() -->
+                            </div>
+
+                            <div class="cart-totals">
+                                <div style="display: flex; justify-content: space-between; font-size: 0.82rem; color: var(--text-muted);">
+                                    <span>Subtotal:</span>
+                                    <span id="pos-subtotal" class="font-mono">0 ֏</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; font-size: 0.82rem; color: var(--text-muted);">
+                                    <span>Tax (20% VAT):</span>
+                                    <span id="pos-tax" class="font-mono">0 ֏</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; font-size: 1.15rem; font-weight: 800; color: var(--text-heading); border-top: 1px solid var(--border-card); padding-top: 0.6rem;">
+                                    <span>Total:</span>
+                                    <span id="pos-total" class="font-mono" style="color: var(--color-primary);">0 ֏</span>
+                                </div>
+                                <button class="btn btn-primary btn-lg" id="pos-checkout-btn" disabled onclick="ERP.pos.openCheckoutModal()" style="margin-top: 0.5rem;">
+                                    <i class="fa-solid fa-credit-card"></i> Checkout &amp; Pay
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ==============================================================
+                     VIEW 3: INVENTORY & WAREHOUSES
+                     ============================================================== -->
+                <section class="view-panel" id="view-inventory" style="display: none;">
+                    <div class="welcome-banner">
+                        <div>
+                            <h2 class="welcome-title">Warehouses &amp; Inventory Management</h2>
+                            <p class="welcome-subtitle">Lot numbering, batch expiry dates, and real-time stock levels.</p>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn btn-secondary btn-sm" onclick="ERP.inventory.openAdjustStockModal(); const sel = document.getElementById('adj-type'); if(sel) { sel.value='scrap'; ERP.inventory.toggleReason('scrap'); }">
+                                <i class="fa-solid fa-trash-can"></i> Log Scrap / Waste
+                            </button>
+                            <button class="btn btn-primary btn-sm" onclick="ERP.inventory.openAdjustStockModal()">
+                                <i class="fa-solid fa-plus"></i> Stock Adjustment
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Warehouses Cards -->
+                    <div class="card" style="margin-bottom: 1.5rem;">
+                        <div class="card-header">
+                            <h3 style="font-size: 1rem; font-weight: 800; color: var(--text-heading);">Warehouses</h3>
+                            <span class="badge badge-cyan">{{ count($warehouses) }} Warehouses</span>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Code</th>
+                                        <th>Name</th>
+                                        <th>Type</th>
+                                        <th>Address</th>
+                                        <th>Branch</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @forelse($warehouses as $wh)
+                                        <tr>
+                                            <td class="font-mono" style="font-weight: 700; color: var(--color-primary);">{{ $wh->code }}</td>
+                                            <td style="font-weight: 700; color: var(--text-heading);">{{ $wh->name }}</td>
+                                            <td><span class="badge {{ $wh->type === 'cold_storage' ? 'badge-cyan' : 'badge-indigo' }}">{{ $wh->type }}</span></td>
+                                            <td>{{ $wh->address ?? 'N/A' }}</td>
+                                            <td>{{ $wh->branch?->name ?? 'Main Branch' }}</td>
+                                            <td><span class="badge badge-emerald">Active</span></td>
+                                        </tr>
+                                    @empty
+                                        <tr><td colspan="6" style="text-align: center; color: var(--text-muted);">No warehouses registered yet.</td></tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Batches Table -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 style="font-size: 1rem; font-weight: 800; color: var(--text-heading);">Stock Batches &amp; Expiry Dates</h3>
+                            <span class="badge badge-emerald">{{ count($batches) }} Batches</span>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Batch Number</th>
+                                        <th>Product</th>
+                                        <th>Warehouse</th>
+                                        <th>Quantity On Hand</th>
+                                        <th>Cost Price</th>
+                                        <th>Expiry Date</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @forelse($batches as $b)
+                                        <tr>
+                                            <td class="font-mono" style="font-weight: 700; color: var(--color-primary);">{{ $b->batch_number }}</td>
+                                            <td style="font-weight: 700; color: var(--text-heading);">
+                                                {{ is_array($b->product->name) ? ($b->product->name['hy'] ?? reset($b->product->name)) : $b->product->name }}
+                                            </td>
+                                            <td class="font-mono">{{ $b->warehouse?->code }}</td>
+                                            <td class="font-mono" style="font-weight: 800;">{{ number_format($b->quantity_on_hand, 2) }} kg</td>
+                                            <td class="font-mono">{{ number_format($b->cost_price, 0) }} ֏</td>
+                                            <td>
+                                                <span class="badge badge-amber font-mono">{{ $b->expiry_date }}</span>
+                                            </td>
+                                            <td>
+                                                <button class="btn btn-xs btn-outline-secondary" onclick="ERP.inventory.openAdjustStockModal(); const sel = document.getElementById('adj-product-id'); if(sel) sel.value='{{ $b->product_id }}'; const w = document.getElementById('adj-warehouse-id'); if(w) w.value='{{ $b->warehouse_id }}';" style="font-size: 0.72rem; padding: 2px 7px;">
+                                                    <i class="fa-solid fa-scale-balanced"></i> Adjust / Scrap
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr><td colspan="7" style="text-align: center; color: var(--text-muted);">No batches registered.</td></tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ==============================================================
+                     VIEW 4: MANUFACTURING & BOM RECIPES
+                     ============================================================== -->
+                <section class="view-panel" id="view-manufacturing" style="display: none;">
+                    <div class="welcome-banner">
+                        <div>
+                            <h2 class="welcome-title">Manufacturing &amp; BOM Technological Recipes</h2>
+                            <p class="welcome-subtitle">Bill of Materials, ingredient scaling, and production orders lifecycle.</p>
+                        </div>
+                        <button class="btn btn-primary btn-sm" onclick="ERP.manufacturing.openCreateRecipeModal()">
+                            <i class="fa-solid fa-plus"></i> New BOM Recipe
+                        </button>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.25rem; margin-bottom: 1.5rem;">
+                        @foreach($recipes as $rcp)
+                            <div class="card">
+                                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem;">
+                                    <div>
+                                        <span class="font-mono" style="font-size: 0.75rem; font-weight: 700; color: var(--color-warning);">{{ $rcp->code }}</span>
+                                        <h4 style="font-size: 1.05rem; font-weight: 800; color: var(--text-heading); margin-top: 2px;">{{ $rcp->name }}</h4>
+                                    </div>
+                                    <span class="badge badge-amber font-mono">Yield: {{ number_format($rcp->yield_quantity, 0) }} {{ $rcp->yieldUnit?->symbol ?? 'units' }}</span>
+                                </div>
+                                <div style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+                                    Labor / Overhead: <strong style="color: var(--text-heading); font-family: var(--font-mono);">{{ number_format($rcp->labor_cost, 0) }} / {{ number_format($rcp->overhead_cost, 0) }} ֏</strong>
+                                </div>
+                                <div style="border-top: 1px solid var(--border-card); padding-top: 0.75rem;">
+                                    <div style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem;">Raw Materials / BOM:</div>
+                                    <div style="display: flex; flex-wrap: wrap; gap: 4px;">
+                                        @foreach($rcp->items as $item)
+                                            <span style="font-size: 0.72rem; font-weight: 600; padding: 3px 7px; border-radius: var(--radius-sm); background: var(--bg-surface-subtle); border: 1px solid var(--border-card);">
+                                                {{ is_array($item->product?->name) ? ($item->product->name['hy'] ?? '') : $item->product?->name }}: {{ $item->quantity }}kg
                                             </span>
                                         @endforeach
                                     </div>
                                 </div>
-                            </div>
-                        @endforeach
-                    </div>
-                </div>
-
-                <!-- 2. Production Orders -->
-                <div class="glass-panel rounded-2xl p-6 space-y-4">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <h4 class="text-base font-semibold text-white flex items-center space-x-2">
-                                <span>⚙️</span>
-                                <span>Արտադրական Պատվերներ</span>
-                            </h4>
-                            <p class="text-xs text-slate-400">Production Orders ({{ $productionOrders->count() }})</p>
-                        </div>
-                        <span class="text-xs font-mono px-2 py-0.5 rounded bg-blue-500/10 text-blue-300 border border-blue-500/20">Lifecycle</span>
-                    </div>
-
-                    <div class="space-y-3">
-                        @foreach ($productionOrders as $po)
-                            <div class="p-3.5 rounded-xl bg-slate-900/70 border border-slate-800 space-y-2">
-                                <div class="flex items-center justify-between">
-                                    <span class="font-mono text-xs font-bold text-blue-400">{{ $po->order_number }}</span>
-                                    <span class="text-[10px] font-mono px-2 py-0.5 rounded-full {{ $po->status === 'completed' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-amber-500/20 text-amber-300 border border-amber-500/30' }}">
-                                        {{ strtoupper($po->status) }}
-                                    </span>
-                                </div>
-                                <h5 class="text-xs font-medium text-white">
-                                    {{ is_array($po->product?->name) ? ($po->product->name['hy'] ?? '') : $po->product?->name }}
-                                </h5>
-                                <div class="text-[11px] text-slate-400 space-y-1">
-                                    <div class="flex justify-between">
-                                        <span>Պլանավորված / Փաստացի՝</span>
-                                        <span class="font-mono text-slate-200">
-                                            {{ number_format($po->planned_quantity, 0) }} / {{ number_format($po->actual_quantity, 0) }} հատ
-                                        </span>
-                                    </div>
-                                    @if ($po->batch)
-                                        <div class="flex justify-between text-emerald-400 font-mono text-[10px]">
-                                            <span>Թողարկված Խմբաքանակ՝</span>
-                                            <span>{{ $po->batch->batch_number }}</span>
-                                        </div>
-                                    @endif
+                                <div style="margin-top: 0.75rem; display: flex; justify-content: flex-end;">
+                                    <button class="btn btn-xs btn-primary" onclick="ERP.manufacturing.openProductionModal('{{ $rcp->id }}')" style="font-size: 0.75rem; padding: 4px 10px;">
+                                        <i class="fa-solid fa-play"></i> Produce Batch
+                                    </button>
                                 </div>
                             </div>
                         @endforeach
                     </div>
-                </div>
 
-                <!-- 3. Quality Assurance & ISO 22000 Inspections -->
-                <div class="glass-panel rounded-2xl p-6 space-y-4">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <h4 class="text-base font-semibold text-white flex items-center space-x-2">
-                                <span>🛡️</span>
-                                <span>ISO 22000 / HACCP Որակ</span>
-                            </h4>
-                            <p class="text-xs text-slate-400">Quality Inspections ({{ $qualityInspections->count() }})</p>
+                    <!-- Production Orders Table -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 style="font-size: 1rem; font-weight: 800; color: var(--text-heading);">Production Orders</h3>
+                            <span class="badge badge-indigo">{{ count($productionOrders) }} Orders</span>
                         </div>
-                        <span class="text-xs font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">Certified</span>
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Order #</th>
+                                        <th>Product</th>
+                                        <th>Planned / Actual</th>
+                                        <th>Batch #</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($productionOrders as $po)
+                                        <tr>
+                                            <td class="font-mono" style="font-weight: 700; color: var(--color-primary);">{{ $po->order_number }}</td>
+                                            <td style="font-weight: 700; color: var(--text-heading);">{{ is_array($po->product?->name) ? ($po->product->name['hy'] ?? '') : $po->product?->name }}</td>
+                                            <td class="font-mono">{{ number_format($po->planned_quantity, 0) }} / {{ number_format($po->actual_quantity, 0) }} pcs</td>
+                                            <td class="font-mono" style="color: var(--color-success); font-weight: 700;">{{ $po->batch?->batch_number ?? 'In Progress' }}</td>
+                                            <td>
+                                                <span class="badge {{ $po->status === 'completed' ? 'badge-emerald' : ($po->status === 'in_progress' ? 'badge-indigo' : 'badge-amber') }}">{{ strtoupper($po->status) }}</span>
+                                            </td>
+                                            <td>
+                                                @if($po->status === 'draft')
+                                                    <button class="btn btn-xs btn-primary" onclick="ERP.manufacturing.startProduction('{{ $po->id }}')" style="font-size: 0.72rem; padding: 3px 8px;">
+                                                        <i class="fa-solid fa-play"></i> Start
+                                                    </button>
+                                                @elseif($po->status === 'in_progress')
+                                                    <button class="btn btn-xs btn-success" onclick="ERP.manufacturing.completeProduction('{{ $po->id }}')" style="font-size: 0.72rem; padding: 3px 8px; background: var(--color-success); color: white;">
+                                                        <i class="fa-solid fa-check-double"></i> Complete &amp; Yield
+                                                    </button>
+                                                @else
+                                                    <span style="font-size: 0.75rem; color: var(--color-success); font-weight: 700;"><i class="fa-solid fa-check"></i> Done</span>
+                                                @endif
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ==============================================================
+                     VIEW 5: ISO 22000 QUALITY ASSURANCE
+                     ============================================================== -->
+                <section class="view-panel" id="view-quality" style="display: none;">
+                    <div class="welcome-banner">
+                        <div>
+                            <h2 class="welcome-title">ISO 22000 / HACCP Quality Assurance</h2>
+                            <p class="welcome-subtitle">Critical Control Points (CCP) parameter validation and inspections.</p>
+                        </div>
                     </div>
 
-                    <div class="space-y-3">
-                        @foreach ($qualityInspections as $qa)
-                            <div class="p-3.5 rounded-xl bg-slate-900/70 border border-emerald-500/30 space-y-2.5">
-                                <div class="flex items-center justify-between">
-                                    <span class="font-mono text-xs font-bold text-emerald-400">{{ $qa->inspection_number }}</span>
-                                    <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold">
-                                        {{ $qa->overall_score }}% PASSED
-                                    </span>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 1.25rem;">
+                        @foreach($qualityInspections as $qa)
+                            <div class="card" style="border-color: var(--color-success-border);">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                                    <span class="font-mono" style="font-weight: 700; color: var(--color-success);">{{ $qa->inspection_number }}</span>
+                                    <span class="badge badge-emerald font-mono font-bold">{{ $qa->overall_score }}% PASSED</span>
                                 </div>
-                                <div class="text-[11px] text-slate-300 font-medium">
-                                    Ստանդարտ՝ <span class="text-white">{{ $qa->standard_applied }}</span> &bull;
-                                    Պատվեր՝ <span class="text-blue-300 font-mono">{{ $qa->productionOrder?->order_number }}</span>
+                                <div style="font-size: 0.82rem; margin-bottom: 0.75rem;">
+                                    Standard: <strong>{{ $qa->standard_applied }}</strong> &bull;
+                                    Order: <span class="font-mono" style="color: var(--color-primary);">{{ $qa->productionOrder?->order_number }}</span>
                                 </div>
-
-                                <!-- CCP Points breakdown -->
-                                <div class="space-y-1.5 pt-1 border-t border-slate-800 text-[10px]">
-                                    @foreach ($qa->items as $item)
-                                        <div class="p-1.5 rounded bg-slate-800/80 flex items-center justify-between">
+                                <div style="display: flex; flex-direction: column; gap: 4px;">
+                                    @foreach($qa->items as $item)
+                                        <div style="display: flex; justify-content: space-between; padding: 6px 10px; border-radius: var(--radius-sm); background: var(--bg-surface-subtle); font-size: 0.78rem;">
                                             <div>
-                                                <span class="font-mono font-bold text-amber-400 mr-1">{{ $item->critical_control_point }}</span>
-                                                <span class="text-slate-300">{{ $item->parameter_name }}</span>
+                                                <strong style="color: var(--color-warning);" class="font-mono">{{ $item->critical_control_point }}:</strong>
+                                                <span>{{ $item->parameter_name }}</span>
                                             </div>
-                                            <div class="flex items-center space-x-1.5 font-mono">
-                                                <span class="text-slate-200">{{ $item->actual_value }}{{ $item->unit }}</span>
-                                                <span class="text-emerald-400 font-bold">✓</span>
+                                            <div class="font-mono" style="color: var(--color-success); font-weight: 700;">
+                                                {{ $item->actual_value }}{{ $item->unit }} <i class="fa-solid fa-check"></i>
                                             </div>
                                         </div>
                                     @endforeach
@@ -578,618 +1213,819 @@
                             </div>
                         @endforeach
                     </div>
-                </div>
+                </section>
 
+                <!-- ==============================================================
+                     VIEW 6: DELIVERY FLEET
+                     ============================================================== -->
+                <section class="view-panel" id="view-delivery" style="display: none;">
+                    <div class="welcome-banner">
+                        <div>
+                            <h2 class="welcome-title">Delivery Fleet &amp; Dispatch</h2>
+                            <p class="welcome-subtitle">Active couriers, route tracking, and cash collection (COD).</p>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 style="font-size: 1rem; font-weight: 800; color: var(--text-heading);">Active Shipments</h3>
+                            <span class="badge badge-cyan">{{ count($deliveryShipments) }} Shipments</span>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Shipment #</th>
+                                        <th>Driver</th>
+                                        <th>Destination</th>
+                                        <th>COD Amount</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($deliveryShipments as $s)
+                                        <tr>
+                                            <td class="font-mono" style="font-weight: 700; color: var(--color-primary);">{{ $s->shipment_number }}</td>
+                                            <td style="font-weight: 700; color: var(--text-heading);">{{ $s->driver?->user?->name ?? 'Courier #1' }}</td>
+                                            <td>{{ $s->order?->delivery_address ?? 'Yerevan, Center' }}</td>
+                                            <td class="font-mono" style="font-weight: 800; color: var(--color-success);">{{ number_format($s->cod_amount ?? 0, 0) }} ֏</td>
+                                            <td>
+                                                <span class="badge badge-emerald">{{ strtoupper($s->status) }}</span>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ==============================================================
+                     VIEW 7: USERS & TEAM MANAGEMENT
+                     ============================================================== -->
+                <section class="view-panel" id="view-users" style="display: none;">
+                    <div class="welcome-banner">
+                        <div>
+                            <h2 class="welcome-title">Users &amp; Team Management</h2>
+                            <p class="welcome-subtitle">Manage organization teammates, access permissions, and roles.</p>
+                        </div>
+                        <button class="btn btn-primary btn-sm" onclick="ERP.users.openInviteModal()">
+                            <i class="fa-solid fa-user-plus"></i> Add Employee
+                        </button>
+                    </div>
+
+                    <div class="card">
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Employee</th>
+                                        <th>Role</th>
+                                        <th>Status</th>
+                                        <th>Joined Date</th>
+                                        <th style="text-align: right;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="users-table-body">
+                                    <!-- Rendered dynamically via ERP.users.load() -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ==============================================================
+                     VIEW 8: ROLES & RBAC
+                     ============================================================== -->
+                <section class="view-panel" id="view-roles" style="display: none;">
+                    <div class="welcome-banner">
+                        <div>
+                            <h2 class="welcome-title">Roles &amp; Access Policies (RBAC)</h2>
+                            <p class="welcome-subtitle">Define module privileges and authorization policies.</p>
+                        </div>
+                        <button class="btn btn-primary btn-sm" onclick="ERP.roles.savePolicies()">
+                            <i class="fa-solid fa-check"></i> Save Access Policies
+                        </button>
+                    </div>
+
+                    <div class="card">
+                        <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                            <!-- Sales -->
+                            <div style="border-bottom: 1px solid var(--border-card); padding-bottom: 1rem;">
+                                <h4 style="font-size: 1rem; font-weight: 800; color: var(--text-heading); margin-bottom: 0.75rem;"><i class="fa-solid fa-cash-register"></i> Orders &amp; POS</h4>
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.75rem;">
+                                    <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; cursor: pointer;">
+                                        <input type="checkbox" checked> <span>View Orders</span>
+                                    </label>
+                                    <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; cursor: pointer;">
+                                        <input type="checkbox" checked> <span>Create POS Checkout</span>
+                                    </label>
+                                    <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; cursor: pointer;">
+                                        <input type="checkbox" checked> <span>Apply Discounts</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Inventory -->
+                            <div style="border-bottom: 1px solid var(--border-card); padding-bottom: 1rem;">
+                                <h4 style="font-size: 1rem; font-weight: 800; color: var(--text-heading); margin-bottom: 0.75rem;"><i class="fa-solid fa-boxes-stacked"></i> Warehouses &amp; Stock</h4>
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.75rem;">
+                                    <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; cursor: pointer;">
+                                        <input type="checkbox" checked> <span>View Batches &amp; Stock</span>
+                                    </label>
+                                    <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; cursor: pointer;">
+                                        <input type="checkbox" checked> <span>Stock Transfer &amp; Movements</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Operations -->
+                            <div>
+                                <h4 style="font-size: 1rem; font-weight: 800; color: var(--text-heading); margin-bottom: 0.75rem;"><i class="fa-solid fa-industry"></i> Manufacturing &amp; Quality</h4>
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.75rem;">
+                                    <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; cursor: pointer;">
+                                        <input type="checkbox" checked> <span>Edit BOM Recipes</span>
+                                    </label>
+                                    <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; cursor: pointer;">
+                                        <input type="checkbox" checked> <span>Approve ISO 22000 Inspections</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ==============================================================
+                     VIEW 9: BILLING & SUBSCRIPTIONS
+                     ============================================================== -->
+                <section class="view-panel" id="view-billing" style="display: none;">
+                    <div class="welcome-banner">
+                        <div>
+                            <h2 class="welcome-title">Subscription Plans &amp; Billing</h2>
+                            <p class="welcome-subtitle">Manage your SaaS tier, entitlements, and payment invoices.</p>
+                        </div>
+                    </div>
+
+                    <!-- Active Plan Banner -->
+                    <div class="card" style="margin-bottom: 2rem; border-color: var(--color-primary-border); background: linear-gradient(135deg, #eff6ff 0%, #ffffff 100%);">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <span class="badge badge-emerald">Active Subscription</span>
+                                <h3 style="font-size: 1.4rem; font-weight: 800; color: var(--text-heading); margin: 0.5rem 0 0.25rem 0;">Professional Plan ($79 / month)</h3>
+                                <p style="font-size: 0.82rem; color: var(--text-muted);">Next billing date: June 1, 2026 &bull; Primary Card: Visa •••• 4242</p>
+                            </div>
+                            <button class="btn btn-primary" onclick="ERP.billing.openUpgradeModal('enterprise')">
+                                <i class="fa-solid fa-bolt"></i> Upgrade to Enterprise
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 3 Pricing Cards -->
+                    <div class="pricing-grid">
+                        <div class="pricing-card">
+                            <h4 style="font-size: 1.15rem; font-weight: 800; color: var(--text-heading);">Starter Plan</h4>
+                            <p style="font-size: 0.8rem; color: var(--text-muted);">Essential features for small business workflows.</p>
+                            <div class="pricing-price">$29 <span style="font-size: 0.85rem; color: var(--text-muted);">/ month</span></div>
+                            <ul class="pricing-features">
+                                <li><i class="fa-solid fa-check" style="color: var(--color-success); margin-right: 4px;"></i> Up to 5 Employees</li>
+                                <li><i class="fa-solid fa-check" style="color: var(--color-success); margin-right: 4px;"></i> 1 Warehouse</li>
+                                <li><i class="fa-solid fa-check" style="color: var(--color-success); margin-right: 4px;"></i> POS &amp; Receipts</li>
+                                <li><i class="fa-solid fa-check" style="color: var(--color-success); margin-right: 4px;"></i> Standard Financial Reporting</li>
+                            </ul>
+                            <button class="btn btn-secondary" onclick="ERP.toast('Currently on higher plan', 'info')">Current plan is higher</button>
+                        </div>
+
+                        <div class="pricing-card popular">
+                            <div class="popular-badge">Most Popular</div>
+                            <h4 style="font-size: 1.15rem; font-weight: 800; color: var(--text-heading);">Professional Plan</h4>
+                            <p style="font-size: 0.8rem; color: var(--text-muted);">Automated supply chain, BOM recipes, and fleet dispatch.</p>
+                            <div class="pricing-price" style="color: var(--color-primary);">$79 <span style="font-size: 0.85rem; color: var(--text-muted);">/ month</span></div>
+                            <ul class="pricing-features">
+                                <li><i class="fa-solid fa-check" style="color: var(--color-success); margin-right: 4px;"></i> Up to 25 Employees</li>
+                                <li><i class="fa-solid fa-check" style="color: var(--color-success); margin-right: 4px;"></i> 5 Warehouses &amp; Cold Storage</li>
+                                <li><i class="fa-solid fa-check" style="color: var(--color-success); margin-right: 4px;"></i> Delivery Fleet &amp; GPS</li>
+                                <li><i class="fa-solid fa-check" style="color: var(--color-success); margin-right: 4px;"></i> BOM Recipes &amp; Production Orders</li>
+                                <li><i class="fa-solid fa-check" style="color: var(--color-success); margin-right: 4px;"></i> Custom Role Policies (RBAC)</li>
+                            </ul>
+                            <button class="btn btn-primary" style="opacity: 0.75; cursor: default;"><i class="fa-solid fa-check"></i> Current Active Plan</button>
+                        </div>
+
+                        <div class="pricing-card">
+                            <h4 style="font-size: 1.15rem; font-weight: 800; color: var(--text-heading);">Enterprise Plan</h4>
+                            <p style="font-size: 0.8rem; color: var(--text-muted);">High-volume factory operations with dedicated database.</p>
+                            <div class="pricing-price">$199 <span style="font-size: 0.85rem; color: var(--text-muted);">/ month</span></div>
+                            <ul class="pricing-features">
+                                <li><i class="fa-solid fa-check" style="color: var(--color-success); margin-right: 4px;"></i> Unlimited Employees</li>
+                                <li><i class="fa-solid fa-check" style="color: var(--color-success); margin-right: 4px;"></i> Unlimited Warehouses &amp; POS</li>
+                                <li><i class="fa-solid fa-check" style="color: var(--color-success); margin-right: 4px;"></i> ISO 22000 &amp; HACCP Certified</li>
+                                <li><i class="fa-solid fa-check" style="color: var(--color-success); margin-right: 4px;"></i> 1C &amp; AS Software Integration</li>
+                                <li><i class="fa-solid fa-check" style="color: var(--color-success); margin-right: 4px;"></i> Dedicated Database &amp; 99.99% SLA</li>
+                            </ul>
+                            <button class="btn btn-secondary" onclick="ERP.billing.openUpgradeModal('enterprise')">Switch to Enterprise</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ==============================================================
+                     VIEW 10: TENANT SETTINGS
+                     ============================================================== -->
+                <section class="view-panel" id="view-settings" style="display: none;">
+                    <div class="welcome-banner">
+                        <div>
+                            <h2 class="welcome-title">Organization Settings</h2>
+                            <p class="welcome-subtitle">Company profile, tax identification (ՀՎՀՀ), currency, and regional timezone.</p>
+                        </div>
+                        <button class="btn btn-primary btn-sm" onclick="ERP.settings.save()">
+                            <i class="fa-solid fa-check"></i> Save Changes
+                        </button>
+                    </div>
+
+                    <div class="card" style="max-width: 800px;">
+                        <form onsubmit="ERP.settings.save(event)">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">Organization Name</label>
+                                    <input type="text" class="form-control" value="{{ $currentTenant ? $currentTenant->name : 'Armenia Gourmet Food' }}">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Tenant Slug</label>
+                                    <input type="text" class="form-control font-mono" value="{{ $currentTenant ? $currentTenant->slug : 'gourmet' }}" readonly>
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">Tax ID (ՀՎՀՀ)</label>
+                                    <input type="text" class="form-control font-mono" value="{{ $currentTenant->tax_number ?? '02548963' }}">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Currency</label>
+                                    <select class="select">
+                                        <option value="AMD" selected>AMD — Armenian Dram (֏)</option>
+                                        <option value="USD">USD — US Dollar ($)</option>
+                                        <option value="EUR">EUR — Euro (€)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">Phone</label>
+                                    <input type="text" class="form-control font-mono" value="+374 10 55-44-33">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Timezone</label>
+                                    <select class="select">
+                                        <option value="Asia/Yerevan" selected>Asia/Yerevan (GMT+4)</option>
+                                        <option value="Europe/Moscow">Europe/Moscow (GMT+3)</option>
+                                        <option value="UTC">UTC (GMT+0)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Legal Address</label>
+                                <input type="text" class="form-control" value="Sayat-Nova Ave 12, Yerevan, Armenia">
+                            </div>
+
+                            <div style="margin-top: 1.5rem; display: flex; justify-content: flex-end;">
+                                <button type="submit" class="btn btn-primary">Save Organization Profile</button>
+                            </div>
+                        </form>
+                    </div>
+                </section>
+
+                <!-- ==============================================================
+                     VIEW 11: API CONSOLE RUNNER
+                     ============================================================== -->
+                <section class="view-panel" id="view-api-console" style="display: none;">
+                    <div class="welcome-banner">
+                        <div>
+                            <h2 class="welcome-title">Interactive API Console (Same Port 8000)</h2>
+                            <p class="welcome-subtitle">Direct browser requests to Laravel API endpoints without CORS.</p>
+                        </div>
+                        <span id="api-console-status" class="badge badge-emerald">Ready</span>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 280px 1fr; gap: 1.25rem;">
+                        <div class="card" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                            <div style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); margin-bottom: 0.25rem;">ENDPOINTS</div>
+                            <button class="btn btn-sm btn-secondary" style="justify-content: flex-start;" onclick="ERP.apiConsole.run('GET', '/health')">
+                                GET /health
+                            </button>
+                            <button class="btn btn-sm btn-secondary" style="justify-content: flex-start;" onclick="ERP.apiConsole.run('GET', '/warehouses')">
+                                GET /warehouses
+                            </button>
+                            <button class="btn btn-sm btn-secondary" style="justify-content: flex-start;" onclick="ERP.apiConsole.run('GET', '/inventory/batches')">
+                                GET /inventory/batches
+                            </button>
+                            <button class="btn btn-sm btn-secondary" style="justify-content: flex-start;" onclick="ERP.apiConsole.run('GET', '/recipes')">
+                                GET /recipes
+                            </button>
+                            <button class="btn btn-sm btn-secondary" style="justify-content: flex-start;" onclick="ERP.apiConsole.run('GET', '/production-orders')">
+                                GET /production-orders
+                            </button>
+                            <button class="btn btn-sm btn-secondary" style="justify-content: flex-start;" onclick="ERP.apiConsole.run('GET', '/quality-inspections')">
+                                GET /quality-inspections
+                            </button>
+                            <button class="btn btn-sm btn-secondary" style="justify-content: flex-start;" onclick="ERP.apiConsole.run('GET', '/users')">
+                                GET /users
+                            </button>
+                            <button class="btn btn-sm btn-secondary" style="justify-content: flex-start;" onclick="ERP.apiConsole.run('GET', '/roles')">
+                                GET /roles
+                            </button>
+                        </div>
+
+                        <div class="card" style="padding: 1rem;">
+                            <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.5rem; font-family: var(--font-mono);">RESPONSE VIEWER:</div>
+                            <pre class="api-runner-box" id="api-console-output">// Select an endpoint on the left to execute API request...</pre>
+                        </div>
+                    </div>
+                </section>
+
+            </main>
+        </div>
+    </div>
+
+    <!-- ======================================================================
+         MODALS & DIALOGS
+         ====================================================================== -->
+
+    <!-- Modal 1: POS Checkout Payment Method Modal -->
+    <div class="modal-backdrop" id="pos-checkout-modal">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h3>Select Payment Method</h3>
+                <button onclick="ERP.pos.closeCheckoutModal()" style="font-size: 1.25rem; color: var(--text-muted);">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.25rem;">
+                    Select the preferred gateway to complete transaction and generate fiscal receipt:
+                </p>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                    <button class="btn btn-secondary" onclick="ERP.pos.submitCheckout('cash')" style="padding: 1rem; justify-content: flex-start; gap: 0.75rem;">
+                        <span style="font-size: 1.4rem; color: var(--color-success);"><i class="fa-solid fa-money-bill-wave"></i></span>
+                        <div style="text-align: left;">
+                            <div style="font-weight: 700;">Cash Drawer</div>
+                            <div style="font-size: 0.72rem; color: var(--text-muted);">Standard Cashier</div>
+                        </div>
+                    </button>
+
+                    <button class="btn btn-secondary" onclick="ERP.pos.submitCheckout('telcell')" style="padding: 1rem; justify-content: flex-start; gap: 0.75rem;">
+                        <span style="font-size: 1.4rem; color: #f97316;"><i class="fa-solid fa-qrcode"></i></span>
+                        <div style="text-align: left;">
+                            <div style="font-weight: 700;">Telcell QR</div>
+                            <div style="font-size: 0.72rem; color: var(--text-muted);">Instant Scan &amp; Pay</div>
+                        </div>
+                    </button>
+
+                    <button class="btn btn-secondary" onclick="ERP.pos.submitCheckout('idram')" style="padding: 1rem; justify-content: flex-start; gap: 0.75rem;">
+                        <span style="font-size: 1.4rem; color: #0284c7;"><i class="fa-solid fa-wallet"></i></span>
+                        <div style="text-align: left;">
+                            <div style="font-weight: 700;">Idram &amp; IDBank</div>
+                            <div style="font-size: 0.72rem; color: var(--text-muted);">Digital Wallet</div>
+                        </div>
+                    </button>
+
+                    <button class="btn btn-secondary" onclick="ERP.pos.submitCheckout('ameria')" style="padding: 1rem; justify-content: flex-start; gap: 0.75rem;">
+                        <span style="font-size: 1.4rem; color: var(--color-primary);"><i class="fa-solid fa-credit-card"></i></span>
+                        <div style="text-align: left;">
+                            <div style="font-weight: 700;">Ameria Bank POS</div>
+                            <div style="font-size: 0.72rem; color: var(--text-muted);">Visa / Mastercard</div>
+                        </div>
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="ERP.pos.closeCheckoutModal()">Cancel</button>
             </div>
         </div>
+    </div>
 
-        <!-- Phase 4: Sales Channels, POS, Dispatch, Delivery Fleet & Payment Gateways Showcase -->
-        <div class="space-y-6">
-            <div class="border-b border-slate-800 pb-3 flex items-center justify-between">
-                <div>
-                    <h3 class="text-lg font-bold text-white flex items-center space-x-2">
-                        <span>🛒</span>
-                        <span>Phase 4: POS Դրամարկղ, Առաքման Պարկ (Delivery Fleet) & Վճարային Դարպասներ</span>
-                    </h3>
-                    <p class="text-xs text-slate-400 mt-0.5">
-                        Omnichannel վաճառք, դրամարկղային հերթափոխներ, արագ POS չեկեր (REC-YYYY-NNNNNN), առաքիչների դիսպետչերիզացիա (DLV-YYYY-NNNNNN) և հայկական վճարային դարպասներ (Telcell QR, Idram, Ameria)
-                    </p>
-                </div>
-                <span class="text-xs font-mono px-2.5 py-1 rounded-full bg-fuchsia-500/10 text-fuchsia-300 border border-fuchsia-500/20">
-                    POS &amp; Fleet Live
-                </span>
+    <!-- Modal 2: Fiscal Receipt Modal -->
+    <div class="modal-backdrop" id="receipt-modal">
+        <div class="modal-container" style="max-width: 420px;">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-receipt"></i> Fiscal Receipt</h3>
+                <button onclick="document.getElementById('receipt-modal').classList.remove('active')" style="font-size: 1.25rem; color: var(--text-muted);">&times;</button>
             </div>
-
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-                <!-- 1. POS Cashier Shifts & Terminals -->
-                <div class="glass-panel rounded-2xl p-6 space-y-4">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <h4 class="text-base font-semibold text-white flex items-center space-x-2">
-                                <span>🖥️</span>
-                                <span>POS Տերմինալներ & Հերթափոխ</span>
-                            </h4>
-                            <p class="text-xs text-slate-400">Դրամարկղ և հաշվեկշիռ ({{ $posTerminals->count() }} տերմինալ)</p>
-                        </div>
-                        <span class="text-xs font-mono px-2 py-0.5 rounded bg-fuchsia-500/10 text-fuchsia-300 border border-fuchsia-500/20">Terminals</span>
-                    </div>
-
-                    <div class="space-y-3">
-                        @foreach ($posTerminals as $term)
-                            <div class="p-3.5 rounded-xl bg-slate-900/70 border border-slate-800 space-y-2">
-                                <div class="flex items-center justify-between">
-                                    <div class="flex items-center space-x-2">
-                                        <span class="w-2 h-2 rounded-full {{ $term->is_active ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500' }}"></span>
-                                        <span class="font-mono text-xs font-bold text-fuchsia-400">{{ $term->code }}</span>
-                                    </div>
-                                    <span class="text-[10px] font-mono px-2 py-0.5 rounded {{ $term->activeSession ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-800 text-slate-400' }}">
-                                        {{ $term->activeSession ? 'SHIFT OPEN' : 'STANDBY' }}
-                                    </span>
-                                </div>
-                                <h5 class="text-xs font-semibold text-white">{{ $term->name }}</h5>
-                                <div class="text-[11px] text-slate-400 space-y-1">
-                                    <div class="flex justify-between">
-                                        <span>Մասնաճյուղ՝</span>
-                                        <span class="text-slate-200">{{ $term->branch?->name }}</span>
-                                    </div>
-                                    @if ($term->activeSession)
-                                        <div class="p-2 rounded bg-slate-950/80 border border-slate-800/80 space-y-1 mt-2 text-[10px]">
-                                            <div class="flex justify-between text-slate-400">
-                                                <span>Հերթափոխ՝ <span class="font-mono text-fuchsia-300">{{ $term->activeSession->session_number }}</span></span>
-                                                <span class="text-slate-300">{{ $term->activeSession->cashier?->name }}</span>
-                                            </div>
-                                            <div class="flex justify-between text-slate-400">
-                                                <span>Բացման մնացորդ՝</span>
-                                                <span class="font-mono text-emerald-400">{{ number_format($term->activeSession->opening_cash, 0) }} ֏</span>
-                                            </div>
-                                        </div>
-                                    @endif
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
-                </div>
-
-                <!-- 2. Delivery Fleet & Live Dispatch -->
-                <div class="glass-panel rounded-2xl p-6 space-y-4">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <h4 class="text-base font-semibold text-white flex items-center space-x-2">
-                                <span>🚚</span>
-                                <span>Առաքման Պարկ (Fleet)</span>
-                            </h4>
-                            <p class="text-xs text-slate-400">Կուրիերներ & Առաքումներ ({{ $deliveryDrivers->count() }} առաքիչ)</p>
-                        </div>
-                        <span class="text-xs font-mono px-2 py-0.5 rounded bg-sky-500/10 text-sky-300 border border-sky-500/20">Dispatch</span>
-                    </div>
-
-                    <div class="space-y-3">
-                        <!-- Drivers List -->
-                        <div class="space-y-2">
-                            <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Գործող Առաքիչներ</span>
-                            @foreach ($deliveryDrivers as $driver)
-                                <div class="p-2.5 rounded-xl bg-slate-900/70 border border-slate-800 flex items-center justify-between">
-                                    <div class="flex items-center space-x-2.5">
-                                        <div class="w-8 h-8 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sm">
-                                            {{ $driver->vehicle_type === 'motorcycle' ? '🏍️' : '🚗' }}
-                                        </div>
-                                        <div>
-                                            <div class="text-xs font-semibold text-white">{{ $driver->first_name }} {{ $driver->last_name }}</div>
-                                            <div class="text-[10px] text-slate-400 font-mono">{{ $driver->phone }} &bull; {{ $driver->license_plate ?? 'N/A' }}</div>
-                                        </div>
-                                    </div>
-                                    <span class="text-[10px] font-mono px-2 py-0.5 rounded-full {{ $driver->status === 'on_delivery' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' }}">
-                                        {{ $driver->status === 'on_delivery' ? 'Առաքման մեջ' : 'Ազատ է' }}
-                                    </span>
-                                </div>
-                            @endforeach
-                        </div>
-
-                        <!-- Live Shipments -->
-                        <div class="space-y-2 pt-2 border-t border-slate-800">
-                            <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Վերջին Առաքումներ ({{ $deliveryShipments->count() }})</span>
-                            @foreach ($deliveryShipments as $shipment)
-                                <div class="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-1.5 text-xs">
-                                    <div class="flex items-center justify-between">
-                                        <span class="font-mono text-[11px] font-bold text-sky-400">{{ $shipment->shipment_number }}</span>
-                                        <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold">
-                                            {{ strtoupper($shipment->status) }}
-                                        </span>
-                                    </div>
-                                    <div class="text-[11px] text-slate-300">
-                                        📍 {{ $shipment->delivery_address }}
-                                    </div>
-                                    <div class="flex justify-between items-center text-[10px] text-slate-400 pt-1 border-t border-slate-800/60">
-                                        <span>Ստացող՝ <strong class="text-slate-200">{{ $shipment->recipient_name }}</strong></span>
-                                        <span class="font-mono text-emerald-400 font-bold">COD: {{ number_format($shipment->cod_collected, 0) }} ֏</span>
-                                    </div>
-                                    @if ($shipment->proof)
-                                        <div class="text-[10px] text-emerald-400 flex items-center space-x-1">
-                                            <span>✓ POD Ստացված է:</span>
-                                            <span class="text-slate-300">{{ $shipment->proof->received_by_name }} ({{ $shipment->proof->delivered_at?->format('H:i') }})</span>
-                                        </div>
-                                    @endif
-                                </div>
-                            @endforeach
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 3. Payment Gateways & Transactions -->
-                <div class="glass-panel rounded-2xl p-6 space-y-4">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <h4 class="text-base font-semibold text-white flex items-center space-x-2">
-                                <span>💳</span>
-                                <span>Վճարային Համակարգեր</span>
-                            </h4>
-                            <p class="text-xs text-slate-400">Հայկական և գլոբալ Gateways</p>
-                        </div>
-                        <span class="text-xs font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">Omnichannel</span>
-                    </div>
-
-                    <div class="space-y-3">
-                        <!-- Supported Gateways Grid -->
-                        <div class="grid grid-cols-2 gap-2">
-                            <div class="p-2.5 rounded-xl bg-slate-900/70 border border-amber-500/30 flex items-center space-x-2">
-                                <div class="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-300 flex items-center justify-center text-xs font-bold font-mono">TL</div>
-                                <div>
-                                    <div class="text-xs font-semibold text-white">Telcell QR</div>
-                                    <div class="text-[9px] text-emerald-400 font-mono">● Active</div>
-                                </div>
-                            </div>
-                            <div class="p-2.5 rounded-xl bg-slate-900/70 border border-orange-500/30 flex items-center space-x-2">
-                                <div class="w-7 h-7 rounded-lg bg-orange-500/20 text-orange-300 flex items-center justify-center text-xs font-bold font-mono">ID</div>
-                                <div>
-                                    <div class="text-xs font-semibold text-white">Idram Rocket</div>
-                                    <div class="text-[9px] text-emerald-400 font-mono">● Active</div>
-                                </div>
-                            </div>
-                            <div class="p-2.5 rounded-xl bg-slate-900/70 border border-blue-500/30 flex items-center space-x-2">
-                                <div class="w-7 h-7 rounded-lg bg-blue-500/20 text-blue-300 flex items-center justify-center text-xs font-bold font-mono">AM</div>
-                                <div>
-                                    <div class="text-xs font-semibold text-white">Ameria vPOS</div>
-                                    <div class="text-[9px] text-emerald-400 font-mono">● Active</div>
-                                </div>
-                            </div>
-                            <div class="p-2.5 rounded-xl bg-slate-900/70 border border-emerald-500/30 flex items-center space-x-2">
-                                <div class="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-300 flex items-center justify-center text-xs font-bold font-mono">💵</div>
-                                <div>
-                                    <div class="text-xs font-semibold text-white">Cash / COD</div>
-                                    <div class="text-[9px] text-emerald-400 font-mono">● Active</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Live Transactions -->
-                        <div class="space-y-2 pt-2 border-t border-slate-800">
-                            <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Վերջին Գործարքներ (Transactions)</span>
-                            @foreach ($paymentTransactions as $tx)
-                                <div class="p-3 rounded-xl bg-slate-900/70 border border-emerald-500/30 space-y-1 text-xs">
-                                    <div class="flex items-center justify-between">
-                                        <span class="font-mono text-xs font-bold text-emerald-400">{{ $tx->transaction_id }}</span>
-                                        <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold uppercase">
-                                            {{ $tx->status }}
-                                        </span>
-                                    </div>
-                                    <div class="flex justify-between text-slate-300 text-[11px]">
-                                        <span>Դարպաս / Մեթոդ՝</span>
-                                        <span class="font-medium text-white">{{ strtoupper($tx->gateway) }} ({{ strtoupper($tx->payment_method) }})</span>
-                                    </div>
-                                    <div class="flex justify-between items-center pt-1 border-t border-slate-800/80 text-[11px]">
-                                        <span class="text-slate-400">Գումար՝</span>
-                                        <span class="font-mono text-emerald-400 font-bold">{{ number_format($tx->amount, 0) }} {{ $tx->currency }}</span>
-                                    </div>
-                                </div>
-                            @endforeach
-                        </div>
-                    </div>
-                </div>
-
+            <div class="modal-body" id="receipt-content">
+                <!-- Populated dynamically by ERP.pos.showReceiptModal() -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="document.getElementById('receipt-modal').classList.remove('active')">Close</button>
+                <button class="btn btn-primary" onclick="window.print()"><i class="fa-solid fa-print"></i> Print Receipt</button>
             </div>
         </div>
+    </div>
 
-        <!-- Interactive API Console (Live In-Browser Testing) -->
-        <section id="api-tester" class="glass-panel rounded-2xl p-6 lg:p-8 space-y-6">
-            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800/80 pb-5">
-                <div>
-                    <h3 class="text-lg font-bold text-white flex items-center space-x-2">
-                        <span>🧪</span>
-                        <span>Interactive In-Browser API Console</span>
-                    </h3>
-                    <p class="text-xs text-slate-400 mt-1">
-                        Phase 0, 1, 2 & 3 API-ների կենդանի թեստավորում հենց բրաուզերում։
-                    </p>
-                </div>
-                <div class="flex items-center space-x-2" id="token-status-badge">
-                    <span class="text-xs font-mono px-3 py-1.5 rounded-lg bg-slate-800 text-slate-400 border border-slate-700">
-                        Token: <span id="active-token-label">None</span>
-                    </span>
-                </div>
+    <!-- Modal 3: Invite User Modal -->
+    <div class="modal-backdrop" id="invite-user-modal">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h3>Add New Employee</h3>
+                <button onclick="ERP.users.closeInviteModal()" style="font-size: 1.25rem; color: var(--text-muted);">&times;</button>
             </div>
-
-            <!-- Action Buttons Grid -->
-            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                <button onclick="loginPlatformAdmin()" class="p-3 text-left rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-indigo-500/30 hover:border-indigo-500 transition group">
-                    <span class="text-xs font-semibold text-indigo-300 block mb-1">1. Admin Login</span>
-                    <p class="text-[11px] text-slate-400">admin@erplannet</p>
-                </button>
-
-                <button onclick="loginTenantOwner()" class="p-3 text-left rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-emerald-500/30 hover:border-emerald-500 transition group">
-                    <span class="text-xs font-semibold text-emerald-300 block mb-1">2. Tenant Login</span>
-                    <p class="text-[11px] text-slate-400">aram@gourmet.am</p>
-                </button>
-
-                <button onclick="fetchWarehouses()" class="p-3 text-left rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 hover:border-slate-500 transition group">
-                    <span class="text-xs font-semibold text-cyan-300 block mb-1">3. Warehouses</span>
-                    <p class="text-[11px] text-slate-400">/api/v1/warehouses</p>
-                </button>
-
-                <button onclick="fetchStockLevels()" class="p-3 text-left rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 hover:border-slate-500 transition group">
-                    <span class="text-xs font-semibold text-slate-200 block mb-1">4. Stock Levels</span>
-                    <p class="text-[11px] text-slate-400">/inventory/levels</p>
-                </button>
-
-                <button onclick="fetchBatches()" class="p-3 text-left rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 hover:border-slate-500 transition group">
-                    <span class="text-xs font-semibold text-slate-200 block mb-1">5. Stock Batches</span>
-                    <p class="text-[11px] text-slate-400">/inventory/batches</p>
-                </button>
-
-                <button onclick="fetchSuppliers()" class="p-3 text-left rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 hover:border-slate-500 transition group">
-                    <span class="text-xs font-semibold text-teal-300 block mb-1">6. Suppliers</span>
-                    <p class="text-[11px] text-slate-400">/api/v1/suppliers</p>
-                </button>
-
-                <button onclick="fetchPurchaseOrders()" class="p-3 text-left rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 hover:border-slate-500 transition group">
-                    <span class="text-xs font-semibold text-emerald-300 block mb-1">7. Purchase Orders</span>
-                    <p class="text-[11px] text-slate-400">/purchase-orders</p>
-                </button>
-
-                <button onclick="fetchRecipes()" class="p-3 text-left rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-amber-500/30 hover:border-amber-500 transition group">
-                    <span class="text-xs font-semibold text-amber-300 block mb-1">8. Recipes (BOM)</span>
-                    <p class="text-[11px] text-slate-400">/api/v1/recipes</p>
-                </button>
-
-                <button onclick="fetchProductionOrders()" class="p-3 text-left rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-blue-500/30 hover:border-blue-500 transition group">
-                    <span class="text-xs font-semibold text-blue-300 block mb-1">9. Production Orders</span>
-                    <p class="text-[11px] text-slate-400">/production-orders</p>
-                </button>
-
-                <button onclick="fetchQualityInspections()" class="p-3 text-left rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-emerald-500/30 hover:border-emerald-500 transition group">
-                    <span class="text-xs font-semibold text-emerald-300 block mb-1">10. ISO 22000 QA</span>
-                    <p class="text-[11px] text-slate-400">/quality-inspections</p>
-                </button>
-
-                <button onclick="fetchTenantProducts()" class="p-3 text-left rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 hover:border-slate-500 transition group">
-                    <span class="text-xs font-semibold text-slate-200 block mb-1">11. Products</span>
-                    <p class="text-[11px] text-slate-400">/api/v1/products</p>
-                </button>
-
-                <button onclick="fetchTenantOrders()" class="p-3 text-left rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 hover:border-slate-500 transition group">
-                    <span class="text-xs font-semibold text-slate-200 block mb-1">12. Sales Orders</span>
-                    <p class="text-[11px] text-slate-400">/api/v1/orders</p>
-                </button>
-
-                <button onclick="fetchSubscription()" class="p-3 text-left rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 hover:border-slate-500 transition group">
-                    <span class="text-xs font-semibold text-slate-200 block mb-1">13. Entitlements</span>
-                    <p class="text-[11px] text-slate-400">/api/v1/subscription</p>
-                </button>
-
-                <button onclick="fetchTranslations('hy')" class="p-3 text-left rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 hover:border-slate-500 transition group">
-                    <span class="text-xs font-semibold text-slate-200 block mb-1">14. Հայերեն UI</span>
-                    <p class="text-[11px] text-slate-400">/translations/hy</p>
-                </button>
-
-                <button onclick="testHealthCheck()" class="p-3 text-left rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 hover:border-slate-500 transition group">
-                    <span class="text-xs font-semibold text-slate-200 block mb-1">15. Health Check</span>
-                    <p class="text-[11px] text-slate-400">/api/v1/health</p>
-                </button>
-
-                <button onclick="fetchPosTerminals()" class="p-3 text-left rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-fuchsia-500/30 hover:border-fuchsia-500 transition group">
-                    <span class="text-xs font-semibold text-fuchsia-300 block mb-1">16. POS Terminals</span>
-                    <p class="text-[11px] text-slate-400">/pos/terminals</p>
-                </button>
-
-                <button onclick="fetchCurrentPosSession()" class="p-3 text-left rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-violet-500/30 hover:border-violet-500 transition group">
-                    <span class="text-xs font-semibold text-violet-300 block mb-1">17. Current Shift</span>
-                    <p class="text-[11px] text-slate-400">/pos/sessions/current</p>
-                </button>
-
-                <button onclick="testPosCheckout()" class="p-3 text-left rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-emerald-500/30 hover:border-emerald-500 transition group">
-                    <span class="text-xs font-semibold text-emerald-300 block mb-1">18. POS Fast Checkout</span>
-                    <p class="text-[11px] text-slate-400">/pos/checkout (Receipt)</p>
-                </button>
-
-                <button onclick="fetchDeliveryDrivers()" class="p-3 text-left rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-sky-500/30 hover:border-sky-500 transition group">
-                    <span class="text-xs font-semibold text-sky-300 block mb-1">19. Fleet Drivers</span>
-                    <p class="text-[11px] text-slate-400">/delivery/drivers</p>
-                </button>
-
-                <button onclick="fetchDeliveryShipments()" class="p-3 text-left rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-sky-500/30 hover:border-sky-500 transition group">
-                    <span class="text-xs font-semibold text-sky-300 block mb-1">20. Shipments (POD)</span>
-                    <p class="text-[11px] text-slate-400">/delivery/shipments</p>
-                </button>
-
-                <button onclick="testTelcellPayment()" class="p-3 text-left rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-amber-500/30 hover:border-amber-500 transition group">
-                    <span class="text-xs font-semibold text-amber-300 block mb-1">21. Telcell QR Payment</span>
-                    <p class="text-[11px] text-slate-400">/orders/{id}/payments</p>
-                </button>
-            </div>
-
-            <!-- Response Console Output -->
-            <div class="space-y-2">
-                <div class="flex items-center justify-between text-xs text-slate-400">
-                    <div class="flex items-center space-x-2 font-mono">
-                        <span id="response-method" class="text-indigo-400 font-bold">READY</span>
-                        <span id="response-url" class="text-slate-300">Click any action above to execute live request</span>
+            <form onsubmit="ERP.users.submitInvite(event)">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label">Full Name</label>
+                        <input type="text" class="form-control" id="invite-name" required placeholder="e.g. Sarah Johnson">
                     </div>
-                    <div class="flex items-center space-x-3 font-mono">
-                        <span id="response-status" class="text-slate-500">-</span>
-                        <span id="response-time" class="text-slate-500">- ms</span>
+                    <div class="form-group">
+                        <label class="form-label">Email Address</label>
+                        <input type="email" class="form-control font-mono" id="invite-email" required placeholder="sarah@company.am">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Role</label>
+                        <select class="select" id="invite-role">
+                            <option value="admin">Administrator (Full Access)</option>
+                            <option value="manager">Operations Manager</option>
+                            <option value="accountant">Accountant</option>
+                            <option value="member" selected>Operator / Cashier</option>
+                        </select>
                     </div>
                 </div>
-                <div class="relative">
-                    <pre id="response-output" class="p-4 rounded-xl bg-slate-950 border border-slate-800 text-xs font-mono text-emerald-300 max-h-96 overflow-y-auto whitespace-pre-wrap">{ "info": "ERPlannet Multi-Tenant API (Phase 0, 1, 2, 3 & 4) Ready. Click any button above." }</pre>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="ERP.users.closeInviteModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Invite Teammate</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal 4: Upgrade Plan Modal -->
+    <div class="modal-backdrop" id="upgrade-plan-modal">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h3>Upgrade Subscription Plan</h3>
+                <button onclick="ERP.billing.closeUpgradeModal()" style="font-size: 1.25rem; color: var(--text-muted);">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
+                    Upgrade to Enterprise for unlimited seats, dedicated database, and full 1C/AS integrations.
+                </p>
+                <div class="card" style="padding: 1.25rem; margin-bottom: 1rem; border-color: var(--color-primary-border); background: var(--color-primary-light);">
+                    <div style="font-weight: 800; color: var(--text-heading);">Enterprise Cloud Tier</div>
+                    <div style="font-size: 1.8rem; font-weight: 800; color: var(--color-primary); font-family: var(--font-mono); margin: 0.25rem 0;">$199 / month</div>
+                    <div style="font-size: 0.78rem; color: var(--text-muted);">Charged to primary billing card (Visa •••• 4242)</div>
                 </div>
             </div>
-        </section>
+        </div>
+    </div>
 
-    </main>
+    <!-- Modal 5: Create Product / Item Master -->
+    <div class="modal-backdrop" id="create-product-modal">
+        <div class="modal-container" style="max-width: 620px;">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-tag"></i> Add New Item / Product</h3>
+                <button onclick="ERP.catalog.closeCreateProductModal()" style="font-size: 1.25rem; color: var(--text-muted);">&times;</button>
+            </div>
+            <form onsubmit="ERP.catalog.submitProduct(event)">
+                <div class="modal-body">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                        <div class="form-group">
+                            <label class="form-label">Անվանում (Հայերեն) *</label>
+                            <input type="text" class="form-control" id="prod-name-hy" required placeholder="օր․ Լոլիկ, Պանիր Չանախ, Փաթեթավորման տուփ">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Name (English)</label>
+                            <input type="text" class="form-control" id="prod-name-en" placeholder="e.g. Tomato, Fresh Cheese">
+                        </div>
+                    </div>
 
-    <footer class="border-t border-slate-800/60 mt-12 py-6 text-center text-xs text-slate-500">
-        ERPlannet Multi-Tenant SaaS Platform &bull; Phase 0, 1, 2, 3 & 4 (Sales Channels, POS, Fleet & Payments) &bull; Yerevan, Armenia
-    </footer>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                        <div class="form-group">
+                            <label class="form-label">Ապրանքի Տիպ (Item Type) *</label>
+                            <select class="select" id="prod-type" required>
+                                <option value="finished_product">Finished Product (Պատրաստի արտադրանք)</option>
+                                <option value="semi_finished">Semi-Finished (Կիսաֆաբրիկատ)</option>
+                                <option value="ingredient">Ingredient (Բաղադրիչ)</option>
+                                <option value="raw_material">Raw Material (Հումք)</option>
+                                <option value="packaging">Packaging (Փաթեթավորում)</option>
+                                <option value="service">Service (Ծառայություն)</option>
+                                <option value="modifier">Modifier (Մոդիֆիկատոր)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Կոդ / SKU *</label>
+                            <input type="text" class="form-control font-mono" id="prod-sku" required placeholder="օր․ RAW-TOM-01">
+                        </div>
+                    </div>
 
-    <!-- JavaScript for Live Interactive API Testing -->
-    <script>
-        let currentToken = null;
-        let currentAuthType = null;
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                        <div class="form-group">
+                            <label class="form-label">Կատեգորիա</label>
+                            <select class="select" id="prod-category-id">
+                                <option value="">-- Առանց կատեգորիայի --</option>
+                                @foreach($categories as $cat)
+                                    <option value="{{ $cat->id }}">{{ is_array($cat->name) ? ($cat->name['hy'] ?? reset($cat->name)) : $cat->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Չափման Միավոր (Unit) *</label>
+                            <select class="select" id="prod-unit-id" required>
+                                @foreach($units as $u)
+                                    <option value="{{ $u->id }}">{{ is_array($u->name) ? ($u->name['hy'] ?? reset($u->name)) : $u->name }} ({{ $u->symbol }})</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
 
-        function setConsoleStatus(method, url, status, time, data) {
-            document.getElementById('response-method').innerText = method;
-            document.getElementById('response-url').innerText = url;
-            document.getElementById('response-status').innerText = 'HTTP ' + status;
-            document.getElementById('response-status').className = status >= 200 && status < 300 ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold';
-            document.getElementById('response-time').innerText = time + ' ms';
-            document.getElementById('response-output').innerText = JSON.stringify(data, null, 2);
-        }
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                        <div class="form-group">
+                            <label class="form-label">Ինքնարժեք (Cost Price ֏)</label>
+                            <input type="number" step="any" class="form-control font-mono" id="prod-cost-price" value="0" placeholder="0">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Վաճառքի Գին (Sale Price ֏)</label>
+                            <input type="number" step="any" class="form-control font-mono" id="prod-sale-price" value="0" placeholder="0">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="ERP.catalog.closeCreateProductModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Create Product</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
-        async function makeRequest(method, url, headers = {}, body = null) {
-            const start = performance.now();
-            try {
-                const options = {
-                    method,
-                    headers: {
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/json',
-                        ...headers
-                    }
-                };
-                if (body) {
-                    options.body = JSON.stringify(body);
-                }
-                const res = await fetch(url, options);
-                const time = Math.round(performance.now() - start);
-                const data = await res.json();
-                setConsoleStatus(method, url, res.status, time, data);
-                return { status: res.status, data };
-            } catch (err) {
-                const time = Math.round(performance.now() - start);
-                setConsoleStatus(method, url, 500, time, { error: err.message });
-            }
-        }
+    <!-- Modal 6: Create Purchase Order -->
+    <div class="modal-backdrop" id="create-purchase-modal">
+        <div class="modal-container" style="max-width: 680px;">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-file-invoice-dollar"></i> Create Purchase Order</h3>
+                <button onclick="ERP.procurement.closeCreatePurchaseModal()" style="font-size: 1.25rem; color: var(--text-muted);">&times;</button>
+            </div>
+            <form onsubmit="ERP.procurement.submitPurchase(event)">
+                <div class="modal-body">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem;">
+                        <div class="form-group">
+                            <label class="form-label">Մատակարար (Supplier) *</label>
+                            <select class="select" id="po-supplier-id" required>
+                                @foreach($suppliers as $sup)
+                                    <option value="{{ $sup->id }}">{{ $sup->name }} ({{ $sup->code ?? 'SUP' }})</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Ընդունող Պահեստ (Warehouse) *</label>
+                            <select class="select" id="po-warehouse-id" required>
+                                @foreach($warehouses as $wh)
+                                    <option value="{{ $wh->id }}">{{ $wh->name }} ({{ $wh->code }})</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
 
-        async function loginPlatformAdmin() {
-            const res = await makeRequest('POST', '/api/v1/platform/auth/login', {}, {
-                email: 'admin@erplannet.com',
-                password: 'SuperSecurePass123!'
-            });
-            if (res && res.data && res.data.token) {
-                currentToken = res.data.token;
-                currentAuthType = 'platform';
-                document.getElementById('active-token-label').innerText = 'Platform Admin (admin@erplannet.com)';
-                document.getElementById('active-token-label').className = 'text-indigo-400 font-semibold';
-            }
-        }
+                    <div class="form-group" style="margin-bottom: 1rem;">
+                        <label class="form-label">Նշումներ (Notes / Ref)</label>
+                        <input type="text" class="form-control" id="po-notes" placeholder="օր․ Հաշիվ-ապրանքագիր #88241">
+                    </div>
 
-        async function loginTenantOwner() {
-            const res = await makeRequest('POST', '/api/v1/auth/login', {
-                'X-Tenant-Slug': 'gourmet'
-            }, {
-                email: 'aram@gourmet.am',
-                password: 'password123'
-            });
-            if (res && res.data && res.data.token) {
-                currentToken = res.data.token;
-                currentAuthType = 'tenant';
-                document.getElementById('active-token-label').innerText = 'Tenant Owner (aram@gourmet.am)';
-                document.getElementById('active-token-label').className = 'text-emerald-400 font-semibold';
-            }
-        }
+                    <div style="margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
+                        <label class="form-label" style="margin: 0; font-weight: 800;">Գնվող Ապրանքներ (Order Lines)</label>
+                        <button type="button" class="btn btn-xs btn-outline-secondary" onclick="ERP.procurement.addPurchaseItemRow()" style="font-size: 0.75rem; padding: 3px 8px;"><i class="fa-solid fa-plus"></i> Add Line</button>
+                    </div>
 
-        async function ensureTenantAuth() {
-            if (!currentToken || currentAuthType !== 'tenant') {
-                await loginTenantOwner();
-            }
-        }
+                    <div id="po-items-container" style="display: flex; flex-direction: column; gap: 8px;">
+                        <div class="po-item-row" style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 8px; align-items: center; background: var(--bg-surface-subtle); padding: 8px; border-radius: 6px; border: 1px solid var(--border-card);">
+                            <div>
+                                <select class="select po-product-select" required style="width: 100%;">
+                                    @foreach($products as $p)
+                                        <option value="{{ $p->id }}">
+                                            {{ is_array($p->name) ? ($p->name['hy'] ?? reset($p->name)) : $p->name }} ({{ $p->sku }})
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div>
+                                <input type="number" step="any" class="form-control font-mono po-qty-input" required placeholder="Qty" value="10">
+                            </div>
+                            <div>
+                                <input type="number" step="any" class="form-control font-mono po-cost-input" required placeholder="Cost ֏" value="1500">
+                            </div>
+                            <div>
+                                <button type="button" class="btn btn-sm btn-outline-danger" onclick="ERP.procurement.removePurchaseItemRow(this)" style="padding: 4px 8px; color: var(--color-danger); border: 1px solid var(--color-danger-border);"><i class="fa-solid fa-trash-can"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="ERP.procurement.closeCreatePurchaseModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Purchase Order</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
-        async function fetchWarehouses() {
-            await ensureTenantAuth();
-            await makeRequest('GET', '/api/v1/warehouses', {
-                'X-Tenant-Slug': 'gourmet',
-                'Authorization': 'Bearer ' + currentToken
-            });
-        }
+    <!-- Modal 7: Create Recipe (BOM) -->
+    <div class="modal-backdrop" id="create-recipe-modal">
+        <div class="modal-container" style="max-width: 680px;">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-scroll"></i> New Bill of Materials (BOM) Recipe</h3>
+                <button onclick="ERP.manufacturing.closeCreateRecipeModal()" style="font-size: 1.25rem; color: var(--text-muted);">&times;</button>
+            </div>
+            <form onsubmit="ERP.manufacturing.submitRecipe(event)">
+                <div class="modal-body">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
+                        <div class="form-group">
+                            <label class="form-label">Արտադրվող Ապրանք (Finished Product) *</label>
+                            <select class="select" id="rcp-product-id" required>
+                                @foreach($products as $p)
+                                    <option value="{{ $p->id }}">
+                                        {{ is_array($p->name) ? ($p->name['hy'] ?? reset($p->name)) : $p->name }} ({{ $p->sku }})
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Բաղադրատոմսի Անվանում *</label>
+                            <input type="text" class="form-control" id="rcp-name" required placeholder="օր․ Պիցցա Մարգարիտա 30սմ Ստանդարտ">
+                        </div>
+                    </div>
 
-        async function fetchStockLevels() {
-            await ensureTenantAuth();
-            await makeRequest('GET', '/api/v1/inventory/levels', {
-                'X-Tenant-Slug': 'gourmet',
-                'Authorization': 'Bearer ' + currentToken
-            });
-        }
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem;">
+                        <div class="form-group">
+                            <label class="form-label">Կոդ *</label>
+                            <input type="text" class="form-control font-mono" id="rcp-code" required placeholder="BOM-001">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Տարբերակ</label>
+                            <input type="text" class="form-control font-mono" id="rcp-version" value="1.0">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Ելք (Yield)</label>
+                            <input type="number" step="any" class="form-control font-mono" id="rcp-yield" value="1">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Խոտան % (Scrap)</label>
+                            <input type="number" step="any" class="form-control font-mono" id="rcp-scrap" value="2.5">
+                        </div>
+                    </div>
 
-        async function fetchBatches() {
-            await ensureTenantAuth();
-            await makeRequest('GET', '/api/v1/inventory/batches', {
-                'X-Tenant-Slug': 'gourmet',
-                'Authorization': 'Bearer ' + currentToken
-            });
-        }
+                    <div style="margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
+                        <label class="form-label" style="margin: 0; font-weight: 800;">Բաղադրիչներ (Raw Materials &amp; Ingredients)</label>
+                        <button type="button" class="btn btn-xs btn-outline-secondary" onclick="ERP.manufacturing.addRecipeComponentRow()" style="font-size: 0.75rem; padding: 3px 8px;"><i class="fa-solid fa-plus"></i> Add Ingredient</button>
+                    </div>
 
-        async function fetchSuppliers() {
-            await ensureTenantAuth();
-            await makeRequest('GET', '/api/v1/suppliers', {
-                'X-Tenant-Slug': 'gourmet',
-                'Authorization': 'Bearer ' + currentToken
-            });
-        }
+                    <div id="rcp-items-container" style="display: flex; flex-direction: column; gap: 8px;">
+                        <div class="rcp-item-row" style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 8px; align-items: center; background: var(--bg-surface-subtle); padding: 8px; border-radius: 6px; border: 1px solid var(--border-card);">
+                            <div>
+                                <select class="select rcp-product-select" required style="width: 100%;">
+                                    @foreach($products as $p)
+                                        <option value="{{ $p->id }}">
+                                            {{ is_array($p->name) ? ($p->name['hy'] ?? reset($p->name)) : $p->name }} ({{ $p->sku }})
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div>
+                                <input type="number" step="any" class="form-control font-mono rcp-qty-input" required placeholder="Qty" value="0.25">
+                            </div>
+                            <div>
+                                <input type="number" step="any" class="form-control font-mono rcp-waste-input" placeholder="Waste %" value="0">
+                            </div>
+                            <div>
+                                <button type="button" class="btn btn-sm btn-outline-danger" onclick="ERP.manufacturing.removeRecipeComponentRow(this)" style="padding: 4px 8px; color: var(--color-danger); border: 1px solid var(--color-danger-border);"><i class="fa-solid fa-trash-can"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="ERP.manufacturing.closeCreateRecipeModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save BOM Recipe</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
-        async function fetchPurchaseOrders() {
-            await ensureTenantAuth();
-            await makeRequest('GET', '/api/v1/purchase-orders', {
-                'X-Tenant-Slug': 'gourmet',
-                'Authorization': 'Bearer ' + currentToken
-            });
-        }
+    <!-- Modal 8: Produce Batch (Production Order) -->
+    <div class="modal-backdrop" id="create-production-modal">
+        <div class="modal-container" style="max-width: 520px;">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-industry"></i> Launch Production Order</h3>
+                <button onclick="ERP.manufacturing.closeProductionModal()" style="font-size: 1.25rem; color: var(--text-muted);">&times;</button>
+            </div>
+            <form onsubmit="ERP.manufacturing.submitProductionOrder(event)">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label">Ընտրեք Բաղադրատոմսը (BOM Recipe) *</label>
+                        <select class="select" id="prod-recipe-id" required>
+                            @foreach($recipes as $rcp)
+                                <option value="{{ $rcp->id }}">{{ $rcp->name }} ({{ $rcp->code }})</option>
+                            @endforeach
+                        </select>
+                    </div>
 
-        async function fetchRecipes() {
-            await ensureTenantAuth();
-            await makeRequest('GET', '/api/v1/recipes', {
-                'X-Tenant-Slug': 'gourmet',
-                'Authorization': 'Bearer ' + currentToken
-            });
-        }
+                    <div class="form-group">
+                        <label class="form-label">Արտադրվող Քանակ (Batch Quantity) *</label>
+                        <input type="number" step="any" class="form-control font-mono" id="prod-order-qty" required value="20">
+                    </div>
 
-        async function fetchProductionOrders() {
-            await ensureTenantAuth();
-            await makeRequest('GET', '/api/v1/production-orders', {
-                'X-Tenant-Slug': 'gourmet',
-                'Authorization': 'Bearer ' + currentToken
-            });
-        }
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                        <div class="form-group">
+                            <label class="form-label">Հումքի Պահեստ (Source)</label>
+                            <select class="select" id="prod-source-wh" required>
+                                @foreach($warehouses as $wh)
+                                    <option value="{{ $wh->id }}">{{ $wh->name }} ({{ $wh->code }})</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Արտադրանքի Պահեստ (Target)</label>
+                            <select class="select" id="prod-target-wh" required>
+                                @foreach($warehouses as $wh)
+                                    <option value="{{ $wh->id }}">{{ $wh->name }} ({{ $wh->code }})</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="ERP.manufacturing.closeProductionModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-play"></i> Create &amp; Plan Order</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
-        async function fetchQualityInspections() {
-            await ensureTenantAuth();
-            await makeRequest('GET', '/api/v1/quality-inspections', {
-                'X-Tenant-Slug': 'gourmet',
-                'Authorization': 'Bearer ' + currentToken
-            });
-        }
+    <!-- Modal 9: Stock Adjustment & Scrap Logging -->
+    <div class="modal-backdrop" id="adjust-stock-modal">
+        <div class="modal-container" style="max-width: 540px;">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-scale-balanced"></i> Stock Adjustment &amp; Waste Scrap</h3>
+                <button onclick="ERP.inventory.closeAdjustStockModal()" style="font-size: 1.25rem; color: var(--text-muted);">&times;</button>
+            </div>
+            <form onsubmit="ERP.inventory.submitAdjustment(event)">
+                <div class="modal-body">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                        <div class="form-group">
+                            <label class="form-label">Պահեստ (Warehouse) *</label>
+                            <select class="select" id="adj-warehouse-id" required>
+                                @foreach($warehouses as $wh)
+                                    <option value="{{ $wh->id }}">{{ $wh->name }} ({{ $wh->code }})</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Գործողության Տեսակ *</label>
+                            <select class="select" id="adj-type" onchange="ERP.inventory.toggleReason(this.value)">
+                                <option value="adjust">Գույքագրման Ճշգրտում (Physical Count)</option>
+                                <option value="scrap">Խոտան / Կորուստ (Scrap &amp; Waste)</option>
+                            </select>
+                        </div>
+                    </div>
 
-        async function fetchTenantProducts() {
-            await ensureTenantAuth();
-            await makeRequest('GET', '/api/v1/products', {
-                'X-Tenant-Slug': 'gourmet',
-                'Authorization': 'Bearer ' + currentToken
-            });
-        }
+                    <div class="form-group">
+                        <label class="form-label">Ապրանք (Product) *</label>
+                        <select class="select" id="adj-product-id" required>
+                            @foreach($products as $p)
+                                <option value="{{ $p->id }}">
+                                    {{ is_array($p->name) ? ($p->name['hy'] ?? reset($p->name)) : $p->name }} ({{ $p->sku }})
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
 
-        async function fetchTenantOrders() {
-            await ensureTenantAuth();
-            await makeRequest('GET', '/api/v1/orders', {
-                'X-Tenant-Slug': 'gourmet',
-                'Authorization': 'Bearer ' + currentToken
-            });
-        }
+                    <div class="form-group">
+                        <label class="form-label">Քանակ (Quantity) *</label>
+                        <input type="number" step="any" class="form-control font-mono" id="adj-quantity" required placeholder="օր․ 5 կամ փաստացի մնացորդ">
+                        <small style="color: var(--text-muted); font-size: 0.72rem;">Ճշգրտման դեպքում՝ փաստացի հաշվառված քանակը։ Խոտանի դեպքում՝ դուրս գրվող քանակը։</small>
+                    </div>
 
-        async function fetchSubscription() {
-            await ensureTenantAuth();
-            await makeRequest('GET', '/api/v1/subscription', {
-                'X-Tenant-Slug': 'gourmet',
-                'Authorization': 'Bearer ' + currentToken
-            });
-        }
+                    <div class="form-group" id="adj-reason-group" style="display: none;">
+                        <label class="form-label">Խոտանի Պատճառ (Scrap Reason Taxonomy) *</label>
+                        <select class="select" id="adj-reason">
+                            <option value="spoilage">Փչացում (Spoilage)</option>
+                            <option value="expired">Ժամկետանց (Expired)</option>
+                            <option value="production_loss">Արտադրական կորուստ (Production Loss)</option>
+                            <option value="kitchen_waste">Խոհանոցային թափոն (Kitchen Waste)</option>
+                            <option value="damaged">Վնասված (Damaged)</option>
+                            <option value="unknown_loss">Անհայտ կորուստ (Unknown Loss)</option>
+                        </select>
+                    </div>
 
-        async function fetchTranslations(locale) {
-            await makeRequest('GET', '/api/v1/translations/' + locale);
-        }
+                    <div class="form-group">
+                        <label class="form-label">Նշումներ / Հիմք (Notes)</label>
+                        <input type="text" class="form-control" id="adj-notes" placeholder="օր․ Ակտ #12, ջերմաստիճանի խախտում">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="ERP.inventory.closeAdjustStockModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check-double"></i> Post to Ledger</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
-        async function testHealthCheck() {
-            await makeRequest('GET', '/api/v1/health');
-        }
+    <!-- Toast Notification Container -->
+    <div class="toast-container" id="toast-container"></div>
 
-        async function fetchPosTerminals() {
-            await ensureTenantAuth();
-            await makeRequest('GET', '/api/v1/pos/terminals', {
-                'X-Tenant-Slug': 'gourmet',
-                'Authorization': 'Bearer ' + currentToken
-            });
-        }
+    <!-- Pure Vanilla JS Engine -->
+    <script src="/js/app.js"></script>
 
-        async function fetchCurrentPosSession() {
-            await ensureTenantAuth();
-            await makeRequest('GET', '/api/v1/pos/sessions/current', {
-                'X-Tenant-Slug': 'gourmet',
-                'Authorization': 'Bearer ' + currentToken
-            });
-        }
-
-        async function testPosCheckout() {
-            await ensureTenantAuth();
-            const sessionRes = await makeRequest('GET', '/api/v1/pos/sessions/current', {
-                'X-Tenant-Slug': 'gourmet',
-                'Authorization': 'Bearer ' + currentToken
-            });
-            if (!sessionRes || !sessionRes.data) return;
-
-            const prodsRes = await makeRequest('GET', '/api/v1/products', {
-                'X-Tenant-Slug': 'gourmet',
-                'Authorization': 'Bearer ' + currentToken
-            });
-            const p1 = prodsRes.data[0];
-
-            await makeRequest('POST', '/api/v1/pos/checkout', {
-                'X-Tenant-Slug': 'gourmet',
-                'Authorization': 'Bearer ' + currentToken
-            }, {
-                pos_session_id: sessionRes.data.id,
-                items: [
-                    { product_id: p1.id, quantity: 2, unit_price: p1.sale_price }
-                ],
-                payments: [
-                    { gateway: 'telcell', method: 'qr', amount: p1.sale_price * 2 }
-                ],
-                notes: 'Browser Live POS Checkout'
-            });
-        }
-
-        async function fetchDeliveryDrivers() {
-            await ensureTenantAuth();
-            await makeRequest('GET', '/api/v1/delivery/drivers', {
-                'X-Tenant-Slug': 'gourmet',
-                'Authorization': 'Bearer ' + currentToken
-            });
-        }
-
-        async function fetchDeliveryShipments() {
-            await ensureTenantAuth();
-            await makeRequest('GET', '/api/v1/delivery/shipments', {
-                'X-Tenant-Slug': 'gourmet',
-                'Authorization': 'Bearer ' + currentToken
-            });
-        }
-
-        async function testTelcellPayment() {
-            await ensureTenantAuth();
-            const ordersRes = await makeRequest('GET', '/api/v1/orders', {
-                'X-Tenant-Slug': 'gourmet',
-                'Authorization': 'Bearer ' + currentToken
-            });
-            if (!ordersRes || !ordersRes.data || !ordersRes.data[0]) return;
-            const orderId = ordersRes.data[0].id;
-
-            await makeRequest('POST', `/api/v1/orders/${orderId}/payments`, {
-                'X-Tenant-Slug': 'gourmet',
-                'Authorization': 'Bearer ' + currentToken
-            }, {
-                gateway: 'telcell',
-                return_url: 'http://localhost:8000/payment/success',
-                cancel_url: 'http://localhost:8000/payment/cancel',
-                payment_method: 'qr'
-            });
-        }
-    </script>
 </body>
 </html>

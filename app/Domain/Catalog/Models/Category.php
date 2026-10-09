@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Category extends Model
 {
-    use HasFactory, HasUuids, BelongsToTenant;
+    use BelongsToTenant, HasFactory, HasUuids;
 
     protected $table = 'categories';
 
@@ -48,9 +48,10 @@ class Category extends Model
         return $this->hasMany(Product::class, 'category_id');
     }
 
-    public function getLocalizedName(string $locale = null): string
+    public function getLocalizedName(?string $locale = null): string
     {
         $locale = $locale ?: app()->getLocale();
+
         return $this->name[$locale] ?? $this->name['hy'] ?? $this->name['en'] ?? '';
     }
 }

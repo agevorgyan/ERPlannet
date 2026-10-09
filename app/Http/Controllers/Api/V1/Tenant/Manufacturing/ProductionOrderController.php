@@ -96,7 +96,7 @@ class ProductionOrderController extends Controller
 
     public function start(Request $request, string $id, StartProductionOrderAction $action): JsonResponse
     {
-        $order = $action->execute($id, $request->user()->id);
+        $order = $action->execute($id, $request->user()?->id);
 
         return response()->json([
             'success' => true,
@@ -107,6 +107,11 @@ class ProductionOrderController extends Controller
 
     public function complete(Request $request, string $id, CompleteProductionOrderAction $action): JsonResponse
     {
+        $existingOrder = ProductionOrder::findOrFail($id);
+        if (! $request->has('actual_quantity')) {
+            $request->merge(['actual_quantity' => $existingOrder->planned_quantity]);
+        }
+
         $validated = $request->validate([
             'actual_quantity' => ['required', 'numeric', 'min:0.0001'],
             'waste_quantity' => ['nullable', 'numeric', 'min:0'],
@@ -116,7 +121,7 @@ class ProductionOrderController extends Controller
             productionOrderId: $id,
             actualQuantity: (float) $validated['actual_quantity'],
             wasteQuantity: (float) ($validated['waste_quantity'] ?? 0.0),
-            userId: $request->user()->id
+            userId: $request->user()?->id
         );
 
         return response()->json([
