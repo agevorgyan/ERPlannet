@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class TenantNotificationTemplate extends Model
 {
-    use HasFactory, HasUuids, BelongsToTenant;
+    use BelongsToTenant, HasFactory, HasUuids;
 
     protected $table = 'tenant_notification_templates';
 
@@ -30,14 +30,15 @@ class TenantNotificationTemplate extends Model
     /**
      * Render the template with the provided dynamic variables.
      *
-     * @param array<string, string|int|float> $variables
+     * @param  array<string, string|int|float>  $variables
      */
     public function render(array $variables): string
     {
         $rendered = $this->template_body;
         foreach ($variables as $key => $val) {
-            $rendered = str_replace('{' . $key . '}', (string) $val, $rendered);
+            $rendered = str_replace('{'.$key.'}', (string) $val, $rendered);
         }
+
         return $rendered;
     }
 }

@@ -11,13 +11,13 @@ use App\Domain\IAM\Models\User;
 use App\Domain\Manufacturing\Actions\CreateProductionOrderAction;
 use App\Domain\Manufacturing\Actions\CreateRecipeAction;
 use App\Domain\Manufacturing\Actions\StartProductionOrderAction;
-use App\Domain\Manufacturing\Models\ProductionOrder;
 use App\Domain\Manufacturing\Models\Recipe;
 use App\Domain\Quality\Actions\RecordQualityInspectionAction;
 use App\Domain\Quality\Models\QualityInspection;
 use App\Domain\Tenant\Models\Tenant;
 use App\Domain\Warehouse\Actions\RecordStockMovementAction;
 use App\Domain\Warehouse\Models\Warehouse;
+use App\Infrastructure\MultiTenancy\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -26,12 +26,19 @@ class QualityAssuranceISO22000Test extends TestCase
     use RefreshDatabase;
 
     protected Tenant $tenant;
+
     protected User $user;
+
     protected Warehouse $warehouse;
+
     protected Product $cheese;
+
     protected Product $milk;
+
     protected Unit $kg;
+
     protected Unit $liter;
+
     protected Recipe $recipe;
 
     protected function setUp(): void
@@ -50,7 +57,7 @@ class QualityAssuranceISO22000Test extends TestCase
             $sub->update(['plan_id' => $enterprise->id]);
         }
 
-        app(\App\Infrastructure\MultiTenancy\TenantContext::class)->setCurrentTenant($this->tenant);
+        app(TenantContext::class)->setCurrentTenant($this->tenant);
 
         $this->kg = Unit::firstOrCreate(
             ['tenant_id' => $this->tenant->id, 'code' => 'KG'],

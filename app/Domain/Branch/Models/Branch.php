@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Branch extends Model
 {
-    use HasFactory, HasUuids, BelongsToTenant, SoftDeletes;
+    use BelongsToTenant, HasFactory, HasUuids, SoftDeletes;
 
     protected $table = 'branches';
 

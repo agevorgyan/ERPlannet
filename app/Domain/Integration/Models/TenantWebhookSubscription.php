@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Crypt;
 
 class TenantWebhookSubscription extends Model
 {
-    use HasFactory, HasUuids, BelongsToTenant;
+    use BelongsToTenant, HasFactory, HasUuids;
 
     protected $table = 'tenant_webhook_subscriptions';
 
@@ -51,6 +51,7 @@ class TenantWebhookSubscription extends Model
     public function setSecret(string $secret): self
     {
         $this->secret_encrypted = Crypt::encryptString($secret);
+
         return $this;
     }
 

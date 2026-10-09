@@ -32,6 +32,8 @@
             ingredients: @json($ingredients),
             products: @json($products),
             categories: @json($categories),
+            productCategories: @json($productCategories ?? []),
+            ingredientCategories: @json($ingredientCategories ?? []),
             units: @json($units),
             customers: @json($customers),
             orders: @json($orders),
@@ -85,16 +87,23 @@
                             <span data-i18n="dashboard">Overview</span>
                         </a>
                     </li>
-                    <li>
-                        <a href="#catalog" class="nav-item-link" data-view="catalog" onclick="ERP.navigateTo('catalog')">
-                            <span class="nav-icon"><i class="fa-solid fa-tags"></i></span>
-                            <span>Catalog &amp; Items</span>
-                            <span class="nav-pill">{{ count($products) }}</span>
-                        </a>
-                    </li>
                     <!-- Directory Section (Տեղեկագիր) -->
                     <li style="margin-top: 0.5rem; padding: 0.35rem 0.85rem 0.15rem; font-size: 0.68rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-subtle);">
                         <i class="fa-solid fa-book-bookmark" style="margin-right: 4px; color: var(--color-primary);"></i> Տեղեկագիր
+                    </li>
+                    <li>
+                        <a href="#catalog" class="nav-item-link" data-view="catalog" onclick="ERP.navigateTo('catalog')">
+                            <span class="nav-icon"><i class="fa-solid fa-boxes-stacked"></i></span>
+                            <span>Ապրանքներ</span>
+                            <span class="nav-pill" id="sidebar-products-count">{{ count($products) }}</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#directory-categories" class="nav-item-link" data-view="directory-categories" onclick="ERP.navigateTo('directory-categories')">
+                            <span class="nav-icon"><i class="fa-solid fa-folder-tree"></i></span>
+                            <span>Կատեգորիաներ</span>
+                            <span class="nav-pill" id="sidebar-categories-count">{{ count($categories) }}</span>
+                        </a>
                     </li>
                     <li>
                         <a href="#directory-suppliers" class="nav-item-link" data-view="directory-suppliers" onclick="ERP.navigateTo('directory-suppliers')">
@@ -798,77 +807,462 @@
                 </section>
 
                 <!-- ==============================================================
-                     VIEW: CATALOG & ITEM MASTER (7 Types)
+                     VIEW: DIRECTORY - PRODUCTS & ITEM MASTER (Տեղեկագիր: Ապրանքներ)
                      ============================================================== -->
                 <section class="view-panel" id="view-catalog" style="display: none;">
                     <div class="welcome-banner">
                         <div>
-                            <h2 class="welcome-title">Product Catalog &amp; Item Master (7 Item Types)</h2>
-                            <p class="welcome-subtitle">Finished goods, semi-finished, raw materials, ingredients, packaging, services, and modifiers.</p>
+                            <h2 class="welcome-title"><i class="fa-solid fa-boxes-stacked" style="color: var(--color-primary); margin-right: 8px;"></i> Տեղեկագիր: Ապրանքներ &amp; Պրոդուկտներ</h2>
+                            <p class="welcome-subtitle">Պատրաստի արտադրանք, կիսաֆաբրիկատներ, բաղադրիչներ, տեխնիկական քարտեր (BOM), ինքնարժեք և պահեստի մնացորդներ:</p>
                         </div>
-                        <button class="btn btn-primary btn-sm" onclick="ERP.catalog.openCreateProductModal()">
-                            <i class="fa-solid fa-plus"></i> Add New Product
-                        </button>
+                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                            <button class="btn btn-secondary btn-sm" onclick="ERP.catalog.load()">
+                                <i class="fa-solid fa-arrows-rotate"></i> Թարմացնել
+                            </button>
+                            <button class="btn btn-primary btn-sm" onclick="ERP.catalog.openCreateProductModal()">
+                                <i class="fa-solid fa-plus"></i> Ավելացնել Ապրանք
+                            </button>
+                        </div>
                     </div>
 
+                    <!-- Summary KPI Cards -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1.25rem;">
+                        <div class="card" style="padding: 1rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Ընդհանուր ապրանքներ</div>
+                                    <div class="font-mono" id="prod-kpi-total" style="font-size: 1.5rem; font-weight: 800; color: var(--text-heading); margin-top: 4px;">{{ count($products) }}</div>
+                                </div>
+                                <div style="width: 38px; height: 38px; border-radius: 8px; background: #EFF6FF; color: #2563EB; display: flex; align-items: center; justify-content: center; font-size: 1rem;">
+                                    <i class="fa-solid fa-box-archive"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card" style="padding: 1rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Տեխ. Քարտ ունեցող</div>
+                                    <div class="font-mono" id="prod-kpi-recipes" style="font-size: 1.5rem; font-weight: 800; color: #059669; margin-top: 4px;">{{ $products->filter(fn($p) => $p->recipes->isNotEmpty())->count() }}</div>
+                                </div>
+                                <div style="width: 38px; height: 38px; border-radius: 8px; background: #ECFDF5; color: #059669; display: flex; align-items: center; justify-content: center; font-size: 1rem;">
+                                    <i class="fa-solid fa-scroll"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card" style="padding: 1rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Ստոպ-Լիստում</div>
+                                    <div class="font-mono" id="prod-kpi-stoplist" style="font-size: 1.5rem; font-weight: 800; color: #DC2626; margin-top: 4px;">{{ $products->where('is_stop_list', true)->count() }}</div>
+                                </div>
+                                <div style="width: 38px; height: 38px; border-radius: 8px; background: #FEF2F2; color: #DC2626; display: flex; align-items: center; justify-content: center; font-size: 1rem;">
+                                    <i class="fa-solid fa-ban"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card" style="padding: 1rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Սակավ Մնացորդ</div>
+                                    <div class="font-mono" id="prod-kpi-lowstock" style="font-size: 1.5rem; font-weight: 800; color: #D97706; margin-top: 4px;">{{ $products->filter(fn($p) => $p->track_stock && ($p->current_stock ?? 0) <= ($p->min_stock_level ?? 0))->count() }}</div>
+                                </div>
+                                <div style="width: 38px; height: 38px; border-radius: 8px; background: #FFFBEB; color: #D97706; display: flex; align-items: center; justify-content: center; font-size: 1rem;">
+                                    <i class="fa-solid fa-triangle-exclamation"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Filter Tabs & Controls -->
+                    <div class="card" style="margin-bottom: 1.25rem; padding: 1rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+                            <!-- Type Segmented Tabs -->
+                            <div class="directory-tabs" id="catalog-type-tabs" style="margin-bottom: 0;">
+                                <button class="directory-tab-btn active" data-type="all" onclick="ERP.catalog.filterType('all')">
+                                    <i class="fa-solid fa-list"></i> Բոլորը
+                                </button>
+                                <button class="directory-tab-btn" data-type="finished_product" onclick="ERP.catalog.filterType('finished_product')">
+                                    <i class="fa-solid fa-cubes"></i> Պատրաստի արտադրանք
+                                </button>
+                                <button class="directory-tab-btn" data-type="semi_finished" onclick="ERP.catalog.filterType('semi_finished')">
+                                    <i class="fa-solid fa-puzzle-piece"></i> Կիսաֆաբրիկատներ
+                                </button>
+                                <button class="directory-tab-btn" data-type="modifier" onclick="ERP.catalog.filterType('modifier')">
+                                    <i class="fa-solid fa-sliders"></i> Մոդիֆիկատորներ
+                                </button>
+                                <button class="directory-tab-btn" data-type="stop_list" onclick="ERP.catalog.filterType('stop_list')">
+                                    <i class="fa-solid fa-ban"></i> Ստոպ-ցուցակ
+                                </button>
+                                <button class="directory-tab-btn" data-type="low_stock" onclick="ERP.catalog.filterType('low_stock')">
+                                    <i class="fa-solid fa-triangle-exclamation"></i> Սակավ մնացորդ
+                                </button>
+                            </div>
+
+                            <!-- Search & Category Filters -->
+                            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                <select class="select" id="catalog-category-filter" onchange="ERP.catalog.load()" style="min-width: 170px; font-size: 0.8rem; padding: 6px 10px;">
+                                    <option value="">Բոլոր կատեգորիաները</option>
+                                    @foreach($productCategories ?? $categories as $cat)
+                                        <option value="{{ $cat->id }}">{{ is_array($cat->name) ? ($cat->name['hy'] ?? reset($cat->name)) : $cat->name }}</option>
+                                    @endforeach
+                                </select>
+                                <div style="position: relative; width: 240px;">
+                                    <input type="text" id="catalog-search" class="form-control" placeholder="Որոնել անվանում, SKU, EAN..." oninput="ERP.catalog.debouncedSearch()" style="padding-left: 30px; font-size: 0.82rem;">
+                                    <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-size: 0.75rem; color: var(--text-muted);"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Products Table Card -->
                     <div class="card">
-                        <div class="card-header">
-                            <h3 style="font-size: 1rem; font-weight: 800; color: var(--text-heading);">Master Product Directory</h3>
-                            <span class="badge badge-indigo">{{ count($products) }} Products</span>
+                        <div class="card-header" style="margin-bottom: 0.75rem;">
+                            <h3 style="font-size: 1rem; font-weight: 800; color: var(--text-heading);">
+                                <i class="fa-solid fa-boxes-stacked" style="color: var(--color-primary); margin-right: 6px;"></i> Ապրանքների և Պրոդուկտների Ցանկ
+                            </h3>
+                            <span class="badge badge-indigo" id="catalog-count-badge">{{ count($products) }} Ապրանք</span>
                         </div>
                         <div class="table-responsive">
-                            <table class="table">
+                            <table class="table" id="catalog-table">
                                 <thead>
                                     <tr>
-                                        <th>SKU</th>
-                                        <th>Name</th>
-                                        <th>Type</th>
-                                        <th>Category</th>
-                                        <th>Unit</th>
-                                        <th>Cost Price</th>
-                                        <th>Sale Price</th>
-                                        <th>Actions</th>
+                                        <th style="width: 48px;">Պատկեր</th>
+                                        <th>Անվանում &amp; Կատեգորիա</th>
+                                        <th>Կոդեր (SKU / EAN / ԱՏԳ)</th>
+                                        <th>Տեսակ</th>
+                                        <th>Քանակ / Չափ</th>
+                                        <th>Ինքնարժեք</th>
+                                        <th>Վաճառքի Գին</th>
+                                        <th>Կարգավիճակ</th>
+                                        <th>Պահեստի Մնացորդ</th>
+                                        <th style="text-align: right;">Գործողություններ</th>
                                     </tr>
                                 </thead>
-                                <tbody>
+                                <tbody id="catalog-table-body">
                                     @forelse($products as $p)
                                         @php
                                             $typeBadges = [
-                                                'finished_product' => 'badge-emerald',
-                                                'semi_finished' => 'badge-indigo',
-                                                'ingredient' => 'badge-amber',
-                                                'raw_material' => 'badge-cyan',
-                                                'packaging' => 'badge-slate',
-                                                'service' => 'badge-violet',
-                                                'modifier' => 'badge-amber',
+                                                'finished_product' => ['cls' => 'badge-emerald', 'lbl' => 'Պատրաստի'],
+                                                'semi_finished' => ['cls' => 'badge-indigo', 'lbl' => 'Կիսաֆաբրիկատ'],
+                                                'ingredient' => ['cls' => 'badge-amber', 'lbl' => 'Բաղադրիչ'],
+                                                'raw_material' => ['cls' => 'badge-cyan', 'lbl' => 'Հումք'],
+                                                'packaging' => ['cls' => 'badge-slate', 'lbl' => 'Փաթեթավորում'],
+                                                'service' => ['cls' => 'badge-violet', 'lbl' => 'Ծառայություն'],
+                                                'modifier' => ['cls' => 'badge-orange', 'lbl' => 'Մոդիֆիկատոր'],
                                             ];
-                                            $badgeClass = $typeBadges[$p->type ?? 'finished_product'] ?? 'badge-slate';
+                                            $tInfo = $typeBadges[$p->type ?? 'finished_product'] ?? ['cls' => 'badge-slate', 'lbl' => $p->type];
+                                            $imgUrl = !empty($p->images) && is_array($p->images) ? reset($p->images) : null;
+                                            $stock = (float) ($p->current_stock ?? 0);
+                                            $isLowStock = $p->track_stock && $stock <= (float) ($p->min_stock_level ?? 0);
+                                            $hasRecipe = $p->recipes->isNotEmpty();
                                         @endphp
-                                        <tr>
-                                            <td class="font-mono" style="font-weight: 700; color: var(--color-primary);">{{ $p->sku }}</td>
-                                            <td style="font-weight: 700; color: var(--text-heading);">
-                                                {{ is_array($p->name) ? ($p->name['hy'] ?? reset($p->name)) : $p->name }}
-                                                @if(is_array($p->name) && isset($p->name['en']) && $p->name['en'] !== ($p->name['hy'] ?? ''))
-                                                    <span style="font-size: 0.72rem; color: var(--text-muted); display: block;">{{ $p->name['en'] }}</span>
+                                        <tr data-id="{{ $p->id }}" data-type="{{ $p->type }}" data-stoplist="{{ $p->is_stop_list ? '1' : '0' }}">
+                                            <td>
+                                                @if($imgUrl)
+                                                    <img src="{{ $imgUrl }}" class="product-thumb-sm" alt="Thumbnail">
+                                                @else
+                                                    <div class="product-thumb-sm"><i class="fa-solid fa-cube"></i></div>
                                                 @endif
                                             </td>
                                             <td>
-                                                <span class="badge {{ $badgeClass }}">
-                                                    {{ strtoupper(str_replace('_', ' ', $p->type ?? 'finished_product')) }}
-                                                </span>
+                                                <div style="font-weight: 700; color: var(--text-heading); font-size: 0.88rem;">
+                                                    {{ is_array($p->name) ? ($p->name['hy'] ?? reset($p->name)) : $p->name }}
+                                                </div>
+                                                <div style="display: flex; gap: 4px; align-items: center; margin-top: 2px;">
+                                                    <span style="font-size: 0.72rem; color: var(--text-muted);">
+                                                        {{ $p->category?->name ? (is_array($p->category->name) ? ($p->category->name['hy'] ?? reset($p->category->name)) : $p->category->name) : 'Ընդհանուր' }}
+                                                    </span>
+                                                    @if($p->packaging)
+                                                        <span class="item-chip" style="font-size: 0.65rem; padding: 1px 4px;">{{ $p->packaging }}</span>
+                                                    @endif
+                                                </div>
                                             </td>
-                                            <td>{{ $p->category?->name ? (is_array($p->category->name) ? ($p->category->name['hy'] ?? reset($p->category->name)) : $p->category->name) : 'General' }}</td>
-                                            <td class="font-mono">{{ $p->unit?->symbol ?? 'pcs' }}</td>
-                                            <td class="font-mono">{{ number_format($p->cost_price ?? 0, 0) }} ֏</td>
-                                            <td class="font-mono" style="font-weight: 800; color: var(--color-success);">{{ number_format($p->sale_price ?? 0, 0) }} ֏</td>
                                             <td>
-                                                <button class="btn btn-xs btn-outline-secondary" onclick="ERP.inventory.openAdjustStockModal(); const sel = document.getElementById('adj-product-id'); if(sel) sel.value='{{ $p->id }}';" style="font-size: 0.72rem; padding: 3px 8px;">
-                                                    <i class="fa-solid fa-scale-balanced"></i> Stock
+                                                <div class="font-mono" style="font-weight: 700; color: var(--color-primary); font-size: 0.78rem;">{{ $p->sku }}</div>
+                                                @if($p->barcode)
+                                                    <div class="font-mono" style="font-size: 0.7rem; color: var(--text-muted);"><i class="fa-solid fa-barcode"></i> {{ $p->barcode }}</div>
+                                                @endif
+                                                @if($p->hs_code)
+                                                    <div style="font-size: 0.68rem; color: #64748B;">ԱՏԳ: {{ $p->hs_code }}</div>
+                                                @endif
+                                            </td>
+                                            <td>
+                                                <span class="badge {{ $tInfo['cls'] }}">{{ $tInfo['lbl'] }}</span>
+                                            </td>
+                                            <td>
+                                                @if($p->net_quantity)
+                                                    <div style="font-weight: 600; font-size: 0.8rem; color: var(--text-heading);">{{ $p->net_quantity }}</div>
+                                                @endif
+                                                <span class="font-mono" style="font-size: 0.72rem; color: var(--text-muted);">{{ $p->unit?->name ? (is_array($p->unit->name) ? ($p->unit->name['hy'] ?? reset($p->unit->name)) : $p->unit->name) : ($p->unit?->code ?? 'հատ') }}</span>
+                                            </td>
+                                            <td>
+                                                <div class="font-mono" style="font-weight: 700; color: #334155;">{{ number_format($p->cost_price ?? 0, 0) }} ֏</div>
+                                                @if($hasRecipe)
+                                                    <span class="item-chip" style="background: #ECFDF5; color: #059669; border-color: #A7F3D0; font-size: 0.65rem;">
+                                                        <i class="fa-solid fa-scroll"></i> BOM ինքնարժեք
+                                                    </span>
+                                                @endif
+                                            </td>
+                                            <td>
+                                                <div class="font-mono" style="font-weight: 800; color: var(--color-success); font-size: 0.9rem;">
+                                                    {{ number_format($p->sale_price ?? 0, 0) }} ֏
+                                                </div>
+                                                @if($p->special_price && $p->special_price > 0)
+                                                    <div class="font-mono" style="font-size: 0.72rem; color: #D97706; text-decoration: line-through;">
+                                                        Ակցիա՝ {{ number_format($p->special_price, 0) }} ֏
+                                                    </div>
+                                                @endif
+                                            </td>
+                                            <td>
+                                                <div style="display: flex; flex-direction: column; gap: 3px;">
+                                                    @if($p->is_stop_list)
+                                                        <span class="badge-stop-list"><i class="fa-solid fa-ban"></i> Ստոպ-լիստ</span>
+                                                    @endif
+                                                    @if($p->allow_modifiers)
+                                                        <span class="badge badge-orange" style="font-size: 0.65rem;"><i class="fa-solid fa-sliders"></i> Մոդիֆիկատորներ</span>
+                                                    @endif
+                                                    @if($p->has_vat)
+                                                        <span style="font-size: 0.68rem; color: #64748B;">ԱԱՀ {{ $p->vat_rate ?? 20 }}%</span>
+                                                    @else
+                                                        <span style="font-size: 0.68rem; color: #059669; font-weight: 700;">Առանց ԱԱՀ</span>
+                                                    @endif
+                                                    @if($p->is_excise)
+                                                        <span class="badge badge-slate" style="font-size: 0.65rem;">Ակցիզ</span>
+                                                    @endif
+                                                    @if($p->is_marked)
+                                                        <span class="badge badge-cyan" style="font-size: 0.65rem;">DataMatrix</span>
+                                                    @endif
+                                                </div>
+                                            </td>
+                                            <td>
+                                                @if($p->track_stock)
+                                                    <div class="font-mono" style="font-weight: 800; font-size: 0.88rem; color: {{ $isLowStock ? '#DC2626' : 'var(--text-heading)' }};">
+                                                        {{ number_format($stock, 2) }}
+                                                    </div>
+                                                    @if($isLowStock)
+                                                        <span class="low-stock-badge" style="font-size: 0.65rem; padding: 1px 5px;">
+                                                            <i class="fa-solid fa-triangle-exclamation"></i> Սակավ
+                                                        </span>
+                                                    @endif
+                                                @else
+                                                    <span style="font-size: 0.72rem; color: var(--text-muted);">Անսահմանափակ</span>
+                                                @endif
+                                            </td>
+                                            <td style="text-align: right; white-space: nowrap;">
+                                                <button class="btn btn-xs btn-outline-secondary" onclick="ERP.catalog.openTechnicalCard('{{ $p->id }}')" title="Տեխնիկական քարտ / BOM" style="padding: 4px 7px; color: #059669; border-color: #A7F3D0; background: #ECFDF5;">
+                                                    <i class="fa-solid fa-scroll"></i> Տեխ. Քարտ
+                                                </button>
+                                                <button class="btn btn-xs btn-outline-secondary" onclick="ERP.catalog.openQuickProduce('{{ $p->id }}')" title="Արտադրել խմբաքանակ" style="padding: 4px 7px; color: #2563EB; border-color: #BFDBFE; background: #EFF6FF;">
+                                                    <i class="fa-solid fa-industry"></i> Արտադրել
+                                                </button>
+                                                <button class="btn btn-xs btn-outline-secondary" onclick="ERP.catalog.openEditProductModal('{{ $p->id }}')" title="Խմբագրել" style="padding: 4px 7px;">
+                                                    <i class="fa-solid fa-pen-to-square"></i>
+                                                </button>
+                                                <button class="btn btn-xs btn-outline-secondary" onclick="ERP.catalog.deleteProduct('{{ $p->id }}')" title="Հեռացնել" style="padding: 4px 7px; color: #DC2626;">
+                                                    <i class="fa-solid fa-trash-can"></i>
                                                 </button>
                                             </td>
                                         </tr>
                                     @empty
-                                        <tr><td colspan="8" style="text-align: center; color: var(--text-muted);">No products registered yet.</td></tr>
+                                        <tr><td colspan="10" style="text-align: center; padding: 2rem; color: var(--text-muted);">Գրանցված ապրանքներ չկան:</td></tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ==============================================================
+                     VIEW: DIRECTORY - CATEGORIES (Տեղեկագիր: Կատեգորիաներ)
+                     ============================================================== -->
+                <section class="view-panel" id="view-directory-categories" style="display: none;">
+                    <div class="welcome-banner">
+                        <div>
+                            <h2 class="welcome-title"><i class="fa-solid fa-folder-tree" style="color: var(--color-primary); margin-right: 8px;"></i> Տեղեկագիր: Կատեգորիաներ &amp; Բաժիններ</h2>
+                            <p class="welcome-subtitle">Ապրանքային և հումքային խմբեր, ենթակատեգորիաներ, լուսանկարներ, դասավորություն և ակտիվ կարգավիճակ:</p>
+                        </div>
+                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                            <button class="btn btn-secondary btn-sm" onclick="ERP.directory.categories.load()">
+                                <i class="fa-solid fa-arrows-rotate"></i> Թարմացնել
+                            </button>
+                            <button class="btn btn-primary btn-sm" onclick="ERP.directory.categories.openCreateModal()">
+                                <i class="fa-solid fa-plus"></i> Ավելացնել Կատեգորիա
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Category KPI Cards -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.25rem;">
+                        <div class="card" style="padding: 1rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Ընդհանուր Խմբեր</div>
+                                    <div class="font-mono" id="cat-kpi-total" style="font-size: 1.5rem; font-weight: 800; color: var(--text-heading); margin-top: 4px;">{{ count($categories) }}</div>
+                                </div>
+                                <div style="width: 38px; height: 38px; border-radius: 8px; background: #EFF6FF; color: #2563EB; display: flex; align-items: center; justify-content: center; font-size: 1rem;">
+                                    <i class="fa-solid fa-layer-group"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card" style="padding: 1rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Ապրանքային Խմբեր</div>
+                                    <div class="font-mono" id="cat-kpi-product" style="font-size: 1.5rem; font-weight: 800; color: #2563EB; margin-top: 4px;">{{ $categories->filter(fn($c) => ($c->type ?? 'product') === 'product')->count() }}</div>
+                                </div>
+                                <div style="width: 38px; height: 38px; border-radius: 8px; background: #EEF2FF; color: #4F46E5; display: flex; align-items: center; justify-content: center; font-size: 1rem;">
+                                    <i class="fa-solid fa-boxes-stacked"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card" style="padding: 1rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Բաղադրիչների Խմբեր</div>
+                                    <div class="font-mono" id="cat-kpi-ingredient" style="font-size: 1.5rem; font-weight: 800; color: #D97706; margin-top: 4px;">{{ $categories->filter(fn($c) => ($c->type ?? '') === 'ingredient')->count() }}</div>
+                                </div>
+                                <div style="width: 38px; height: 38px; border-radius: 8px; background: #FFFBEB; color: #D97706; display: flex; align-items: center; justify-content: center; font-size: 1rem;">
+                                    <i class="fa-solid fa-mortar-pestle"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card" style="padding: 1rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Ենթակատեգորիաներ</div>
+                                    <div class="font-mono" id="cat-kpi-sub" style="font-size: 1.5rem; font-weight: 800; color: #7C3AED; margin-top: 4px;">{{ $categories->whereNotNull('parent_id')->count() }}</div>
+                                </div>
+                                <div style="width: 38px; height: 38px; border-radius: 8px; background: #F5F3FF; color: #7C3AED; display: flex; align-items: center; justify-content: center; font-size: 1rem;">
+                                    <i class="fa-solid fa-folder-open"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Category Filter & Search Bar -->
+                    <div class="card" style="margin-bottom: 1.25rem; padding: 1rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+                            <div class="directory-tabs" id="category-filter-tabs" style="margin-bottom: 0;">
+                                <button type="button" class="directory-tab-btn active" data-type="all" onclick="ERP.directory.categories.filterType('all')">
+                                    <i class="fa-solid fa-list"></i> Բոլորը (<span id="cat-tab-count-all">{{ count($categories) }}</span>)
+                                </button>
+                                <button type="button" class="directory-tab-btn" data-type="product" onclick="ERP.directory.categories.filterType('product')">
+                                    <i class="fa-solid fa-boxes-stacked" style="color: #2563EB;"></i> Ապրանքային (<span id="cat-tab-count-product">{{ $categories->filter(fn($c) => ($c->type ?? 'product') === 'product')->count() }}</span>)
+                                </button>
+                                <button type="button" class="directory-tab-btn" data-type="ingredient" onclick="ERP.directory.categories.filterType('ingredient')">
+                                    <i class="fa-solid fa-mortar-pestle" style="color: #D97706;"></i> Բաղադրիչների (<span id="cat-tab-count-ingredient">{{ $categories->filter(fn($c) => ($c->type ?? '') === 'ingredient')->count() }}</span>)
+                                </button>
+                                <button type="button" class="directory-tab-btn" data-type="root" onclick="ERP.directory.categories.filterType('root')">
+                                    <i class="fa-solid fa-folder"></i> Գլխավոր (<span id="cat-tab-count-root">{{ $categories->whereNull('parent_id')->count() }}</span>)
+                                </button>
+                                <button type="button" class="directory-tab-btn" data-type="sub" onclick="ERP.directory.categories.filterType('sub')">
+                                    <i class="fa-solid fa-folder-open"></i> Ենթախմբեր (<span id="cat-tab-count-sub">{{ $categories->whereNotNull('parent_id')->count() }}</span>)
+                                </button>
+                            </div>
+
+                            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                <div style="position: relative; width: 260px;">
+                                    <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 0.75rem;"></i>
+                                    <input type="text" id="cat-search-input" class="form-control form-control-sm" placeholder="Որոնել կատեգորիա, slug..." oninput="ERP.directory.categories.handleSearch(this.value)" style="padding-left: 30px;">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Categories Table Card -->
+                    <div class="card">
+                        <div class="card-header" style="margin-bottom: 0.75rem;">
+                            <h3 style="font-size: 1rem; font-weight: 800; color: var(--text-heading);">
+                                <i class="fa-solid fa-folder-tree" style="color: var(--color-primary); margin-right: 6px;"></i> Կատեգորիաների Ցանկ
+                            </h3>
+                            <span class="badge badge-indigo" id="cat-count-badge">{{ count($categories) }} Խումբ</span>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table" id="directory-categories-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 50px;">Պատկեր</th>
+                                        <th>Անվանում (Հայերեն / English)</th>
+                                        <th>Տեսակ</th>
+                                        <th>Slug / Կոդ</th>
+                                        <th>Գլխավոր Խումբ</th>
+                                        <th>Ապրանքներ</th>
+                                        <th>Դասավորություն</th>
+                                        <th>Կարգավիճակ</th>
+                                        <th style="text-align: right;">Գործողություններ</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="directory-categories-table-body">
+                                    @forelse($categories as $cat)
+                                        @php
+                                            $nameHy = is_array($cat->name) ? ($cat->name['hy'] ?? reset($cat->name)) : $cat->name;
+                                            $nameEn = is_array($cat->name) ? ($cat->name['en'] ?? '') : '';
+                                            $parentName = $cat->parent ? (is_array($cat->parent->name) ? ($cat->parent->name['hy'] ?? reset($cat->parent->name)) : $cat->parent->name) : null;
+                                            $catType = $cat->type ?? 'product';
+                                        @endphp
+                                        <tr data-id="{{ $cat->id }}" data-type="{{ $catType }}" data-parent="{{ $cat->parent_id ? '1' : '0' }}">
+                                            <td>
+                                                @if($cat->image_url)
+                                                    <img src="{{ $cat->image_url }}" class="category-thumb-sm" alt="Thumbnail">
+                                                @else
+                                                    <div class="category-thumb-sm"><i class="fa-solid {{ $catType === 'ingredient' ? 'fa-mortar-pestle' : 'fa-folder' }}"></i></div>
+                                                @endif
+                                            </td>
+                                            <td>
+                                                <div style="font-weight: 700; color: var(--text-heading); font-size: 0.88rem;">{{ $nameHy }}</div>
+                                                @if($nameEn)
+                                                    <div style="font-size: 0.72rem; color: var(--text-muted);">{{ $nameEn }}</div>
+                                                @endif
+                                            </td>
+                                            <td>
+                                                @if($catType === 'ingredient')
+                                                    <span class="badge badge-amber" style="font-size: 0.72rem; font-weight: 700;">
+                                                        <i class="fa-solid fa-mortar-pestle"></i> Բաղադրիչների
+                                                    </span>
+                                                @else
+                                                    <span class="badge badge-indigo" style="font-size: 0.72rem; font-weight: 700;">
+                                                        <i class="fa-solid fa-boxes-stacked"></i> Ապրանքային
+                                                    </span>
+                                                @endif
+                                            </td>
+                                            <td>
+                                                <span class="font-mono" style="font-size: 0.78rem; font-weight: 700; color: var(--color-primary);">{{ $cat->slug }}</span>
+                                            </td>
+                                            <td>
+                                                @if($parentName)
+                                                    <span class="item-chip" style="background: #F5F3FF; color: #7C3AED; border-color: #DDD6FE;">
+                                                        <i class="fa-solid fa-folder-open"></i> {{ $parentName }}
+                                                    </span>
+                                                @else
+                                                    <span class="badge badge-emerald" style="font-size: 0.68rem;">Գլխավոր Խումբ</span>
+                                                @endif
+                                            </td>
+                                            <td>
+                                                <span class="badge badge-slate" style="font-weight: 700; font-size: 0.75rem;">
+                                                    <i class="fa-solid fa-box"></i> {{ $cat->products_count ?? 0 }} ապրանք
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span class="font-mono" style="font-size: 0.78rem; color: #64748B;">{{ $cat->sort_order }}</span>
+                                            </td>
+                                            <td>
+                                                @if($cat->is_active)
+                                                    <span class="badge badge-emerald"><i class="fa-solid fa-circle-check"></i> Ակտիվ</span>
+                                                @else
+                                                    <span class="badge badge-amber"><i class="fa-solid fa-circle-pause"></i> Պասիվ</span>
+                                                @endif
+                                            </td>
+                                            <td style="text-align: right; white-space: nowrap;">
+                                                <button class="btn btn-xs btn-outline-secondary" onclick="ERP.directory.categories.openEditModal('{{ $cat->id }}')" title="Խմբագրել" style="padding: 4px 7px;">
+                                                    <i class="fa-solid fa-pen-to-square"></i>
+                                                </button>
+                                                <button class="btn btn-xs btn-outline-secondary" onclick="ERP.directory.categories.deleteCategory('{{ $cat->id }}')" title="Հեռացնել" style="padding: 4px 7px; color: #DC2626;">
+                                                    <i class="fa-solid fa-trash-can"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr><td colspan="9" style="text-align: center; padding: 2rem; color: var(--text-muted);">Գրանցված կատեգորիաներ չկան:</td></tr>
                                     @endforelse
                                 </tbody>
                             </table>
@@ -1092,7 +1486,7 @@
 
                                 <select class="select select-sm" id="ing-category-filter" style="width: 170px;" onchange="ERP.directory.ingredients.handleCategoryFilter(this.value)">
                                     <option value="">Բոլոր Կատեգորիաները</option>
-                                    @foreach($categories as $cat)
+                                    @foreach($ingredientCategories ?? $categories as $cat)
                                         <option value="{{ $cat->id }}">{{ is_array($cat->name) ? ($cat->name['hy'] ?? reset($cat->name)) : $cat->name }}</option>
                                     @endforeach
                                 </select>
@@ -1519,7 +1913,7 @@
                                         <span class="font-mono" style="font-size: 0.75rem; font-weight: 700; color: var(--color-warning);">{{ $rcp->code }}</span>
                                         <h4 style="font-size: 1.05rem; font-weight: 800; color: var(--text-heading); margin-top: 2px;">{{ $rcp->name }}</h4>
                                     </div>
-                                    <span class="badge badge-amber font-mono">Yield: {{ number_format($rcp->yield_quantity, 0) }} {{ $rcp->yieldUnit?->symbol ?? 'units' }}</span>
+                                    <span class="badge badge-amber font-mono">Yield: {{ number_format($rcp->yield_quantity, 0) }} {{ $rcp->yieldUnit?->code ?? 'units' }}</span>
                                 </div>
                                 <div style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.75rem;">
                                     Labor / Overhead: <strong style="color: var(--text-heading); font-family: var(--font-mono);">{{ number_format($rcp->labor_cost, 0) }} / {{ number_format($rcp->overhead_cost, 0) }} ֏</strong>
@@ -2091,79 +2485,707 @@
         </div>
     </div>
 
-    <!-- Modal 5: Create Product / Item Master -->
+    <!-- Modal 5: Comprehensive Product / Item Master (7 Tabs with Hints) -->
     <div class="modal-backdrop" id="create-product-modal">
-        <div class="modal-container" style="max-width: 620px;">
+        <div class="modal-container" style="max-width: 860px; max-height: 90vh; display: flex; flex-direction: column;">
             <div class="modal-header">
-                <h3><i class="fa-solid fa-tag"></i> Add New Item / Product</h3>
-                <button onclick="ERP.catalog.closeCreateProductModal()" style="font-size: 1.25rem; color: var(--text-muted);">&times;</button>
+                <div>
+                    <h3 id="product-modal-title"><i class="fa-solid fa-boxes-stacked" style="color: var(--color-primary); margin-right: 6px;"></i> Ապրանքի Քարտ (Product / Item Master)</h3>
+                    <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">Պարամետրեր, գնագոյացում, մոդիֆիկատորներ, ստոպ-լիստ, ալերգեններ և հասանելիություն:</p>
+                </div>
+                <button onclick="ERP.catalog.closeCreateProductModal()" style="font-size: 1.25rem; color: var(--text-muted); background: none; border: none; cursor: pointer;">&times;</button>
             </div>
-            <form onsubmit="ERP.catalog.submitProduct(event)">
-                <div class="modal-body">
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
-                        <div class="form-group">
-                            <label class="form-label">Անվանում (Հայերեն) *</label>
-                            <input type="text" class="form-control" id="prod-name-hy" required placeholder="օր․ Լոլիկ, Պանիր Չանախ, Փաթեթավորման տուփ">
+
+            <!-- Tab Navigation Bar -->
+            <div class="product-modal-tabs" style="padding: 0 1.5rem; background: #F8FAFC;">
+                <button type="button" class="product-tab-btn active" data-tab="tab-prod-general" onclick="ERP.catalog.switchModalTab('tab-prod-general')">
+                    <i class="fa-solid fa-info-circle"></i> Հիմնական
+                </button>
+                <button type="button" class="product-tab-btn" data-tab="tab-prod-codes" onclick="ERP.catalog.switchModalTab('tab-prod-codes')">
+                    <i class="fa-solid fa-barcode"></i> Կոդեր &amp; ԻԴ
+                </button>
+                <button type="button" class="product-tab-btn" data-tab="tab-prod-pricing" onclick="ERP.catalog.switchModalTab('tab-prod-pricing')">
+                    <i class="fa-solid fa-coins"></i> Գներ &amp; ԱԱՀ
+                </button>
+                <button type="button" class="product-tab-btn" data-tab="tab-prod-flags" onclick="ERP.catalog.switchModalTab('tab-prod-flags')">
+                    <i class="fa-solid fa-sliders"></i> Մոդիֆիկատոր &amp; Պահեստ
+                </button>
+                <button type="button" class="product-tab-btn" data-tab="tab-prod-variants" onclick="ERP.catalog.switchModalTab('tab-prod-variants')">
+                    <i class="fa-solid fa-layer-group"></i> Վարիացիաներ
+                </button>
+                <button type="button" class="product-tab-btn" data-tab="tab-prod-nutrition" onclick="ERP.catalog.switchModalTab('tab-prod-nutrition')">
+                    <i class="fa-solid fa-apple-whole"></i> Ալերգեններ &amp; Դիետա
+                </button>
+                <button type="button" class="product-tab-btn" data-tab="tab-prod-availability" onclick="ERP.catalog.switchModalTab('tab-prod-availability')">
+                    <i class="fa-solid fa-clock"></i> Հասանելիություն
+                </button>
+            </div>
+
+            <form id="product-master-form" onsubmit="ERP.catalog.submitProduct(event)" style="display: flex; flex-direction: column; flex: 1; overflow: hidden;">
+                <input type="hidden" id="prod-edit-id" value="">
+
+                <div class="modal-body" style="overflow-y: auto; padding: 1.25rem 1.5rem; flex: 1;">
+                    <!-- TAB 1: General Info -->
+                    <div class="product-tab-pane" id="tab-prod-general">
+                        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1rem; margin-bottom: 0.75rem;">
+                            <div class="form-group">
+                                <label class="form-label">Անվանում (Հայերեն) *</label>
+                                <input type="text" class="form-control" id="prod-name-hy" required placeholder="օր․ Լոլիկով և Պանրով Պիցցա, Մատնաքաշ, Խմոր Կիսաֆաբրիկատ">
+                                <div class="form-hint"><i class="fa-solid fa-circle-info"></i> Պրոդուկտի պաշտոնական անվանումը հայերենով: Ցուցադրվում է POS-ում, չեկերում և մենյուում:</div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Ապրանքի Տեսակ (Type) *</label>
+                                <select class="select" id="prod-type" required onchange="ERP.catalog.onTypeChange()">
+                                    <option value="finished_product">Finished Product (Պատրաստի արտադրանք)</option>
+                                    <option value="semi_finished">Semi-Finished (Կիսաֆաբրիկատ)</option>
+                                    <option value="ingredient">Ingredient (Բաղադրիչ / Հումք)</option>
+                                    <option value="raw_material">Raw Material (Հումք)</option>
+                                    <option value="packaging">Packaging (Փաթեթավորում)</option>
+                                    <option value="service">Service (Ծառայություն)</option>
+                                    <option value="modifier">Modifier (Մոդիֆիկատոր)</option>
+                                </select>
+                                <div class="form-hint"><i class="fa-solid fa-circle-info"></i> Պրոդուկտի դերը արտադրության և առևտրի շղթայում: Կիսաֆաբրիկատները կարող են մտնել այլ ապրանքների բաղադրատոմսի մեջ:</div>
+                            </div>
                         </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
+                            <div class="form-group">
+                                <label class="form-label">Name (English)</label>
+                                <input type="text" class="form-control" id="prod-name-en" placeholder="e.g. Tomato & Cheese Pizza">
+                                <div class="form-hint"><i class="fa-solid fa-circle-info"></i> Անգլերեն անվանում միջազգային հաճախորդների և QR Menu-ի համար:</div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Название (Русский)</label>
+                                <input type="text" class="form-control" id="prod-name-ru" placeholder="напр. Пицца с томатами и сыром">
+                                <div class="form-hint"><i class="fa-solid fa-circle-info"></i> Ռուսերեն անվանում մենյուի և հաշվետվությունների համար:</div>
+                            </div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
+                            <div class="form-group">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                    <label class="form-label" style="margin-bottom: 0;">Կատեգորիա</label>
+                                    <button type="button" class="btn btn-xs btn-outline-primary" onclick="ERP.directory.categories.openCreateModal(null, 'product')" style="font-size: 0.7rem; padding: 2px 6px;">
+                                        <i class="fa-solid fa-plus"></i> Նոր Խումբ
+                                    </button>
+                                </div>
+                                <select class="select" id="prod-category-id" onchange="ERP.catalog.onCategoryChange(this.value)">
+                                    <option value="">-- Առանց կատեգորիայի --</option>
+                                    @foreach($productCategories ?? $categories as $cat)
+                                        <option value="{{ $cat->id }}">{{ is_array($cat->name) ? ($cat->name['hy'] ?? reset($cat->name)) : $cat->name }}</option>
+                                    @endforeach
+                                </select>
+                                <div class="form-hint"><i class="fa-solid fa-circle-info"></i> Հիմնական ապրանքային խումբը (օր․ Հացաբուլկեղեն, Տաք ուտեստներ, Խմիչքներ):</div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Ենթակատեգորիա (Ենթախումբ)</label>
+                                <select class="select" id="prod-subcategory-id">
+                                    <option value="">-- Առանց ենթախմբի --</option>
+                                    @foreach($productCategories ?? $categories as $cat)
+                                        <option value="{{ $cat->id }}">{{ is_array($cat->name) ? ($cat->name['hy'] ?? reset($cat->name)) : $cat->name }}</option>
+                                    @endforeach
+                                </select>
+                                <div class="form-hint"><i class="fa-solid fa-circle-info"></i> Ենթախումբ ավելի նեղ դասակարգման և զտման համար:</div>
+                            </div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
+                            <div class="form-group">
+                                <label class="form-label">Չափման Միավոր (Unit) *</label>
+                                <select class="select" id="prod-unit-id" required>
+                                    @foreach($units as $u)
+                                        <option value="{{ $u->id }}">{{ is_array($u->name) ? ($u->name['hy'] ?? reset($u->name)) : $u->name }} ({{ $u->code }})</option>
+                                    @endforeach
+                                </select>
+                                <div class="form-hint"><i class="fa-solid fa-circle-info"></i> Պահեստային հաշվառման հիմնական միավորը (հատ, կգ, գրամ, լիտր):</div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Քանակ չափման միավոր</label>
+                                <input type="text" class="form-control" id="prod-net-quantity" placeholder="օր․ 450 գրամ, 0.5 լ, 1 հատ">
+                                <div class="form-hint"><i class="fa-solid fa-circle-info"></i> Մեկ միավորի կամ պորցիայի զուտ ծավալ/քաշ (Net quantity):</div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Տարա / Փաթեթավորում</label>
+                                <input type="text" class="form-control" id="prod-packaging" placeholder="օր․ Տուփ, Շիշ, Պարկ, Առանց տարայի">
+                                <div class="form-hint"><i class="fa-solid fa-circle-info"></i> Տարայի կամ փաթեթավորման տեսակը:</div>
+                            </div>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 0.75rem;">
+                            <label class="form-label">Ապրանքի Պատկեր (Image)</label>
+                            <div style="display: flex; gap: 0.75rem; align-items: flex-start;">
+                                <div id="prod-image-preview-box" style="width: 76px; height: 76px; border-radius: 8px; border: 2px dashed #CBD5E1; background: #F8FAFC; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; flex-shrink: 0;">
+                                    <img id="prod-image-preview" src="" alt="Preview" style="width: 100%; height: 100%; object-fit: cover; display: none;">
+                                    <i id="prod-image-placeholder-icon" class="fa-solid fa-cloud-arrow-up" style="color: #94A3B8; font-size: 1.5rem;"></i>
+                                    <button type="button" id="prod-image-remove-btn" onclick="ERP.media.clearProductImage()" style="display: none; position: absolute; top: 3px; right: 3px; background: rgba(220, 38, 38, 0.9); color: #fff; border: none; border-radius: 50%; width: 20px; height: 20px; cursor: pointer; font-size: 11px; align-items: center; justify-content: center;">&times;</button>
+                                </div>
+                                <div style="flex: 1;">
+                                    <div style="display: flex; gap: 0.5rem; margin-bottom: 6px;">
+                                        <input type="text" class="form-control" id="prod-image-url" placeholder="https://... կամ վերբեռնեք ֆայլը" oninput="ERP.media.onProductUrlChange(this.value)">
+                                        <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('prod-image-file').click()" style="white-space: nowrap;">
+                                            <i class="fa-solid fa-arrow-up-from-bracket"></i> Վերբեռնել
+                                        </button>
+                                        <input type="file" id="prod-image-file" accept="image/*" style="display: none;" onchange="ERP.media.handleFileUpload(this, 'products', 'prod-image-url', 'prod-image-preview', 'prod-image-preview-box', 'prod-image-remove-btn', 'prod-image-placeholder-icon')">
+                                    </div>
+                                    <div class="form-hint"><i class="fa-solid fa-circle-info"></i> Կարող եք ընտրել պատկեր համակարգչից (PNG, JPG, WebP մինչև 10MB) կամ տեղադրել արտաքին URL:</div>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="form-group">
-                            <label class="form-label">Name (English)</label>
-                            <input type="text" class="form-control" id="prod-name-en" placeholder="e.g. Tomato, Fresh Cheese">
+                            <label class="form-label">Նկարագրություն</label>
+                            <textarea class="form-control" id="prod-description" rows="2" placeholder="Ապրանքի բաղադրություն, պատրաստման կամ մատուցման առանձնահատկություններ..."></textarea>
+                            <div class="form-hint"><i class="fa-solid fa-circle-info"></i> Մանրամասն նկարագրություն հաճախորդների և անձնակազմի համար:</div>
                         </div>
                     </div>
 
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
-                        <div class="form-group">
-                            <label class="form-label">Ապրանքի Տիպ (Item Type) *</label>
-                            <select class="select" id="prod-type" required>
-                                <option value="finished_product">Finished Product (Պատրաստի արտադրանք)</option>
-                                <option value="semi_finished">Semi-Finished (Կիսաֆաբրիկատ)</option>
-                                <option value="ingredient">Ingredient (Բաղադրիչ)</option>
-                                <option value="raw_material">Raw Material (Հումք)</option>
-                                <option value="packaging">Packaging (Փաթեթավորում)</option>
-                                <option value="service">Service (Ծառայություն)</option>
-                                <option value="modifier">Modifier (Մոդիֆիկատոր)</option>
-                            </select>
+                    <!-- TAB 2: Codes & Identifiers -->
+                    <div class="product-tab-pane" id="tab-prod-codes" style="display: none;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
+                            <div class="form-group">
+                                <label class="form-label">Համակարգային ID (UUID)</label>
+                                <input type="text" class="form-control font-mono" id="prod-id-display" readonly style="background: #F1F5F9; color: #64748B;">
+                                <div class="form-hint"><i class="fa-solid fa-circle-info"></i> Համակարգի եզակի ներքին իդենտիֆիկատոր: Գեներացվում է ավտոմատ:</div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Արտիկուլ / SKU *</label>
+                                <div style="display: flex; gap: 4px;">
+                                    <input type="text" class="form-control font-mono" id="prod-sku" required placeholder="օր․ PRD-PIZZA-01">
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="ERP.catalog.generateSku()" title="Գեներացնել SKU">
+                                        <i class="fa-solid fa-wand-magic-sparkles"></i>
+                                    </button>
+                                </div>
+                                <div class="form-hint"><i class="fa-solid fa-circle-info"></i> Stock Keeping Unit: Եզակի ապրանքային կոդ հաշվառման համար:</div>
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label class="form-label">Կոդ / SKU *</label>
-                            <input type="text" class="form-control font-mono" id="prod-sku" required placeholder="օր․ RAW-TOM-01">
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                            <div class="form-group">
+                                <label class="form-label">Շտրիխկոդ (EAN-13 / Barcode)</label>
+                                <input type="text" class="form-control font-mono" id="prod-barcode" placeholder="4850001234567">
+                                <div class="form-hint"><i class="fa-solid fa-circle-info"></i> 13-նիշ EAN կամ ներքին շտրիխ կոդ՝ սկաներով POS-ում ակնթարթային ճանաչման համար:</div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">ԱՏԳ ԱԱ Ծածկագիր (HS Code / FEACN)</label>
+                                <input type="text" class="form-control font-mono" id="prod-hs-code" placeholder="1905 90 900 0">
+                                <div class="form-hint"><i class="fa-solid fa-circle-info"></i> ԵԱՏՄ ԱՏԳ ԱԱ ծածկագիր հարկային էլեկտրոնային հաշիվ-ապրանքագրերի և մաքսային ձևակերպման համար:</div>
+                            </div>
                         </div>
                     </div>
 
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                    <!-- TAB 3: Pricing, VAT & Discounts -->
+                    <div class="product-tab-pane" id="tab-prod-pricing" style="display: none;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
+                            <div class="form-group">
+                                <label class="form-label">Վաճառքի Գին (Sale Price ֏) *</label>
+                                <input type="number" step="any" class="form-control font-mono" id="prod-sale-price" required value="0" placeholder="0">
+                                <div class="form-hint"><i class="fa-solid fa-circle-info"></i> Հիմնական վաճառքի մանրածախ գինը դրամով (ներառյալ հարկերը):</div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Զեղչված Արժեք (Special / Promo ֏)</label>
+                                <input type="number" step="any" class="form-control font-mono" id="prod-special-price" placeholder="օր․ 2200">
+                                <div class="form-hint"><i class="fa-solid fa-circle-info"></i> Ակցիոն կամ ժամանակավոր իջեցված գին: Եթե լրացված է, վաճառվում է այս գնով:</div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Ինքնարժեք (Cost Price ֏)</label>
+                                <input type="number" step="any" class="form-control font-mono" id="prod-cost-price" value="0" placeholder="0">
+                                <div class="form-hint"><i class="fa-solid fa-circle-info"></i> Փաստացի կամ տեխնիկական քարտից (BOM) հաշվարկված միջին կշռված ինքնարժեքը:</div>
+                            </div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem; background: #F8FAFC; padding: 0.85rem; border-radius: 8px; border: 1px solid #E2E8F0;">
+                            <div class="form-group">
+                                <label class="form-label">ԱԱՀ Կարգավիճակ</label>
+                                <div style="display: flex; gap: 1rem; align-items: center; margin-top: 6px;">
+                                    <label style="display: flex; align-items: center; gap: 6px; font-size: 0.82rem; cursor: pointer;">
+                                        <input type="radio" name="prod_vat_status" id="prod-vat-yes" value="1" checked onchange="ERP.catalog.onVatToggle()">
+                                        <span>ԱԱՀ-ով (Հարկվող)</span>
+                                    </label>
+                                    <label style="display: flex; align-items: center; gap: 6px; font-size: 0.82rem; cursor: pointer;">
+                                        <input type="radio" name="prod_vat_status" id="prod-vat-no" value="0" onchange="ERP.catalog.onVatToggle()">
+                                        <span style="color: #059669; font-weight: 700;">Առանց ԱԱՀ (Ազատված)</span>
+                                    </label>
+                                </div>
+                                <div class="form-hint"><i class="fa-solid fa-circle-info"></i> Նշեք «Առանց ԱԱՀ», եթե ապրանքն ազատված է ԱԱՀ-ից կամ գործում է հատուկ հարկային ռեժիմ:</div>
+                            </div>
+                            <div class="form-group" id="prod-vat-rate-group">
+                                <label class="form-label">ԱԱՀ Դրույքաչափ (%)</label>
+                                <input type="number" step="any" class="form-control font-mono" id="prod-vat-rate" value="20" placeholder="20">
+                                <div class="form-hint"><i class="fa-solid fa-circle-info"></i> Օրենսդրությամբ սահմանված ԱԱՀ դրույքաչափը (ստանդարտ 20% կամ 0%):</div>
+                            </div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                            <div class="card" style="padding: 0.75rem; background: #FFFFFF;">
+                                <label style="display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 0.85rem; cursor: pointer;">
+                                    <input type="checkbox" id="prod-allow-discount" checked>
+                                    <span>Զեղչի հնարավորություն (Այո/Ոչ)</span>
+                                </label>
+                                <div class="form-hint"><i class="fa-solid fa-circle-info"></i> Թույլատրե՞լ գանձապահին կամ ավտոմատ ակցիաներին զեղչ կիրառել այս ապրանքի վրա: Եթե «Ոչ», ապրանքը միշտ վաճառվում է առանց զեղչի:</div>
+                            </div>
+                            <div class="card" style="padding: 0.75rem; background: #FFFFFF;">
+                                <label style="display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 0.85rem; cursor: pointer;">
+                                    <input type="checkbox" id="prod-allow-price-edit">
+                                    <span>Գնի փոփոխության հնարավորություն (Այո/Ոչ)</span>
+                                </label>
+                                <div class="form-hint"><i class="fa-solid fa-circle-info"></i> Թույլատրե՞լ գանձապահին POS-ում ազատ խմբագրել վաճառքի միավոր գինը (Open Price): Օգտակար է կշռով կամ փոփոխական ծառայությունների համար:</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB 4: Modifiers, Stock & Regulatory Flags -->
+                    <div class="product-tab-pane" id="tab-prod-flags" style="display: none;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
+                            <!-- Modifiers Switch & Ungroup -->
+                            <div class="card" style="padding: 0.85rem; border-left: 3px solid #F59E0B;">
+                                <label style="display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 0.85rem; color: #B45309; cursor: pointer;">
+                                    <input type="checkbox" id="prod-allow-modifiers" onchange="ERP.catalog.onModifierToggle()">
+                                    <span>Модификаторы (Մոդիֆիկատորներ)</span>
+                                </label>
+                                <div class="form-hint" style="margin-top: 4px;">
+                                    <i class="fa-solid fa-circle-info"></i> Позволяет добавлять ингредиенты (модификаторы) в товар при создании заказа: Եթե ակտիվ է, այս ապրանքը <strong>չի խմբավորվում պատվերում</strong>:
+                                </div>
+                                <div style="margin-top: 8px; padding-top: 6px; border-top: 1px dashed #E2E8F0;">
+                                    <label style="display: flex; align-items: center; gap: 6px; font-size: 0.78rem; font-weight: 600; cursor: pointer;">
+                                        <input type="checkbox" id="prod-is-ungrouped">
+                                        <span>Չխմբավորել պատվերում (Не группируется в заказе)</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Stop List Switch -->
+                            <div class="card" style="padding: 0.85rem; border-left: 3px solid #DC2626;">
+                                <label style="display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 0.85rem; color: #DC2626; cursor: pointer;">
+                                    <input type="checkbox" id="prod-is-stop-list">
+                                    <span>Стоп-лист (Ստոպ-ցուցակ)</span>
+                                </label>
+                                <div class="form-hint" style="margin-top: 4px;">
+                                    <i class="fa-solid fa-circle-info"></i> Ապրանքը կասեցվում է վաճառքից (օր․ բաղադրիչը սպառվել է): POS-ում և QR մենյուում այն դառնում է անհասանելի:
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
+                            <!-- Excise Goods -->
+                            <div class="card" style="padding: 0.85rem;">
+                                <label style="display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 0.85rem; cursor: pointer;">
+                                    <input type="checkbox" id="prod-is-excise">
+                                    <span>Подакцизный товар (Ակցիզային ապրանք)</span>
+                                </label>
+                                <div class="form-hint">
+                                    <i class="fa-solid fa-circle-info"></i> Նշվում է, եթե ապրանքը ենթակա է ակցիզային հարկման (օր․ ալկոհոլ, ծխախոտային արտադրանք): Փոխանցվում է ՀԴՄ և հարկային հաշիվ:
+                                </div>
+                            </div>
+
+                            <!-- Marked Goods DataMatrix -->
+                            <div class="card" style="padding: 0.85rem;">
+                                <label style="display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 0.85rem; cursor: pointer;">
+                                    <input type="checkbox" id="prod-is-marked">
+                                    <span>Маркированный товар / Դատամատրիքս</span>
+                                </label>
+                                <div class="form-hint">
+                                    <i class="fa-solid fa-circle-info"></i> Պարտադիր մակնշման ենթակա ապրանք: Վաճառքի ժամանակ պահանջվում է DataMatrix 2D կոդի սկանավորում:
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Track Stock & Min threshold -->
+                        <div style="background: #F8FAFC; padding: 0.85rem; border-radius: 8px; border: 1px solid #E2E8F0;">
+                            <label style="display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 0.85rem; cursor: pointer; margin-bottom: 6px;">
+                                <input type="checkbox" id="prod-track-stock" checked onchange="ERP.catalog.onTrackStockToggle()">
+                                <span>Имеет остаток на складе (Վարել պահեստային հաշվառում)</span>
+                            </label>
+                            <div class="form-hint" style="margin-bottom: 0.75rem;">
+                                <i class="fa-solid fa-circle-info"></i> Եթե ակտիվ է, ապրանքի յուրաքանչյուր մուտք, վաճառք կամ արտադրություն փոխում է պահեստի ֆիզիկական մնացորդը:
+                            </div>
+
+                            <div id="prod-stock-fields" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                                <div class="form-group">
+                                    <label class="form-label">Նվազագույն Քանակ (Min Stock Threshold)</label>
+                                    <input type="number" step="any" class="form-control font-mono" id="prod-min-stock" value="0" placeholder="0">
+                                    <div class="form-hint"><i class="fa-solid fa-circle-info"></i> Պահեստում նվազագույն քանակ, որի դեպքում ցուցադրվում է կարմիր «Սակավ մնացորդ» ահազանգը:</div>
+                                </div>
+                                <div class="form-group" id="prod-initial-stock-group">
+                                    <label class="form-label">Նախնական Մնացորդ (միայն նոր ստեղծելիս)</label>
+                                    <input type="number" step="any" class="form-control font-mono" id="prod-initial-stock" value="0" placeholder="0">
+                                    <div class="form-hint"><i class="fa-solid fa-circle-info"></i> Գլխավոր պահեստում փաստացի առկա մնացորդի քանակը:</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB 5: Variations -->
+                    <div class="product-tab-pane" id="tab-prod-variants" style="display: none;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                            <div>
+                                <label class="form-label" style="margin: 0; font-size: 0.88rem; font-weight: 700;">Ապրանքի Տարբերակներ / Վարիացիաներ</label>
+                                <div class="form-hint"><i class="fa-solid fa-circle-info"></i> Չափսեր (S, M, L), տարողություն (0.5լ, 1լ), քաշ կամ գույներ՝ յուրաքանչյուրն իր առանձին SKU-ով և գնով:</div>
+                            </div>
+                            <button type="button" class="btn btn-secondary btn-xs" onclick="ERP.catalog.addVariantRow()">
+                                <i class="fa-solid fa-plus"></i> Ավելացնել Վարիացիա
+                            </button>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table" style="font-size: 0.78rem;">
+                                <thead>
+                                    <tr>
+                                        <th>Տարբերակ (Անվանում)</th>
+                                        <th>SKU</th>
+                                        <th>Շտրիխկոդ</th>
+                                        <th>Վաճառքի Գին ֏</th>
+                                        <th>Ինքնարժեք ֏</th>
+                                        <th style="width: 30px;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="prod-variants-tbody">
+                                    <!-- Dynamic Variant Rows -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- TAB 6: Nutrition, Allergens & Dietary -->
+                    <div class="product-tab-pane" id="tab-prod-nutrition" style="display: none;">
+                        <div style="display: grid; grid-template-columns: 1.2fr 1fr 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem;">
+                            <div class="form-group">
+                                <label class="form-label">Կալորիականություն (Calories kcal)</label>
+                                <input type="number" step="any" class="form-control font-mono" id="prod-calories" placeholder="օր․ 245">
+                                <div class="form-hint"><i class="fa-solid fa-circle-info"></i> Էներգետիկ արժեքը (կկալ) 100գ-ի կամ 1 պորցիայի համար:</div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Սպիտակուցներ (Proteins գր)</label>
+                                <input type="number" step="any" class="form-control font-mono" id="prod-protein" placeholder="0">
+                                <div class="form-hint"><i class="fa-solid fa-circle-info"></i> Սպիտակուցների քանակը գրամներով:</div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Ճարպեր (Fats գր)</label>
+                                <input type="number" step="any" class="form-control font-mono" id="prod-fat" placeholder="0">
+                                <div class="form-hint"><i class="fa-solid fa-circle-info"></i> Ճարպերի քանակը գրամներով:</div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Ածխաջրեր (Carbs գր)</label>
+                                <input type="number" step="any" class="form-control font-mono" id="prod-carbs" placeholder="0">
+                                <div class="form-hint"><i class="fa-solid fa-circle-info"></i> Ածխաջրերի քանակը գրամներով:</div>
+                            </div>
+                        </div>
+
+                        <!-- 14 EU Allergens Tagging -->
+                        <div class="card" style="padding: 0.85rem; margin-bottom: 1rem;">
+                            <label class="form-label" style="font-weight: 800; color: #DC2626;"><i class="fa-solid fa-triangle-exclamation"></i> EU Allergens Tagging (ԵՄ 14 Պարտադիր Ալերգեններ)</label>
+                            <div class="form-hint" style="margin-bottom: 0.5rem;"><i class="fa-solid fa-circle-info"></i> Նշեք բոլոր ալերգենները հաճախորդների անվտանգության և տեխ. քարտի մակնշման համար:</div>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 6px;" id="prod-allergens-grid">
+                                <label style="display: flex; align-items: center; gap: 6px; font-size: 0.78rem; cursor: pointer;"><input type="checkbox" value="gluten" class="allergen-chk"> Գլյուտեն (Gluten)</label>
+                                <label style="display: flex; align-items: center; gap: 6px; font-size: 0.78rem; cursor: pointer;"><input type="checkbox" value="milk" class="allergen-chk"> Կաթ / Լակտոզ (Milk)</label>
+                                <label style="display: flex; align-items: center; gap: 6px; font-size: 0.78rem; cursor: pointer;"><input type="checkbox" value="eggs" class="allergen-chk"> Ձու (Eggs)</label>
+                                <label style="display: flex; align-items: center; gap: 6px; font-size: 0.78rem; cursor: pointer;"><input type="checkbox" value="fish" class="allergen-chk"> Ձուկ (Fish)</label>
+                                <label style="display: flex; align-items: center; gap: 6px; font-size: 0.78rem; cursor: pointer;"><input type="checkbox" value="peanuts" class="allergen-chk"> Գետնանուշ (Peanuts)</label>
+                                <label style="display: flex; align-items: center; gap: 6px; font-size: 0.78rem; cursor: pointer;"><input type="checkbox" value="soybeans" class="allergen-chk"> Սոյա (Soybeans)</label>
+                                <label style="display: flex; align-items: center; gap: 6px; font-size: 0.78rem; cursor: pointer;"><input type="checkbox" value="nuts" class="allergen-chk"> Ընկույզներ (Nuts)</label>
+                                <label style="display: flex; align-items: center; gap: 6px; font-size: 0.78rem; cursor: pointer;"><input type="checkbox" value="celery" class="allergen-chk"> Նեխուր (Celery)</label>
+                                <label style="display: flex; align-items: center; gap: 6px; font-size: 0.78rem; cursor: pointer;"><input type="checkbox" value="mustard" class="allergen-chk"> Մանանեխ (Mustard)</label>
+                                <label style="display: flex; align-items: center; gap: 6px; font-size: 0.78rem; cursor: pointer;"><input type="checkbox" value="sesame" class="allergen-chk"> Քունջութ (Sesame)</label>
+                                <label style="display: flex; align-items: center; gap: 6px; font-size: 0.78rem; cursor: pointer;"><input type="checkbox" value="sulphites" class="allergen-chk"> Սուլֆիտներ (Sulphites)</label>
+                                <label style="display: flex; align-items: center; gap: 6px; font-size: 0.78rem; cursor: pointer;"><input type="checkbox" value="lupin" class="allergen-chk"> Լուպին (Lupin)</label>
+                                <label style="display: flex; align-items: center; gap: 6px; font-size: 0.78rem; cursor: pointer;"><input type="checkbox" value="molluscs" class="allergen-chk"> Փափկամարմիններ (Molluscs)</label>
+                                <label style="display: flex; align-items: center; gap: 6px; font-size: 0.78rem; cursor: pointer;"><input type="checkbox" value="crustaceans" class="allergen-chk"> Խեցգետնակերպեր</label>
+                            </div>
+                        </div>
+
+                        <!-- Dietary Tags -->
+                        <div class="card" style="padding: 0.85rem; margin-bottom: 1rem;">
+                            <label class="form-label" style="font-weight: 800; color: #059669;"><i class="fa-solid fa-leaf"></i> Dietary Tags (Դիետիկ և Սննդակարգային նշումներ)</label>
+                            <div class="form-hint" style="margin-bottom: 0.5rem;"><i class="fa-solid fa-circle-info"></i> Օգնում է հաճախորդներին արագ գտնել համապատասխան ուտեստները:</div>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px;" id="prod-dietary-grid">
+                                <label style="display: flex; align-items: center; gap: 6px; font-size: 0.78rem; cursor: pointer;"><input type="checkbox" value="vegetarian" class="dietary-chk"> Վեգետարիանական</label>
+                                <label style="display: flex; align-items: center; gap: 6px; font-size: 0.78rem; cursor: pointer;"><input type="checkbox" value="vegan" class="dietary-chk"> Վեգան (Vegan)</label>
+                                <label style="display: flex; align-items: center; gap: 6px; font-size: 0.78rem; cursor: pointer;"><input type="checkbox" value="halal" class="dietary-chk"> Հալալ (Halal)</label>
+                                <label style="display: flex; align-items: center; gap: 6px; font-size: 0.78rem; cursor: pointer;"><input type="checkbox" value="kosher" class="dietary-chk"> Կոշեր (Kosher)</label>
+                                <label style="display: flex; align-items: center; gap: 6px; font-size: 0.78rem; cursor: pointer;"><input type="checkbox" value="gluten_free" class="dietary-chk"> Առանց գլյուտենի</label>
+                                <label style="display: flex; align-items: center; gap: 6px; font-size: 0.78rem; cursor: pointer;"><input type="checkbox" value="sugar_free" class="dietary-chk"> Առանց շաքարի</label>
+                                <label style="display: flex; align-items: center; gap: 6px; font-size: 0.78rem; cursor: pointer;"><input type="checkbox" value="keto" class="dietary-chk"> Կետո (Keto)</label>
+                            </div>
+                        </div>
+
+                        <!-- Shelf Life & Storage Conditions -->
                         <div class="form-group">
-                            <label class="form-label">Կատեգորիա</label>
-                            <select class="select" id="prod-category-id">
-                                <option value="">-- Առանց կատեգորիայի --</option>
-                                @foreach($categories as $cat)
-                                    <option value="{{ $cat->id }}">{{ is_array($cat->name) ? ($cat->name['hy'] ?? reset($cat->name)) : $cat->name }}</option>
+                            <label class="form-label">Պահպանման Ժամկետ &amp; Պայմաններ</label>
+                            <input type="text" class="form-control" id="prod-shelf-life-info" placeholder="օր․ 72 ժամ, +2°C-ից +6°C ջերմաստիճանում">
+                            <div class="form-hint"><i class="fa-solid fa-circle-info"></i> Պահպանման պայմաններն ու ջերմաստիճանը ըստ սանիտարական և տեխնիկական պայմանների:</div>
+                        </div>
+                    </div>
+
+                    <!-- TAB 7: Availability & Hours -->
+                    <div class="product-tab-pane" id="tab-prod-availability" style="display: none;">
+                        <!-- Branch Availability -->
+                        <div class="card" style="padding: 0.85rem; margin-bottom: 1rem;">
+                            <label class="form-label" style="font-weight: 800;"><i class="fa-solid fa-shop"></i> Մասնաճյուղերում Հասանելիություն</label>
+                            <div class="form-hint" style="margin-bottom: 0.5rem;"><i class="fa-solid fa-circle-info"></i> Ընտրեք այն մասնաճյուղերը, որտեղ տվյալ ապրանքը հասանելի է վաճառքի համար: Եթե ոչինչ նշված չէ, հասանելի է բոլորում:</div>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px;" id="prod-branches-grid">
+                                @foreach($branches as $b)
+                                    <label style="display: flex; align-items: center; gap: 6px; font-size: 0.8rem; cursor: pointer;">
+                                        <input type="checkbox" value="{{ $b->id }}" class="branch-avail-chk">
+                                        <span>{{ $b->name }} ({{ $b->code }})</span>
+                                    </label>
                                 @endforeach
-                            </select>
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label class="form-label">Չափման Միավոր (Unit) *</label>
-                            <select class="select" id="prod-unit-id" required>
-                                @foreach($units as $u)
-                                    <option value="{{ $u->id }}">{{ is_array($u->name) ? ($u->name['hy'] ?? reset($u->name)) : $u->name }} ({{ $u->symbol }})</option>
-                                @endforeach
-                            </select>
-                        </div>
-                    </div>
 
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
-                        <div class="form-group">
-                            <label class="form-label">Ինքնարժեք (Cost Price ֏)</label>
-                            <input type="number" step="any" class="form-control font-mono" id="prod-cost-price" value="0" placeholder="0">
+                        <!-- Time Availability (Meals) -->
+                        <div class="card" style="padding: 0.85rem; margin-bottom: 1rem;">
+                            <label class="form-label" style="font-weight: 800;"><i class="fa-solid fa-clock"></i> Ժամային Հասանելիություն (Meal Times)</label>
+                            <div class="form-hint" style="margin-bottom: 0.5rem;"><i class="fa-solid fa-circle-info"></i> Օրինակ՝ Նախաճաշի ուտեստները հասանելի են միայն 08:30 - 11:30 ժամերին:</div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                                <div class="form-group">
+                                    <label class="form-label">Սկիզբ (Time From)</label>
+                                    <input type="time" class="form-control" id="prod-avail-from">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Ավարտ (Time To)</label>
+                                    <input type="time" class="form-control" id="prod-avail-to">
+                                </div>
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label class="form-label">Վաճառքի Գին (Sale Price ֏)</label>
-                            <input type="number" step="any" class="form-control font-mono" id="prod-sale-price" value="0" placeholder="0">
+
+                        <!-- Happy Hours / Discount Hours -->
+                        <div class="card" style="padding: 0.85rem;">
+                            <label class="form-label" style="font-weight: 800; color: #D97706;"><i class="fa-solid fa-tag"></i> Զեղչի Ժամեր (Happy Hours)</label>
+                            <div class="form-hint" style="margin-bottom: 0.5rem;"><i class="fa-solid fa-circle-info"></i> Օրինակ՝ Երեկոյան զեղչ թարմ թխվածքի համար 19:00 - 22:00:</div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                                <div class="form-group">
+                                    <label class="form-label">Զեղչի Սկիզբ</label>
+                                    <input type="time" class="form-control" id="prod-discount-from">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Զեղչի Ավարտ</label>
+                                    <input type="time" class="form-control" id="prod-discount-to">
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" onclick="ERP.catalog.closeCreateProductModal()">Cancel</button>
-                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Create Product</button>
+
+                <div class="modal-footer" style="padding: 0.85rem 1.5rem; background: #F8FAFC; border-top: 1px solid #E2E8F0; display: flex; justify-content: space-between; align-items: center;">
+                    <button type="button" class="btn btn-secondary" onclick="ERP.catalog.closeCreateProductModal()">Չեղարկել</button>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button type="button" class="btn btn-secondary btn-sm" id="btn-modal-tech-card" onclick="ERP.catalog.openTechCardFromEdit()" style="display: none;">
+                            <i class="fa-solid fa-scroll"></i> Տեխնիկական Քարտ
+                        </button>
+                        <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Պահպանել Ապրանքը</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Technical Card / BOM (Բաղադրություն, Տեխնիկական քարտ) -->
+    <div class="modal-backdrop" id="product-technical-card-modal">
+        <div class="modal-container" style="max-width: 950px; max-height: 92vh; display: flex; flex-direction: column;">
+            <div class="modal-header">
+                <div>
+                    <h3 id="tc-product-title"><i class="fa-solid fa-scroll" style="color: #059669; margin-right: 6px;"></i> Բաղադրություն &amp; Տեխնիկական Քարտ (BOM)</h3>
+                    <p id="tc-product-subtitle" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">Բաղադրիչների և կիսաֆաբրիկատների նորմաներ, կորուստ %, միջին կշռված ինքնարժեք:</p>
+                </div>
+                <button onclick="ERP.catalog.closeTechnicalCardModal()" style="font-size: 1.25rem; color: var(--text-muted); background: none; border: none; cursor: pointer;">&times;</button>
+            </div>
+
+            <form id="tech-card-form" onsubmit="ERP.catalog.submitTechnicalCard(event)" style="display: flex; flex-direction: column; flex: 1; overflow: hidden;">
+                <input type="hidden" id="tc-product-id" value="">
+
+                <div class="modal-body" style="overflow-y: auto; padding: 1.25rem 1.5rem; flex: 1;">
+                    <!-- Recipe Master Parameters -->
+                    <div style="display: grid; grid-template-columns: 1.2fr 1.5fr 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem; background: #F8FAFC; padding: 0.85rem; border-radius: 8px; border: 1px solid #E2E8F0;">
+                        <div class="form-group">
+                            <label class="form-label">Տեխ. Քարտի Կոդ *</label>
+                            <input type="text" class="form-control font-mono" id="tc-code" required placeholder="RCP-PROD-V1">
+                            <div class="form-hint"><i class="fa-solid fa-circle-info"></i> Բաղադրատոմսի եզակի ծածկագիր:</div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Տեխ. Քարտի Անվանում *</label>
+                            <input type="text" class="form-control" id="tc-name" required placeholder="օր․ Պիցցա Տեխնիկական Քարտ">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Ելքի Քանակ (Yield) *</label>
+                            <input type="number" step="any" class="form-control font-mono" id="tc-yield-qty" required value="1" oninput="ERP.catalog.recalculateTechCard()">
+                            <div class="form-hint"><i class="fa-solid fa-circle-info"></i> Պատրաստի ելքը տվյալ բաղադրատոմսով:</div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Ելքի Միավոր *</label>
+                            <select class="select" id="tc-yield-unit-id" required>
+                                @foreach($units as $u)
+                                    <option value="{{ $u->id }}">{{ is_array($u->name) ? ($u->name['hy'] ?? reset($u->name)) : $u->name }} ({{ $u->code }})</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Components Table -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                        <div>
+                            <h4 style="font-size: 0.92rem; font-weight: 800; color: var(--text-heading); margin: 0;">
+                                <i class="fa-solid fa-cubes-stacked" style="color: var(--color-primary); margin-right: 6px;"></i> Բաղադրիչների &amp; Կիսաֆաբրիկատների Ցանկ
+                            </h4>
+                            <div class="form-hint">Կարող եք ավելացնել ինչպես հումք/բաղադրիչներ, այնպես էլ այլ պրոդուկտներ (օր․ խմոր, սոուս):</div>
+                        </div>
+                        <button type="button" class="btn btn-secondary btn-xs" onclick="ERP.catalog.addRecipeComponentRow()">
+                            <i class="fa-solid fa-plus"></i> Ավելացնել Բաղադրիչ
+                        </button>
+                    </div>
+
+                    <div class="table-responsive" style="margin-bottom: 1rem; border: 1px solid #E2E8F0; border-radius: 6px;">
+                        <table class="table" style="font-size: 0.78rem; margin: 0;">
+                            <thead>
+                                <tr style="background: #F1F5F9;">
+                                    <th style="min-width: 220px;">Բաղադրիչ / Կիսաֆաբրիկատ</th>
+                                    <th style="width: 100px;">Նետտո Քանակ</th>
+                                    <th style="width: 80px;">Միավոր</th>
+                                    <th style="width: 90px;" title="Խոհարարական կամ արտադրական մշակման կորուստ">Կորուստ %</th>
+                                    <th style="width: 100px;" title="Հաշվարկված համախառն քաշ (Բրուտտո)">Բրուտտո</th>
+                                    <th style="width: 110px;">Միավորի Գին ֏</th>
+                                    <th style="width: 110px;">Ընդհանուր ֏</th>
+                                    <th style="width: 32px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="tc-components-tbody">
+                                <!-- Dynamic Component Rows -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Additional Costs & Instructions -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem;">
+                        <div class="form-group">
+                            <label class="form-label">Ընդհանուր Խոտան / Կորուստ (%)</label>
+                            <input type="number" step="any" class="form-control font-mono" id="tc-scrap-pct" value="0" placeholder="0" oninput="ERP.catalog.recalculateTechCard()">
+                            <div class="form-hint"><i class="fa-solid fa-circle-info"></i> Եփման, թխման կամ արտադրական վերջնական կորստի տոկոս (Scrap %):</div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Աշխատուժի Ծախս (Labor Cost ֏)</label>
+                            <input type="number" step="any" class="form-control font-mono" id="tc-labor-cost" value="0" placeholder="0" oninput="ERP.catalog.recalculateTechCard()">
+                            <div class="form-hint"><i class="fa-solid fa-circle-info"></i> Արտադրական աշխատավարձի բաժինը տվյալ խմբաքանակի վրա:</div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Վերադիր Ծախսեր (Overhead ֏)</label>
+                            <input type="number" step="any" class="form-control font-mono" id="tc-overhead-cost" value="0" placeholder="0" oninput="ERP.catalog.recalculateTechCard()">
+                            <div class="form-hint"><i class="fa-solid fa-circle-info"></i> Կոմունալ, սարքավորումների մաշվածք և այլ վերադիր ծախսեր:</div>
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 1rem;">
+                        <label class="form-label">Պատրաստման Տեխնոլոգիական Հրահանգներ (Instructions)</label>
+                        <textarea class="form-control" id="tc-instructions" rows="2" placeholder="Խառնել ալյուրը խմորիչի հետ, թողնել հասունանա 45 րոպե, թխել 220°C ջերմաստիճանում 20 րոպե..."></textarea>
+                    </div>
+
+                    <!-- Cost Calculation Summary Box (Կենդանի հաշվարկ) -->
+                    <div class="tech-summary-box">
+                        <div class="tech-kpi">
+                            <div class="tech-kpi-lbl">Հումքի Արժեք</div>
+                            <div class="tech-kpi-val" id="tc-calc-materials">0 ֏</div>
+                        </div>
+                        <div class="tech-kpi">
+                            <div class="tech-kpi-lbl">Լրացուցիչ Ծախսեր</div>
+                            <div class="tech-kpi-val" id="tc-calc-extra">0 ֏</div>
+                        </div>
+                        <div class="tech-kpi" style="border-color: #A7F3D0; background: #ECFDF5;">
+                            <div class="tech-kpi-lbl" style="color: #059669;">Միավորի Ինքնարժեք</div>
+                            <div class="tech-kpi-val" style="color: #059669;" id="tc-calc-unit-cost">0 ֏</div>
+                        </div>
+                        <div class="tech-kpi">
+                            <div class="tech-kpi-lbl">Վաճառքի Գին</div>
+                            <div class="tech-kpi-val" id="tc-calc-sale-price">0 ֏</div>
+                        </div>
+                        <div class="tech-kpi">
+                            <div class="tech-kpi-lbl">Մարժա %</div>
+                            <div class="tech-kpi-val" style="color: #2563EB;" id="tc-calc-margin">0%</div>
+                        </div>
+                        <div class="tech-kpi">
+                            <div class="tech-kpi-lbl">Վերադիր % (Markup)</div>
+                            <div class="tech-kpi-val" style="color: #7C3AED;" id="tc-calc-markup">0%</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer" style="padding: 0.85rem 1.5rem; background: #F8FAFC; border-top: 1px solid #E2E8F0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button type="button" class="btn btn-secondary" onclick="ERP.catalog.closeTechnicalCardModal()">Փակել</button>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="ERP.catalog.printTechnicalCard()" title="Տպել Տեխ. Քարտը">
+                            <i class="fa-solid fa-print"></i> Տպել Տեխ. Քարտ
+                        </button>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="ERP.catalog.quickProduceFromTechCard()" style="background: #EFF6FF; color: #2563EB; border-color: #BFDBFE;">
+                            <i class="fa-solid fa-industry"></i> Արտադրել Խմբաքանակ
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fa-solid fa-floppy-disk"></i> Պահպանել Տեխնիկական Քարտը
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Quick Produce Batch (Արտադրություն և Պահեստից Ավտոմատ Դուրսգրում) -->
+    <div class="modal-backdrop" id="product-quick-produce-modal">
+        <div class="modal-container" style="max-width: 580px;">
+            <div class="modal-header">
+                <div>
+                    <h3><i class="fa-solid fa-industry" style="color: #2563EB; margin-right: 6px;"></i> Արտադրության Ձևակերպում</h3>
+                    <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">Բաղադրիչները ավտոմատ դուրս են գրվում պահեստից, իսկ պատրաստի արտադրանքը՝ մուտքագրվում:</p>
+                </div>
+                <button onclick="ERP.catalog.closeQuickProduceModal()" style="font-size: 1.25rem; color: var(--text-muted); background: none; border: none; cursor: pointer;">&times;</button>
+            </div>
+            <form onsubmit="ERP.catalog.submitProduce(event)">
+                <input type="hidden" id="qp-product-id" value="">
+                <div class="modal-body" style="padding: 1.25rem 1.5rem;">
+                    <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 0.85rem; margin-bottom: 1rem;">
+                        <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Արտադրվող Ապրանք</div>
+                        <div style="font-size: 1.1rem; font-weight: 800; color: var(--text-heading); margin-top: 2px;" id="qp-product-name">-</div>
+                        <div style="font-size: 0.75rem; color: var(--color-primary); font-family: var(--font-mono); margin-top: 2px;" id="qp-product-sku">-</div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem;">
+                        <div class="form-group">
+                            <label class="form-label">Արտադրվող Քանակ *</label>
+                            <input type="number" step="any" class="form-control font-mono" id="qp-quantity" required value="1" placeholder="1">
+                            <div class="form-hint"><i class="fa-solid fa-circle-info"></i> Պատրաստի արտադրանքի ելքային քանակը:</div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Մուտքագրվող Պահեստ *</label>
+                            <select class="select" id="qp-target-warehouse" required>
+                                @foreach($warehouses as $wh)
+                                    <option value="{{ $wh->id }}">{{ $wh->name }} ({{ $wh->code }})</option>
+                                @endforeach
+                            </select>
+                            <div class="form-hint"><i class="fa-solid fa-circle-info"></i> Պահեստ, որտեղ մուտքագրվելու է պատրաստի արտադրանքը:</div>
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 1rem;">
+                        <label class="form-label">Բաղադրիչների Դուրսգրման Պահեստ *</label>
+                        <select class="select" id="qp-source-warehouse" required>
+                            @foreach($warehouses as $wh)
+                                <option value="{{ $wh->id }}">{{ $wh->name }} ({{ $wh->code }})</option>
+                            @endforeach
+                        </select>
+                        <div class="form-hint"><i class="fa-solid fa-circle-info"></i> Հումքի պահեստ, որտեղից կատարվելու է բաղադրիչների ավտոմատ դուրսգրումը:</div>
+                    </div>
+
+                    <div class="card" style="padding: 0.85rem; background: #ECFDF5; border-color: #A7F3D0;">
+                        <div style="display: flex; gap: 8px; align-items: flex-start;">
+                            <i class="fa-solid fa-circle-check" style="color: #059669; font-size: 1rem; margin-top: 2px;"></i>
+                            <div style="font-size: 0.78rem; color: #065F46; line-height: 1.4;">
+                                <strong>Ավտոմատացում՝</strong> Հաստատելուց հետո համակարգը ըստ տեխնիկական քարտի համամասնորեն կնվազեցնի բոլոր բաղադրիչների պահեստային մնացորդները և կավելացնի տվյալ պատրաստի ապրանքի քանակը:
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer" style="padding: 0.85rem 1.5rem; background: #F8FAFC; border-top: 1px solid #E2E8F0; display: flex; justify-content: space-between;">
+                    <button type="button" class="btn btn-secondary" onclick="ERP.catalog.closeQuickProduceModal()">Չեղարկել</button>
+                    <button type="submit" class="btn btn-primary" style="background: #059669; border-color: #059669;">
+                        <i class="fa-solid fa-industry"></i> Հաստատել Արտադրությունը
+                    </button>
                 </div>
             </form>
         </div>
@@ -2439,8 +3461,143 @@
     </div>
 
     <!-- ==============================================================
-         DIRECTORY MODALS (Suppliers, Ingredients, Invoices, Where-Used)
+         DIRECTORY MODALS (Categories, Suppliers, Ingredients, Invoices, Where-Used)
          ============================================================== -->
+
+    <!-- Directory Modal 0: Category Create / Edit (Կատեգորիաների ավելացում / փոփոխում) -->
+    <div class="modal-backdrop" id="directory-category-modal">
+        <div class="modal-container" style="max-width: 650px; max-height: 90vh; overflow-y: auto;">
+            <div class="modal-header">
+                <h3 id="category-modal-title"><i class="fa-solid fa-folder-plus"></i> Ավելացնել Կատեգորիա</h3>
+                <button type="button" onclick="ERP.directory.categories.closeModal()" style="font-size: 1.25rem; color: var(--text-muted); cursor: pointer; border: none; background: none;">&times;</button>
+            </div>
+            <form id="category-master-form" onsubmit="ERP.directory.categories.submitForm(event)">
+                <input type="hidden" id="cat-id" value="">
+                <div class="modal-body" style="padding: 1.25rem 1.5rem;">
+                    <!-- Category Type Selector: Product vs Ingredient -->
+                    <div class="form-group" style="margin-bottom: 0.85rem;">
+                        <label class="form-label">Կատեգորիայի Տեսակ *</label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                            <label style="display: flex; align-items: center; gap: 10px; padding: 10px 14px; border: 2px solid #3B82F6; border-radius: 8px; cursor: pointer; background: #EFF6FF; transition: all 0.2s;" id="cat-type-product-label">
+                                <input type="radio" name="cat_type" id="cat-type-product" value="product" checked onchange="ERP.directory.categories.onModalTypeChange('product')" style="accent-color: var(--color-primary); width: 18px; height: 18px;">
+                                <div>
+                                    <div style="font-weight: 700; font-size: 0.88rem; color: #1E40AF;"><i class="fa-solid fa-boxes-stacked" style="color: #2563EB;"></i> Ապրանքային Խումբ</div>
+                                    <div style="font-size: 0.75rem; color: #64748B;">Վաճառքի ապրանքներ, ճաշացանկ, ըմպելիքներ</div>
+                                </div>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 10px; padding: 10px 14px; border: 2px solid #E2E8F0; border-radius: 8px; cursor: pointer; background: #fff; transition: all 0.2s;" id="cat-type-ingredient-label">
+                                <input type="radio" name="cat_type" id="cat-type-ingredient" value="ingredient" onchange="ERP.directory.categories.onModalTypeChange('ingredient')" style="accent-color: var(--color-primary); width: 18px; height: 18px;">
+                                <div>
+                                    <div style="font-weight: 700; font-size: 0.88rem; color: #92400E;"><i class="fa-solid fa-mortar-pestle" style="color: #D97706;"></i> Բաղադրիչների Խումբ</div>
+                                    <div style="font-size: 0.75rem; color: #64748B;">Հումք, բաղադրամասեր, կիսաֆաբրիկատներ</div>
+                                </div>
+                            </label>
+                        </div>
+                        <div class="form-hint"><i class="fa-solid fa-circle-info"></i> Ապրանքների և բաղադրիչների խմբերը առանձնացված են՝ շփոթությունից խուսափելու համար:</div>
+                    </div>
+
+                    <!-- Category Name Fields -->
+                    <div class="form-group" style="margin-bottom: 0.75rem;">
+                        <label class="form-label">Անվանում (Հայերեն) *</label>
+                        <input type="text" class="form-control" id="cat-name-hy" required placeholder="օր․ Տաք Ուտեստներ, Խմիչքներ, Կիսաֆաբրիկատներ" oninput="ERP.directory.categories.onNameInput(this.value)">
+                        <div class="form-hint"><i class="fa-solid fa-circle-info"></i> Կատեգորիայի պաշտոնական անվանումը հայերենով: Ցուցադրվում է համակարգի բոլոր բաժիններում և մենյուում:</div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
+                        <div class="form-group">
+                            <label class="form-label">Name (English)</label>
+                            <input type="text" class="form-control" id="cat-name-en" placeholder="e.g. Hot Dishes, Beverages">
+                            <div class="form-hint"><i class="fa-solid fa-circle-info"></i> Անգլերեն անվանում QR մենյուի և միջազգային հաշվետվությունների համար:</div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Название (Русский)</label>
+                            <input type="text" class="form-control" id="cat-name-ru" placeholder="напр. Горячие блюда, Напитки">
+                            <div class="form-hint"><i class="fa-solid fa-circle-info"></i> Ռուսերեն անվանում մենյուի և հաշվետվությունների համար:</div>
+                        </div>
+                    </div>
+
+                    <!-- Hierarchy & Slug -->
+                    <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
+                        <div class="form-group">
+                            <label class="form-label">Գլխավոր Խումբ (Ծնող Կատեգորիա)</label>
+                            <select class="select" id="cat-parent-id">
+                                <option value="">-- Գլխավոր Կատեգորիա (Առանց ծնողի) --</option>
+                                @foreach($categories as $c)
+                                    <option value="{{ $c->id }}" data-type="{{ $c->type ?? 'product' }}">
+                                        {{ is_array($c->name) ? ($c->name['hy'] ?? reset($c->name)) : $c->name }}
+                                        [{{ ($c->type ?? 'product') === 'ingredient' ? 'Բաղադրիչ' : 'Ապրանք' }}]
+                                    </option>
+                                @endforeach
+                            </select>
+                            <div class="form-hint"><i class="fa-solid fa-circle-info"></i> Եթե սա ենթակատեգորիա է, ընտրեք այն գլխավոր խումբը, որին այն պատկանում է:</div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Slug / Հղում</label>
+                            <div style="display: flex; gap: 4px;">
+                                <input type="text" class="form-control font-mono" id="cat-slug" placeholder="hot-dishes">
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="ERP.directory.categories.generateSlug()" title="Գեներացնել Slug">
+                                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                                </button>
+                            </div>
+                            <div class="form-hint"><i class="fa-solid fa-circle-info"></i> URL-բարեկամ նույնացուցիչ (թողեք դատարկ ավտոմատ գեներացման համար):</div>
+                        </div>
+                    </div>
+
+                    <!-- Image Upload with Drag & Drop, URL and Live Thumbnail -->
+                    <div class="form-group" style="margin-bottom: 0.75rem;">
+                        <label class="form-label">Կատեգորիայի Պատկեր (Image)</label>
+                        <div style="display: flex; gap: 0.75rem; align-items: flex-start;">
+                            <div id="cat-image-preview-box" style="width: 76px; height: 76px; border-radius: 8px; border: 2px dashed #CBD5E1; background: #F8FAFC; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; flex-shrink: 0;">
+                                <img id="cat-image-preview" src="" alt="Preview" style="width: 100%; height: 100%; object-fit: cover; display: none;">
+                                <i id="cat-image-placeholder-icon" class="fa-solid fa-cloud-arrow-up" style="color: #94A3B8; font-size: 1.5rem;"></i>
+                                <button type="button" id="cat-image-remove-btn" onclick="ERP.media.clearCategoryImage()" style="display: none; position: absolute; top: 3px; right: 3px; background: rgba(220, 38, 38, 0.9); color: #fff; border: none; border-radius: 50%; width: 20px; height: 20px; cursor: pointer; font-size: 11px; align-items: center; justify-content: center;">&times;</button>
+                            </div>
+                            <div style="flex: 1;">
+                                <div style="display: flex; gap: 0.5rem; margin-bottom: 6px;">
+                                    <input type="text" class="form-control" id="cat-image-url" placeholder="https://... կամ վերբեռնեք ֆայլը" oninput="ERP.media.onCategoryUrlChange(this.value)">
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('cat-image-file').click()" style="white-space: nowrap;">
+                                        <i class="fa-solid fa-arrow-up-from-bracket"></i> Վերբեռնել
+                                    </button>
+                                    <input type="file" id="cat-image-file" accept="image/*" style="display: none;" onchange="ERP.media.handleFileUpload(this, 'categories', 'cat-image-url', 'cat-image-preview', 'cat-image-preview-box', 'cat-image-remove-btn', 'cat-image-placeholder-icon')">
+                                </div>
+                                <div class="form-hint"><i class="fa-solid fa-circle-info"></i> Կարող եք ընտրել պատկեր համակարգչից (PNG, JPG, WebP մինչև 10MB) կամ տեղադրել արտաքին URL:</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sort Order & Active Status -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
+                        <div class="form-group">
+                            <label class="form-label">Դասավորության Հերթականություն (Sort Order)</label>
+                            <input type="number" class="form-control font-mono" id="cat-sort-order" value="0" min="0" placeholder="0">
+                            <div class="form-hint"><i class="fa-solid fa-circle-info"></i> Փոքր թվերը կցուցադրվեն առաջինը մենյուում և ցանկերում:</div>
+                        </div>
+                        <div class="form-group" style="display: flex; flex-direction: column; justify-content: center;">
+                            <label class="form-label">Կարգավիճակ</label>
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin-top: 4px;">
+                                <input type="checkbox" id="cat-is-active" checked style="width: 18px; height: 18px; accent-color: var(--color-primary);">
+                                <span style="font-weight: 600; font-size: 0.88rem; color: var(--text-heading);">Ակտիվ (Ցուցադրել մենյուում և POS-ում)</span>
+                            </label>
+                            <div class="form-hint"><i class="fa-solid fa-circle-info"></i> Ապաակտիվացված խմբերը թաքցվում են պատվերների ընդունման ժամանակ:</div>
+                        </div>
+                    </div>
+
+                    <!-- Description -->
+                    <div class="form-group">
+                        <label class="form-label">Նկարագրություն</label>
+                        <textarea class="form-control" id="cat-description" rows="2" placeholder="Կատեգորիայի բնութագիր, նշանակություն..."></textarea>
+                        <div class="form-hint"><i class="fa-solid fa-circle-info"></i> Լրացուցիչ պարզաբանումներ և նկարագրություն:</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="ERP.directory.categories.closeModal()">Չեղարկել</button>
+                    <button type="submit" class="btn btn-primary" id="cat-submit-btn">
+                        <i class="fa-solid fa-floppy-disk"></i> Պահպանել Կատեգորիան
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <!-- Directory Modal 1: Supplier Create / Edit -->
     <div class="modal-backdrop" id="directory-supplier-modal">
@@ -2554,19 +3711,26 @@
                     <!-- Categorization -->
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
                         <div class="form-group">
-                            <label class="form-label">Կատեգորիա /խումբ/ *</label>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                <label class="form-label" style="margin-bottom: 0;">Կատեգորիա /խումբ/ *</label>
+                                <button type="button" class="btn btn-xs btn-outline-primary" onclick="ERP.directory.categories.openCreateModal(null, 'ingredient')" style="font-size: 0.7rem; padding: 2px 6px;">
+                                    <i class="fa-solid fa-plus"></i> Նոր Խումբ
+                                </button>
+                            </div>
                             <select class="select" id="ing-category-id" onchange="ERP.directory.ingredients.updateSubcategories(this.value)">
-                                <option value="">-- Ընտրեք Կատեգորիան --</option>
-                                @foreach($categories as $cat)
+                                <option value="">-- Ընտրեք Բաղադրիչների Կատեգորիան --</option>
+                                @foreach($ingredientCategories ?? $categories as $cat)
                                     <option value="{{ $cat->id }}">{{ is_array($cat->name) ? ($cat->name['hy'] ?? reset($cat->name)) : $cat->name }}</option>
                                 @endforeach
                             </select>
+                            <div class="form-hint"><i class="fa-solid fa-circle-info"></i> Բաղադրիչների և հումքի խումբ (օր․ Կաթնամթերք, Մսամթերք, Համեմունքներ):</div>
                         </div>
                         <div class="form-group">
                             <label class="form-label">Ենթակատեգորիա /ենթախումբ/</label>
                             <select class="select" id="ing-subcategory-id">
                                 <option value="">-- Ընտրեք Ենթակատեգորիան --</option>
                             </select>
+                            <div class="form-hint"><i class="fa-solid fa-circle-info"></i> Բաղադրիչի ենթախումբ ավելի նեղ դասակարգման համար:</div>
                         </div>
                     </div>
 
@@ -2611,9 +3775,31 @@
                         </div>
                     </div>
 
-                    <div class="form-group">
+                    <div class="form-group" style="margin-bottom: 0.75rem;">
                         <label class="form-label">Նկարագրություն</label>
                         <input type="text" class="form-control" id="ing-description" placeholder="Հատկանիշներ, խոնավություն, որակական ցուցանիշներ...">
+                    </div>
+
+                    <!-- Ingredient Image Upload -->
+                    <div class="form-group" style="margin-bottom: 0.75rem;">
+                        <label class="form-label">Բաղադրիչի Պատկեր (Image)</label>
+                        <div style="display: flex; gap: 0.75rem; align-items: flex-start;">
+                            <div id="ing-image-preview-box" style="width: 64px; height: 64px; border-radius: 8px; border: 2px dashed #CBD5E1; background: #F8FAFC; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; flex-shrink: 0;">
+                                <img id="ing-image-preview" src="" alt="Preview" style="width: 100%; height: 100%; object-fit: cover; display: none;">
+                                <i id="ing-image-placeholder-icon" class="fa-solid fa-cloud-arrow-up" style="color: #94A3B8; font-size: 1.25rem;"></i>
+                                <button type="button" id="ing-image-remove-btn" onclick="ERP.media.clearIngredientImage()" style="display: none; position: absolute; top: 2px; right: 2px; background: rgba(220, 38, 38, 0.9); color: #fff; border: none; border-radius: 50%; width: 18px; height: 18px; cursor: pointer; font-size: 10px; align-items: center; justify-content: center;">&times;</button>
+                            </div>
+                            <div style="flex: 1;">
+                                <div style="display: flex; gap: 0.5rem; margin-bottom: 4px;">
+                                    <input type="text" class="form-control" id="ing-image-url" placeholder="https://... կամ վերբեռնեք ֆայլը" oninput="ERP.media.onIngredientUrlChange(this.value)">
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('ing-image-file').click()" style="white-space: nowrap;">
+                                        <i class="fa-solid fa-arrow-up-from-bracket"></i> Վերբեռնել
+                                    </button>
+                                    <input type="file" id="ing-image-file" accept="image/*" style="display: none;" onchange="ERP.media.handleFileUpload(this, 'ingredients', 'ing-image-url', 'ing-image-preview', 'ing-image-preview-box', 'ing-image-remove-btn', 'ing-image-placeholder-icon')">
+                                </div>
+                                <div class="form-hint"><i class="fa-solid fa-circle-info"></i> Բաղադրիչի լուսանկարը պահեստում տեսողական նույնականացման համար:</div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Pricing, Quantities & Live Calculations -->
@@ -2622,7 +3808,7 @@
                             <label class="form-label">Չափման Միավոր *</label>
                             <select class="select" id="ing-unit-id" required>
                                 @foreach($units as $u)
-                                    <option value="{{ $u->id }}">{{ is_array($u->name) ? ($u->name['hy'] ?? reset($u->name)) : $u->name }} ({{ $u->symbol }})</option>
+                                    <option value="{{ $u->id }}">{{ is_array($u->name) ? ($u->name['hy'] ?? reset($u->name)) : $u->name }} ({{ $u->code }})</option>
                                 @endforeach
                             </select>
                         </div>

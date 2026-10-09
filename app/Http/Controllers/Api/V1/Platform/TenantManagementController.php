@@ -16,7 +16,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
-use Illuminate\Validation\Rule;
 
 class TenantManagementController extends Controller
 {
@@ -85,14 +84,14 @@ class TenantManagementController extends Controller
             // 2. Register Subdomain in tenant_domains
             TenantDomain::create([
                 'tenant_id' => $tenant->id,
-                'domain' => $tenant->subdomain . '.' . config('app.domain', 'erplannet.com'),
+                'domain' => $tenant->subdomain.'.'.config('app.domain', 'erplannet.com'),
                 'is_primary' => true,
                 'is_verified' => true,
                 'ssl_status' => 'active',
             ]);
 
             // If custom domain provided
-            if (!empty($validated['custom_domain'])) {
+            if (! empty($validated['custom_domain'])) {
                 TenantDomain::create([
                     'tenant_id' => $tenant->id,
                     'domain' => $validated['custom_domain'],

@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CodSettlement extends Model
 {
-    use HasFactory, HasUuids, BelongsToTenant;
+    use BelongsToTenant, HasFactory, HasUuids;
 
     protected $table = 'cod_settlements';
 

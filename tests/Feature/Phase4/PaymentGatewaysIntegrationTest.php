@@ -2,13 +2,12 @@
 
 namespace Tests\Feature\Phase4;
 
+use App\Domain\Branch\Models\Branch;
 use App\Domain\Catalog\Models\Category;
 use App\Domain\Catalog\Models\Product;
 use App\Domain\Catalog\Models\Unit;
-use App\Domain\Branch\Models\Branch;
 use App\Domain\CRM\Models\Customer;
 use App\Domain\IAM\Models\User;
-use App\Domain\Payments\Models\PaymentTransaction;
 use App\Domain\Sales\Actions\CreateOrderAction;
 use App\Domain\Sales\Models\Order;
 use App\Domain\Tenant\Models\Tenant;
@@ -18,7 +17,6 @@ use App\Infrastructure\Payments\Gateways\AmeriaBankGateway;
 use App\Infrastructure\Payments\Gateways\CashGateway;
 use App\Infrastructure\Payments\Gateways\IdramGateway;
 use App\Infrastructure\Payments\Gateways\TelcellGateway;
-use App\Infrastructure\Payments\PaymentGatewayManager;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -27,7 +25,9 @@ class PaymentGatewaysIntegrationTest extends TestCase
     use RefreshDatabase;
 
     protected Tenant $tenant;
+
     protected User $user;
+
     protected Order $order;
 
     protected function setUp(): void

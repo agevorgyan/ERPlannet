@@ -23,17 +23,18 @@ class PaymentGatewayManager
 
     protected function registerDefaultGateways(): void
     {
-        $this->register(new AmeriaBankGateway());
-        $this->register(new IdramGateway());
-        $this->register(new TelcellGateway());
-        $this->register(new StripeGateway());
-        $this->register(new BankTransferGateway());
-        $this->register(new CashGateway());
+        $this->register(new AmeriaBankGateway);
+        $this->register(new IdramGateway);
+        $this->register(new TelcellGateway);
+        $this->register(new StripeGateway);
+        $this->register(new BankTransferGateway);
+        $this->register(new CashGateway);
     }
 
     public function register(PaymentGatewayInterface $gateway): self
     {
         $this->gateways[$gateway->getIdentifier()] = $gateway;
+
         return $this;
     }
 
@@ -44,7 +45,7 @@ class PaymentGatewayManager
             $key = 'ameriabank';
         }
 
-        if (!isset($this->gateways[$key])) {
+        if (! isset($this->gateways[$key])) {
             throw new InvalidArgumentException("Payment gateway '{$identifier}' is not supported.");
         }
 

@@ -19,6 +19,7 @@ use App\Domain\Warehouse\Actions\RecordStockMovementAction;
 use App\Domain\Warehouse\Models\Warehouse;
 use App\Infrastructure\MultiTenancy\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class CrossTenantPosAccessTest extends TestCase
@@ -26,11 +27,17 @@ class CrossTenantPosAccessTest extends TestCase
     use RefreshDatabase;
 
     protected Tenant $tenantA;
+
     protected User $userA;
+
     protected Tenant $tenantB;
+
     protected User $userB;
+
     protected PosTerminal $terminalA;
+
     protected PosSession $sessionA;
+
     protected Order $posOrderA;
 
     protected function setUp(): void
@@ -109,7 +116,7 @@ class CrossTenantPosAccessTest extends TestCase
             quantity: 20.0,
             unitCost: 500.0,
             referenceType: 'test_seed',
-            referenceId: (string) \Illuminate\Support\Str::uuid(),
+            referenceId: (string) Str::uuid(),
             notes: 'Seed stock'
         );
 

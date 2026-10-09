@@ -16,8 +16,8 @@ class MockArmeniaFiscalProvider implements FiscalProviderInterface
 
     public function createReceipt(Order $order, array $options = []): FiscalReceiptResultDTO
     {
-        $fiscalNumber = 'SRC-' . date('Ymd') . '-' . strtoupper(Str::random(8));
-        $crn = $options['crn'] ?? 'CRN-' . rand(10000000, 99999999);
+        $fiscalNumber = 'SRC-'.date('Ymd').'-'.strtoupper(Str::random(8));
+        $crn = $options['crn'] ?? 'CRN-'.rand(10000000, 99999999);
         $taxId = $options['tax_id'] ?? '02654321'; // Armenia TIN
 
         // Armenian SRC QR standard payload simulation
@@ -27,7 +27,7 @@ class MockArmeniaFiscalProvider implements FiscalProviderInterface
             'fisc' => $fiscalNumber,
             'total' => (float) $order->total,
             'time' => now()->toIso8601String(),
-            'sec' => hash('sha256', $fiscalNumber . $order->total),
+            'sec' => hash('sha256', $fiscalNumber.$order->total),
         ]);
 
         return new FiscalReceiptResultDTO(
@@ -71,7 +71,7 @@ class MockArmeniaFiscalProvider implements FiscalProviderInterface
         return new FiscalReceiptResultDTO(
             success: true,
             fiscalReceiptId: $fiscalReceiptId,
-            fiscalNumber: 'SRC-REF-' . date('Ymd') . '-' . strtoupper(Str::random(6)),
+            fiscalNumber: 'SRC-REF-'.date('Ymd').'-'.strtoupper(Str::random(6)),
             crn: null,
             taxId: null,
             qrPayload: null,

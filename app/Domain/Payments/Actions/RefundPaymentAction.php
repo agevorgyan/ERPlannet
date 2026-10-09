@@ -41,7 +41,7 @@ class RefundPaymentAction
 
             $currentRefunded = (float) ($transaction->refunded_amount ?? 0.0);
             if (($currentRefunded + $amount) > (float) $transaction->amount) {
-                throw new InvalidArgumentException("Refund amount exceeds remaining transaction balance.");
+                throw new InvalidArgumentException('Refund amount exceeds remaining transaction balance.');
             }
 
             $gateway = $this->gatewayManager->gateway($transaction->gateway);
@@ -52,7 +52,7 @@ class RefundPaymentAction
             );
 
             $refundResult = $gateway->refund($dto);
-            if (!$refundResult->success) {
+            if (! $refundResult->success) {
                 throw new \RuntimeException($refundResult->errorMessage ?? 'Gateway rejected refund.');
             }
 

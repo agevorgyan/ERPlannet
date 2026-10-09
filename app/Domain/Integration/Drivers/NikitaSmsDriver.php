@@ -31,7 +31,7 @@ class NikitaSmsDriver implements NotificationProviderInterface
         // Test credentials format & ping balance
         return [
             'success' => true,
-            'message' => 'Nikita Mobile SMS gateway configured with sender: ' . ($creds['sender_id'] ?? 'ERPlannet'),
+            'message' => 'Nikita Mobile SMS gateway configured with sender: '.($creds['sender_id'] ?? 'ERPlannet'),
         ];
     }
 
@@ -44,7 +44,7 @@ class NikitaSmsDriver implements NotificationProviderInterface
 
         $phone = preg_replace('/[^\d]/', '', $recipient);
         if (str_starts_with($phone, '0')) {
-            $phone = '374' . substr($phone, 1);
+            $phone = '374'.substr($phone, 1);
         }
 
         try {
@@ -60,7 +60,7 @@ class NikitaSmsDriver implements NotificationProviderInterface
             // In production/mock tests, return successful message id
             return [
                 'success' => true,
-                'message_id' => 'nikita_' . uniqid(),
+                'message_id' => 'nikita_'.uniqid(),
             ];
         } catch (\Throwable $e) {
             return [

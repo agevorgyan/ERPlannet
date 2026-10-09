@@ -24,7 +24,7 @@ class CashGateway implements PaymentGatewayInterface
 
     public function initiatePayment(PaymentIntentDTO $intent): PaymentResultDTO
     {
-        $receiptId = 'CASH-' . strtoupper(Str::random(8));
+        $receiptId = 'CASH-'.strtoupper(Str::random(8));
 
         return new PaymentResultDTO(
             status: 'successful',
@@ -40,7 +40,8 @@ class CashGateway implements PaymentGatewayInterface
 
     public function authorize(PaymentIntentDTO $intent): PaymentResultDTO
     {
-        $receiptId = 'CASH_HOLD_' . strtoupper(Str::random(8));
+        $receiptId = 'CASH_HOLD_'.strtoupper(Str::random(8));
+
         return new PaymentResultDTO(
             status: 'authorized',
             transactionId: $receiptId,
@@ -88,7 +89,7 @@ class CashGateway implements PaymentGatewayInterface
     {
         return new RefundResultDTO(
             success: true,
-            refundId: 'CASH_REF_' . strtoupper(Str::random(8)),
+            refundId: 'CASH_REF_'.strtoupper(Str::random(8)),
             gatewayResponse: ['refunded_amount' => $dto->amount]
         );
     }

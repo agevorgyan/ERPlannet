@@ -30,7 +30,7 @@ class PurchaseOrderNumberGenerator
                 $nextSequence = $lastNum + 1;
             }
 
-            return $prefix . str_pad((string) $nextSequence, 6, '0', STR_PAD_LEFT);
+            return $prefix.str_pad((string) $nextSequence, 6, '0', STR_PAD_LEFT);
         });
     }
 }

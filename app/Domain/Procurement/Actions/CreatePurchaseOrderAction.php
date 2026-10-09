@@ -33,7 +33,7 @@ class CreatePurchaseOrderAction
         }
 
         $tenant = $this->tenantContext->getTenant();
-        if (!$tenant) {
+        if (! $tenant) {
             throw new \RuntimeException('Tenant context not set.');
         }
 

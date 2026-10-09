@@ -19,9 +19,13 @@ class CatalogTest extends TestCase
     use RefreshDatabase;
 
     protected Tenant $tenant;
+
     protected User $user;
+
     protected string $token;
+
     protected Unit $unitKg;
+
     protected Category $category;
 
     protected function setUp(): void

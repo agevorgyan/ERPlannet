@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CustomerAddress extends Model
 {
-    use HasFactory, HasUuids, BelongsToTenant;
+    use BelongsToTenant, HasFactory, HasUuids;
 
     protected $table = 'customer_addresses';
 
@@ -43,9 +43,16 @@ class CustomerAddress extends Model
     public function getFormattedAddressAttribute(): string
     {
         $parts = [$this->city, $this->address_line_1];
-        if ($this->address_line_2) $parts[] = $this->address_line_2;
-        if ($this->floor) $parts[] = "Floor {$this->floor}";
-        if ($this->apartment) $parts[] = "Apt {$this->apartment}";
+        if ($this->address_line_2) {
+            $parts[] = $this->address_line_2;
+        }
+        if ($this->floor) {
+            $parts[] = "Floor {$this->floor}";
+        }
+        if ($this->apartment) {
+            $parts[] = "Apt {$this->apartment}";
+        }
+
         return implode(', ', $parts);
     }
 }

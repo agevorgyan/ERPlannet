@@ -81,7 +81,7 @@ class PosVoidAction
             $order->status = 'cancelled';
             $order->payment_status = 'refunded';
             $order->cancelled_at = now();
-            $order->internal_notes = ($order->internal_notes ? $order->internal_notes . "\n" : '') . "Voided: {$reason}";
+            $order->internal_notes = ($order->internal_notes ? $order->internal_notes."\n" : '')."Voided: {$reason}";
             $order->save();
 
             // 5. Audit Logging

@@ -13,7 +13,7 @@ class FiscalProviderManager
 
     public function __construct()
     {
-        $this->register(new MockArmeniaFiscalProvider());
+        $this->register(new MockArmeniaFiscalProvider);
     }
 
     public function register(FiscalProviderInterface $provider): void
@@ -25,7 +25,7 @@ class FiscalProviderManager
     {
         $id = $identifier ?? config('services.fiscal.default', 'mock_armenia_src');
 
-        if (!isset($this->providers[$id])) {
+        if (! isset($this->providers[$id])) {
             throw new InvalidArgumentException("Fiscal provider [{$id}] is not registered.");
         }
 

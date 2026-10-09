@@ -24,7 +24,7 @@ class ReserveStockAction
                 ->lockForUpdate()
                 ->first();
 
-            if (!$stockLevel) {
+            if (! $stockLevel) {
                 throw new \InvalidArgumentException('No stock record exists for this item in the specified warehouse.');
             }
 

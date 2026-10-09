@@ -4,7 +4,6 @@ namespace App\Domain\Warehouse\Actions;
 
 use App\Domain\Warehouse\Models\StockLevel;
 use App\Domain\Warehouse\Models\StockMovement;
-use Illuminate\Support\Facades\DB;
 
 class AdjustStockAction
 {
@@ -64,7 +63,7 @@ class AdjustStockAction
             userId: $userId,
             referenceType: 'inventory_count',
             referenceId: null,
-            notes: $notes ?? "Physical stock audit adjustment (-" . abs($difference) . ")"
+            notes: $notes ?? 'Physical stock audit adjustment (-'.abs($difference).')'
         );
     }
 }

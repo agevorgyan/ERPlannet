@@ -47,13 +47,13 @@ class RecordStockMovementAction
         }
 
         $allTypes = array_merge(self::INBOUND_TYPES, self::OUTBOUND_TYPES);
-        if (!in_array($type, $allTypes, true)) {
+        if (! in_array($type, $allTypes, true)) {
             throw new \InvalidArgumentException("Invalid stock movement type: {$type}");
         }
 
         $isInbound = in_array($type, self::INBOUND_TYPES, true);
         $tenant = $this->tenantContext->getTenant();
-        if (!$tenant) {
+        if (! $tenant) {
             throw new \RuntimeException('Tenant context not set.');
         }
 
@@ -79,7 +79,7 @@ class RecordStockMovementAction
                 ->lockForUpdate()
                 ->first();
 
-            if (!$stockLevel) {
+            if (! $stockLevel) {
                 $stockLevel = StockLevel::create([
                     'tenant_id' => $tenant->id,
                     'warehouse_id' => $warehouseId,
@@ -99,7 +99,7 @@ class RecordStockMovementAction
             $balanceBefore = (float) $stockLevel->quantity_on_hand;
 
             // 2. Validate outbound sufficiency
-            if (!$isInbound && $balanceBefore < $quantity) {
+            if (! $isInbound && $balanceBefore < $quantity) {
                 throw new \InvalidArgumentException(
                     "Insufficient physical stock in warehouse for product. Available: {$balanceBefore}, Requested deduction: {$quantity}"
                 );

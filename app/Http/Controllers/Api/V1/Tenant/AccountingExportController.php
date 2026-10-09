@@ -7,7 +7,6 @@ namespace App\Http\Controllers\Api\V1\Tenant;
 use App\Domain\Integration\Drivers\ArmenianSoftwareExportDriver;
 use App\Domain\Integration\Models\TenantIntegration;
 use App\Http\Controllers\Controller;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 

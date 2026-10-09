@@ -23,14 +23,14 @@ class OpenPosSessionAction
         ?string $notes = null
     ): PosSession {
         $tenant = $this->tenantContext->getTenant();
-        if (!$tenant) {
+        if (! $tenant) {
             throw new \RuntimeException('Tenant context not set.');
         }
 
         $this->entitlements->assertCan('feature.pos');
 
         $terminal = PosTerminal::findOrFail($posTerminalId);
-        if (!$terminal->is_active) {
+        if (! $terminal->is_active) {
             throw new \InvalidArgumentException("POS Terminal {$terminal->code} is inactive.");
         }
 

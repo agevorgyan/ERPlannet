@@ -23,7 +23,7 @@ class ReturnDeliveryShipmentAction
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            if (!in_array($shipment->status, ['failed', 'in_transit'], true)) {
+            if (! in_array($shipment->status, ['failed', 'in_transit'], true)) {
                 throw new InvalidArgumentException("Cannot return shipment in status {$shipment->status}.");
             }
 

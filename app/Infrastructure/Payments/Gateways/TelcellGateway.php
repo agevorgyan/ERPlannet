@@ -24,7 +24,7 @@ class TelcellGateway implements PaymentGatewayInterface
 
     public function initiatePayment(PaymentIntentDTO $intent): PaymentResultDTO
     {
-        $invoiceId = 'TELCELL_' . Str::upper(Str::random(10));
+        $invoiceId = 'TELCELL_'.Str::upper(Str::random(10));
 
         // Telcell Wallet checkout & dynamic QR payload
         $checkoutUrl = "https://pay.telcell.am/checkout?invoice_id={$invoiceId}&sum={$intent->amount}&currency={$intent->currency}";
@@ -48,7 +48,8 @@ class TelcellGateway implements PaymentGatewayInterface
 
     public function authorize(PaymentIntentDTO $intent): PaymentResultDTO
     {
-        $invoiceId = 'TELCELL_AUTH_' . Str::upper(Str::random(10));
+        $invoiceId = 'TELCELL_AUTH_'.Str::upper(Str::random(10));
+
         return new PaymentResultDTO(
             status: 'authorized',
             transactionId: $invoiceId,
@@ -99,7 +100,7 @@ class TelcellGateway implements PaymentGatewayInterface
     {
         return new RefundResultDTO(
             success: true,
-            refundId: 'TELCELL_REF_' . Str::upper(Str::random(10)),
+            refundId: 'TELCELL_REF_'.Str::upper(Str::random(10)),
             gatewayResponse: ['refunded_amount' => $dto->amount]
         );
     }

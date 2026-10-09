@@ -78,10 +78,16 @@ class IntegrationController extends Controller
             'settings' => 'nullable|array',
         ]);
 
-        if (isset($validated['name'])) $integration->name = $validated['name'];
-        if (isset($validated['status'])) $integration->status = $validated['status'];
-        if (isset($validated['settings'])) $integration->settings = $validated['settings'];
-        if (!empty($validated['credentials'])) {
+        if (isset($validated['name'])) {
+            $integration->name = $validated['name'];
+        }
+        if (isset($validated['status'])) {
+            $integration->status = $validated['status'];
+        }
+        if (isset($validated['settings'])) {
+            $integration->settings = $validated['settings'];
+        }
+        if (! empty($validated['credentials'])) {
             $integration->setCredentials($validated['credentials']);
         }
 
@@ -179,7 +185,7 @@ class IntegrationController extends Controller
         $maskedCreds = [];
         foreach ($creds as $key => $val) {
             $maskedCreds[$key] = is_string($val) && strlen($val) > 4
-                ? substr($val, 0, 3) . '••••••••' . substr($val, -3)
+                ? substr($val, 0, 3).'••••••••'.substr($val, -3)
                 : '••••';
         }
 

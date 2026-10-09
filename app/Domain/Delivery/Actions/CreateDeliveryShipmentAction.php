@@ -30,7 +30,7 @@ class CreateDeliveryShipmentAction
         ?string $notes = null
     ): DeliveryShipment {
         $tenant = $this->tenantContext->getTenant();
-        if (!$tenant) {
+        if (! $tenant) {
             throw new \RuntimeException('Tenant context not set.');
         }
 

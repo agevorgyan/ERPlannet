@@ -6,8 +6,8 @@ namespace App\Domain\Integration\Drivers;
 
 use App\Domain\Integration\Contracts\AccountingExportInterface;
 use App\Domain\Integration\Models\TenantIntegration;
-use App\Domain\Warehouse\Models\StockLevel;
 use App\Domain\Sales\Models\Order;
+use App\Domain\Warehouse\Models\StockLevel;
 
 class ArmenianSoftwareExportDriver implements AccountingExportInterface
 {
@@ -59,9 +59,10 @@ class ArmenianSoftwareExportDriver implements AccountingExportInterface
         }
 
         $content = $xml->asXML() ?: '';
+
         return [
             'format' => 'xml',
-            'filename' => 'AS_Invoices_' . date('Ymd_His') . '.xml',
+            'filename' => 'AS_Invoices_'.date('Ymd_His').'.xml',
             'content' => $content,
             'count' => $orders->count(),
         ];
@@ -86,7 +87,7 @@ class ArmenianSoftwareExportDriver implements AccountingExportInterface
 
         return [
             'format' => 'xml',
-            'filename' => 'AS_Stock_' . date('Ymd_His') . '.xml',
+            'filename' => 'AS_Stock_'.date('Ymd_His').'.xml',
             'content' => $xml->asXML() ?: '',
             'count' => $balances->count(),
         ];

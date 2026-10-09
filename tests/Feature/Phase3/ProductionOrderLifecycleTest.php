@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\Phase3;
 
+use App\Domain\Billing\Models\Plan;
+use App\Domain\Billing\Models\Subscription;
 use App\Domain\Catalog\Models\Category;
 use App\Domain\Catalog\Models\Product;
 use App\Domain\Catalog\Models\Unit;
@@ -14,6 +16,7 @@ use App\Domain\Tenant\Models\Tenant;
 use App\Domain\Warehouse\Actions\RecordStockMovementAction;
 use App\Domain\Warehouse\Models\StockLevel;
 use App\Domain\Warehouse\Models\Warehouse;
+use App\Infrastructure\MultiTenancy\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -22,13 +25,21 @@ class ProductionOrderLifecycleTest extends TestCase
     use RefreshDatabase;
 
     protected Tenant $tenant;
+
     protected User $user;
+
     protected Warehouse $warehouse;
+
     protected Product $matnakash;
+
     protected Product $flour;
+
     protected Product $yeast;
+
     protected Unit $kg;
+
     protected Unit $pcs;
+
     protected Recipe $recipe;
 
     protected function setUp(): void
@@ -41,13 +52,13 @@ class ProductionOrderLifecycleTest extends TestCase
         $this->warehouse = Warehouse::where('tenant_id', $this->tenant->id)->where('code', 'WH-MAIN')->firstOrFail();
 
         // Ensure Growth plan (production enabled, iso22000 optional)
-        $growth = \App\Domain\Billing\Models\Plan::where('code', 'growth')->firstOrFail();
-        $sub = \App\Domain\Billing\Models\Subscription::where('tenant_id', $this->tenant->id)->first();
+        $growth = Plan::where('code', 'growth')->firstOrFail();
+        $sub = Subscription::where('tenant_id', $this->tenant->id)->first();
         if ($sub) {
             $sub->update(['plan_id' => $growth->id]);
         }
 
-        app(\App\Infrastructure\MultiTenancy\TenantContext::class)->setCurrentTenant($this->tenant);
+        app(TenantContext::class)->setCurrentTenant($this->tenant);
 
         $this->kg = Unit::firstOrCreate(
             ['tenant_id' => $this->tenant->id, 'code' => 'KG'],

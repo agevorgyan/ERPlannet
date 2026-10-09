@@ -18,7 +18,7 @@ class FailDeliveryAction
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            if (!in_array($shipment->status, ['assigned', 'in_transit'], true)) {
+            if (! in_array($shipment->status, ['assigned', 'in_transit'], true)) {
                 throw new InvalidArgumentException("Cannot mark shipment as failed from status {$shipment->status}.");
             }
 

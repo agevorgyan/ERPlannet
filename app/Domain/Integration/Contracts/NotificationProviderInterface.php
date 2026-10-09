@@ -11,7 +11,7 @@ interface NotificationProviderInterface extends IntegrationDriverInterface
     /**
      * Send a notification message through the channel (SMS, Telegram, Email).
      *
-     * @param array<string, mixed> $options
+     * @param  array<string, mixed>  $options
      * @return array{success: bool, message_id?: string, error?: string}
      */
     public function sendNotification(TenantIntegration $integration, string $recipient, string $message, array $options = []): array;

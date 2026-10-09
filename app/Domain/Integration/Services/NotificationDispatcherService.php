@@ -17,7 +17,7 @@ class NotificationDispatcherService
     /**
      * Send an event notification using tenant template and active provider.
      *
-     * @param array<string, string|int|float> $variables
+     * @param  array<string, string|int|float>  $variables
      * @return array{success: bool, channel?: string, message?: string, error?: string}
      */
     public function send(string $tenantId, string $event, string $recipient, array $variables = [], ?string $channel = null): array
@@ -46,7 +46,7 @@ class NotificationDispatcherService
             ->where('status', 'active')
             ->first();
 
-        if (!$integration) {
+        if (! $integration) {
             return [
                 'success' => false,
                 'error' => "No active integration configured for notification channel [{$targetChannel}].",

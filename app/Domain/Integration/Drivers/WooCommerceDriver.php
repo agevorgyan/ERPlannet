@@ -37,6 +37,7 @@ class WooCommerceDriver implements ECommerceDriverInterface
 
             if ($response->successful()) {
                 $data = $response->json();
+
                 return [
                     'success' => true,
                     'message' => 'Connection established successfully.',
@@ -49,13 +50,13 @@ class WooCommerceDriver implements ECommerceDriverInterface
 
             return [
                 'success' => false,
-                'message' => 'WooCommerce returned error code: ' . $response->status(),
+                'message' => 'WooCommerce returned error code: '.$response->status(),
                 'details' => $response->json() ?? [],
             ];
         } catch (\Throwable $e) {
             return [
                 'success' => false,
-                'message' => 'Could not connect to WooCommerce: ' . $e->getMessage(),
+                'message' => 'Could not connect to WooCommerce: '.$e->getMessage(),
             ];
         }
     }
@@ -89,8 +90,8 @@ class WooCommerceDriver implements ECommerceDriverInterface
             $res = $client->post("{$siteUrl}/wp-json/wc/v3/products", $payload);
         }
 
-        if (!$res->successful()) {
-            throw new \RuntimeException('Failed to push product to WooCommerce: ' . $res->body());
+        if (! $res->successful()) {
+            throw new \RuntimeException('Failed to push product to WooCommerce: '.$res->body());
         }
 
         $resData = $res->json();
@@ -105,7 +106,7 @@ class WooCommerceDriver implements ECommerceDriverInterface
 
     public function pushStock(TenantIntegration $integration, Product $product, float $quantity, ?string $externalId = null): array
     {
-        if (!$externalId) {
+        if (! $externalId) {
             throw new \InvalidArgumentException('External product ID is required to update stock on WooCommerce.');
         }
 
@@ -132,7 +133,7 @@ class WooCommerceDriver implements ECommerceDriverInterface
 
     public function pushPrice(TenantIntegration $integration, Product $product, float $price, ?string $externalId = null): array
     {
-        if (!$externalId) {
+        if (! $externalId) {
             throw new \InvalidArgumentException('External product ID is required to update price on WooCommerce.');
         }
 
@@ -172,8 +173,8 @@ class WooCommerceDriver implements ECommerceDriverInterface
             ->withBasicAuth($key, $secret)
             ->get("{$siteUrl}/wp-json/wc/v3/orders", $queryParams);
 
-        if (!$res->successful()) {
-            throw new \RuntimeException('Failed to fetch orders from WooCommerce: ' . $res->body());
+        if (! $res->successful()) {
+            throw new \RuntimeException('Failed to fetch orders from WooCommerce: '.$res->body());
         }
 
         return $res->json() ?? [];
@@ -211,6 +212,7 @@ class WooCommerceDriver implements ECommerceDriverInterface
         }
 
         $expected = base64_encode(hash_hmac('sha256', $rawPayload, $secret, true));
+
         return hash_equals($expected, $signature);
     }
 }

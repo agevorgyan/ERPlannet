@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class IdempotencyKey extends Model
 {
-    use HasUuids, BelongsToTenant;
+    use BelongsToTenant, HasUuids;
 
     protected $table = 'idempotency_keys';
 

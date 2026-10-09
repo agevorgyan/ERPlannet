@@ -24,11 +24,17 @@ class CrossTenantDeliveryAccessTest extends TestCase
     use RefreshDatabase;
 
     protected Tenant $tenantA;
+
     protected User $userA;
+
     protected Tenant $tenantB;
+
     protected User $userB;
+
     protected DeliveryDriver $driverA;
+
     protected DeliveryShipment $shipmentA;
+
     protected Order $orderA;
 
     protected function setUp(): void

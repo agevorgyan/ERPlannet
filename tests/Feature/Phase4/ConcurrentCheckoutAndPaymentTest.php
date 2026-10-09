@@ -13,7 +13,6 @@ use App\Domain\Delivery\Actions\DispatchShipmentAction;
 use App\Domain\Delivery\Models\DeliveryDriver;
 use App\Domain\IAM\Models\User;
 use App\Domain\POS\Actions\OpenPosSessionAction;
-use App\Domain\POS\Actions\PosCheckoutAction;
 use App\Domain\POS\Models\PosTerminal;
 use App\Domain\Sales\Actions\CreateOrderAction;
 use App\Domain\Sales\Models\Order;
@@ -31,9 +30,13 @@ class ConcurrentCheckoutAndPaymentTest extends TestCase
     use RefreshDatabase;
 
     protected Tenant $tenant;
+
     protected User $user;
+
     protected PosTerminal $terminal;
+
     protected Product $product;
+
     protected Warehouse $warehouse;
 
     protected function setUp(): void
@@ -109,7 +112,7 @@ class ConcurrentCheckoutAndPaymentTest extends TestCase
             openingCash: 10000.0
         );
 
-        $idempotencyKey = 'IDEMP-' . Str::uuid();
+        $idempotencyKey = 'IDEMP-'.Str::uuid();
 
         // First checkout request
         $response1 = $this->actingAs($this->user)

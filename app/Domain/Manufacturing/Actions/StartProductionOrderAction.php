@@ -19,7 +19,7 @@ class StartProductionOrderAction
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            if (!in_array($order->status, ['draft', 'confirmed'], true)) {
+            if (! in_array($order->status, ['draft', 'confirmed'], true)) {
                 throw new \InvalidArgumentException("Production order cannot be started from current status: {$order->status}.");
             }
 

@@ -3,7 +3,6 @@
 namespace App\Domain\IAM\Models;
 
 use App\Domain\Audit\Models\AuditLog;
-use App\Domain\Tenant\Models\Tenant;
 use App\Infrastructure\MultiTenancy\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -16,7 +15,7 @@ use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, HasUuids, BelongsToTenant, Notifiable, SoftDeletes;
+    use BelongsToTenant, HasApiTokens, HasFactory, HasUuids, Notifiable, SoftDeletes;
 
     protected $table = 'users';
 

@@ -345,8 +345,123 @@
             if (viewName === 'pos') ERP.pos.render();
             if (viewName === 'users') ERP.users.load();
             if (viewName === 'roles') ERP.roles.load();
+            if (viewName === 'directory-categories') ERP.directory.categories.load();
             if (viewName === 'directory-suppliers') ERP.directory.suppliers.load();
             if (viewName === 'directory-ingredients') ERP.directory.ingredients.load();
+        },
+
+        // =====================================================================
+        // 2.5 Media & File Upload Subsystem
+        // =====================================================================
+        media: {
+            upload: async function (file, folder = 'general') {
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('folder', folder);
+
+                const res = await ERP.api('/media/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                return res && res.success ? res.data : null;
+            },
+
+            handleFileUpload: async function (fileInput, folder, urlInputId, previewImgId, previewBoxId, removeBtnId, placeholderIconId) {
+                const file = fileInput.files && fileInput.files[0];
+                if (!file) return;
+
+                if (file.size > 10 * 1024 * 1024) {
+                    ERP.toast('Ֆայլի չափը չպետք է գերազանցի 10MB-ը:', 'error', 'Սխալ');
+                    fileInput.value = '';
+                    return;
+                }
+
+                // Show local preview immediately
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const previewImg = document.getElementById(previewImgId);
+                    const placeholder = document.getElementById(placeholderIconId);
+                    const removeBtn = document.getElementById(removeBtnId);
+                    if (previewImg) {
+                        previewImg.src = e.target.result;
+                        previewImg.style.display = 'block';
+                    }
+                    if (placeholder) placeholder.style.display = 'none';
+                    if (removeBtn) removeBtn.style.display = 'flex';
+                };
+                reader.readAsDataURL(file);
+
+                ERP.toast('Պատկերը վերբեռնվում է...', 'info');
+
+                try {
+                    const data = await this.upload(file, folder);
+                    if (data && data.url) {
+                        const urlInput = document.getElementById(urlInputId);
+                        if (urlInput) urlInput.value = data.url;
+                        ERP.toast('Պատկերը հաջողությամբ վերբեռնվեց:', 'success');
+                    }
+                } catch (err) {
+                    ERP.toast('Չհաջողվեց վերբեռնել պատկերը: ' + err.message, 'error');
+                }
+            },
+
+            setPreview: function (url, previewImgId, previewBoxId, removeBtnId, placeholderIconId) {
+                const previewImg = document.getElementById(previewImgId);
+                const placeholder = document.getElementById(placeholderIconId);
+                const removeBtn = document.getElementById(removeBtnId);
+
+                if (url) {
+                    if (previewImg) {
+                        previewImg.src = url;
+                        previewImg.style.display = 'block';
+                    }
+                    if (placeholder) placeholder.style.display = 'none';
+                    if (removeBtn) removeBtn.style.display = 'flex';
+                } else {
+                    if (previewImg) {
+                        previewImg.src = '';
+                        previewImg.style.display = 'none';
+                    }
+                    if (placeholder) placeholder.style.display = 'block';
+                    if (removeBtn) removeBtn.style.display = 'none';
+                }
+            },
+
+            clearProductImage: function () {
+                const urlInput = document.getElementById('prod-image-url');
+                const fileInput = document.getElementById('prod-image-file');
+                if (urlInput) urlInput.value = '';
+                if (fileInput) fileInput.value = '';
+                this.setPreview('', 'prod-image-preview', 'prod-image-preview-box', 'prod-image-remove-btn', 'prod-image-placeholder-icon');
+            },
+
+            onProductUrlChange: function (url) {
+                this.setPreview(url, 'prod-image-preview', 'prod-image-preview-box', 'prod-image-remove-btn', 'prod-image-placeholder-icon');
+            },
+
+            clearCategoryImage: function () {
+                const urlInput = document.getElementById('cat-image-url');
+                const fileInput = document.getElementById('cat-image-file');
+                if (urlInput) urlInput.value = '';
+                if (fileInput) fileInput.value = '';
+                this.setPreview('', 'cat-image-preview', 'cat-image-preview-box', 'cat-image-remove-btn', 'cat-image-placeholder-icon');
+            },
+
+            onCategoryUrlChange: function (url) {
+                this.setPreview(url, 'cat-image-preview', 'cat-image-preview-box', 'cat-image-remove-btn', 'cat-image-placeholder-icon');
+            },
+
+            clearIngredientImage: function () {
+                const urlInput = document.getElementById('ing-image-url');
+                const fileInput = document.getElementById('ing-image-file');
+                if (urlInput) urlInput.value = '';
+                if (fileInput) fileInput.value = '';
+                this.setPreview('', 'ing-image-preview', 'ing-image-preview-box', 'ing-image-remove-btn', 'ing-image-placeholder-icon');
+            },
+
+            onIngredientUrlChange: function (url) {
+                this.setPreview(url, 'ing-image-preview', 'ing-image-preview-box', 'ing-image-remove-btn', 'ing-image-placeholder-icon');
+            }
         },
 
         // =====================================================================
@@ -579,9 +694,279 @@
         // 3a. Catalog & Item Master Subsystem
         // =====================================================================
         catalog: {
+            // Internal state
+            state: {
+                activeFilter: 'all',
+                searchQuery: '',
+                searchTimeout: null,
+                currentTechCardProduct: null
+            },
+
+            load: function () {
+                window.location.reload();
+            },
+
+            filterType: function (type) {
+                ERP.catalog.state.activeFilter = type;
+                const tabs = document.querySelectorAll('#catalog-type-tabs .directory-tab-btn');
+                tabs.forEach(btn => {
+                    if (btn.getAttribute('data-type') === type) {
+                        btn.classList.add('active');
+                    } else {
+                        btn.classList.remove('active');
+                    }
+                });
+                ERP.catalog.applyFilters();
+            },
+
+            debouncedSearch: function () {
+                clearTimeout(ERP.catalog.state.searchTimeout);
+                ERP.catalog.state.searchTimeout = setTimeout(() => {
+                    ERP.catalog.state.searchQuery = (document.getElementById('catalog-search')?.value || '').toLowerCase().trim();
+                    ERP.catalog.applyFilters();
+                }, 250);
+            },
+
+            applyFilters: function () {
+                const rows = document.querySelectorAll('#catalog-table-body tr[data-id]');
+                const filter = ERP.catalog.state.activeFilter;
+                const search = ERP.catalog.state.searchQuery;
+                const catFilter = document.getElementById('catalog-category-filter')?.value;
+                let visibleCount = 0;
+
+                rows.forEach(row => {
+                    const rowType = row.getAttribute('data-type') || '';
+                    const rowStopList = row.getAttribute('data-stoplist') === '1';
+                    const hasLowStock = !!row.querySelector('.low-stock-badge');
+                    const rowText = row.innerText.toLowerCase();
+
+                    let matchesType = true;
+                    if (filter === 'all') {
+                        matchesType = true;
+                    } else if (filter === 'stop_list') {
+                        matchesType = rowStopList;
+                    } else if (filter === 'low_stock') {
+                        matchesType = hasLowStock;
+                    } else {
+                        matchesType = (rowType === filter);
+                    }
+
+                    let matchesSearch = !search || rowText.includes(search);
+
+                    if (matchesType && matchesSearch) {
+                        row.style.display = '';
+                        visibleCount++;
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+
+                const countBadge = document.getElementById('catalog-count-badge');
+                if (countBadge) countBadge.innerText = `${visibleCount} Ապրանք`;
+            },
+
             openCreateProductModal: function () {
                 const modal = document.getElementById('create-product-modal');
-                if (modal) modal.classList.add('active');
+                if (!modal) return;
+
+                const form = document.getElementById('product-master-form');
+                if (form) form.reset();
+
+                document.getElementById('prod-edit-id').value = '';
+                const titleEl = document.getElementById('product-modal-title');
+                if (titleEl) {
+                    titleEl.innerHTML = '<i class="fa-solid fa-boxes-stacked" style="color: var(--color-primary); margin-right: 6px;"></i> Նոր Ապրանք / Պրոդուկտ (Product / Item Master)';
+                }
+
+                // UUID display
+                const idDisplay = document.getElementById('prod-id-display');
+                if (idDisplay) idDisplay.value = 'Ավտոմատ կգեներացվի (UUID)';
+
+                // Auto generate SKU
+                ERP.catalog.generateSku();
+
+                // Defaults
+                document.getElementById('prod-type').value = 'finished_product';
+                document.getElementById('prod-sale-price').value = '0';
+                document.getElementById('prod-cost-price').value = '0';
+                document.getElementById('prod-special-price').value = '';
+                document.getElementById('prod-vat-yes').checked = true;
+                document.getElementById('prod-vat-rate').value = '20';
+                const vatGroup = document.getElementById('prod-vat-rate-group');
+                if (vatGroup) vatGroup.style.display = 'block';
+                document.getElementById('prod-allow-discount').checked = true;
+                document.getElementById('prod-allow-price-edit').checked = false;
+                document.getElementById('prod-allow-modifiers').checked = false;
+                document.getElementById('prod-is-ungrouped').checked = false;
+                document.getElementById('prod-is-stop-list').checked = false;
+                document.getElementById('prod-is-excise').checked = false;
+                document.getElementById('prod-is-marked').checked = false;
+                document.getElementById('prod-track-stock').checked = true;
+                const stockFields = document.getElementById('prod-stock-fields');
+                if (stockFields) stockFields.style.display = 'grid';
+                document.getElementById('prod-min-stock').value = '0';
+                document.getElementById('prod-initial-stock').value = '0';
+                const initStockGroup = document.getElementById('prod-initial-stock-group');
+                if (initStockGroup) initStockGroup.style.display = 'block';
+
+                // Clear variants
+                const vtbody = document.getElementById('prod-variants-tbody');
+                if (vtbody) vtbody.innerHTML = '';
+
+                // Clear nutrition & tags
+                document.getElementById('prod-calories').value = '';
+                document.getElementById('prod-protein').value = '';
+                document.getElementById('prod-fat').value = '';
+                document.getElementById('prod-carbs').value = '';
+                document.getElementById('prod-shelf-life-info').value = '';
+
+                document.querySelectorAll('#prod-allergens-grid input[type="checkbox"]').forEach(c => c.checked = false);
+                document.querySelectorAll('#prod-dietary-grid input[type="checkbox"]').forEach(c => c.checked = false);
+                document.querySelectorAll('#prod-branches-grid input[type="checkbox"]').forEach(c => c.checked = false);
+                document.getElementById('prod-avail-from').value = '';
+                document.getElementById('prod-avail-to').value = '';
+                document.getElementById('prod-discount-from').value = '';
+                document.getElementById('prod-discount-to').value = '';
+
+                // Hide tech card btn in create mode
+                const tcBtn = document.getElementById('btn-modal-tech-card');
+                if (tcBtn) tcBtn.style.display = 'none';
+
+                ERP.media.clearProductImage();
+
+                ERP.catalog.switchModalTab('tab-prod-general');
+                modal.classList.add('active');
+            },
+
+            openEditProductModal: async function (id) {
+                const modal = document.getElementById('create-product-modal');
+                if (!modal) return;
+
+                ERP.toast('Բեռնվում են ապրանքի տվյալները...', 'info');
+
+                try {
+                    const res = await ERP.api(`/products/${id}`);
+                    const p = res.data;
+                    if (!p) throw new Error('Ապրանքը չի գտնվել:');
+
+                    document.getElementById('prod-edit-id').value = p.id;
+                    const titleEl = document.getElementById('product-modal-title');
+                    if (titleEl) {
+                        const pName = (typeof p.name === 'object' && p.name !== null ? (p.name.hy || Object.values(p.name)[0]) : p.name) || '';
+                        titleEl.innerHTML = `<i class="fa-solid fa-pen-to-square" style="color: var(--color-primary); margin-right: 6px;"></i> Խմբագրել՝ «${pName}»`;
+                    }
+
+                    document.getElementById('prod-id-display').value = p.id;
+                    document.getElementById('prod-sku').value = p.sku || '';
+                    document.getElementById('prod-barcode').value = p.barcode || '';
+                    document.getElementById('prod-hs-code').value = p.hs_code || '';
+
+                    // Names
+                    if (typeof p.name === 'object' && p.name !== null) {
+                        document.getElementById('prod-name-hy').value = p.name.hy || Object.values(p.name)[0] || '';
+                        document.getElementById('prod-name-en').value = p.name.en || '';
+                        document.getElementById('prod-name-ru').value = p.name.ru || '';
+                    } else {
+                        document.getElementById('prod-name-hy').value = p.name || '';
+                        document.getElementById('prod-name-en').value = '';
+                        document.getElementById('prod-name-ru').value = '';
+                    }
+
+                    // Type & Categories & Unit
+                    document.getElementById('prod-type').value = p.type || 'finished_product';
+                    document.getElementById('prod-category-id').value = p.category_id || '';
+                    document.getElementById('prod-subcategory-id').value = p.subcategory_id || '';
+                    document.getElementById('prod-unit-id').value = p.unit_id || '';
+                    document.getElementById('prod-net-quantity').value = p.net_quantity || '';
+                    document.getElementById('prod-packaging').value = p.packaging || '';
+                    const prodImgUrl = (Array.isArray(p.images) && p.images[0]) ? p.images[0] : '';
+                    document.getElementById('prod-image-url').value = prodImgUrl;
+                    ERP.media.setPreview(prodImgUrl, 'prod-image-preview', 'prod-image-preview-box', 'prod-image-remove-btn', 'prod-image-placeholder-icon');
+
+                    // Description
+                    if (typeof p.description === 'object' && p.description !== null) {
+                        document.getElementById('prod-description').value = p.description.hy || Object.values(p.description)[0] || '';
+                    } else {
+                        document.getElementById('prod-description').value = p.description || '';
+                    }
+
+                    // Prices
+                    document.getElementById('prod-sale-price').value = p.sale_price ?? 0;
+                    document.getElementById('prod-special-price').value = p.special_price ?? '';
+                    document.getElementById('prod-cost-price').value = p.cost_price ?? 0;
+
+                    // VAT
+                    if (p.has_vat === false) {
+                        document.getElementById('prod-vat-no').checked = true;
+                    } else {
+                        document.getElementById('prod-vat-yes').checked = true;
+                    }
+                    document.getElementById('prod-vat-rate').value = p.vat_rate ?? 20;
+                    ERP.catalog.onVatToggle();
+
+                    // Flags
+                    document.getElementById('prod-allow-discount').checked = (p.allow_discount !== false);
+                    document.getElementById('prod-allow-price-edit').checked = !!p.allow_price_edit;
+                    document.getElementById('prod-allow-modifiers').checked = !!p.allow_modifiers;
+                    document.getElementById('prod-is-ungrouped').checked = !!p.is_ungrouped_in_order;
+                    document.getElementById('prod-is-stop-list').checked = !!p.is_stop_list;
+                    document.getElementById('prod-is-excise').checked = !!p.is_excise;
+                    document.getElementById('prod-is-marked').checked = !!p.is_marked;
+                    document.getElementById('prod-track-stock').checked = (p.track_stock !== false);
+                    ERP.catalog.onTrackStockToggle();
+                    document.getElementById('prod-min-stock').value = p.min_stock_level ?? 0;
+                    const initStockGroup = document.getElementById('prod-initial-stock-group');
+                    if (initStockGroup) initStockGroup.style.display = 'none';
+
+                    // Variants
+                    const vtbody = document.getElementById('prod-variants-tbody');
+                    if (vtbody) {
+                        vtbody.innerHTML = '';
+                        if (p.variants && p.variants.length > 0) {
+                            p.variants.forEach(v => ERP.catalog.addVariantRow(v));
+                        }
+                    }
+
+                    // Nutrition & Allergens & Dietary
+                    document.getElementById('prod-calories').value = p.calories ?? '';
+                    document.getElementById('prod-protein').value = p.nutritional_info?.protein ?? '';
+                    document.getElementById('prod-fat').value = p.nutritional_info?.fat ?? '';
+                    document.getElementById('prod-carbs').value = p.nutritional_info?.carbs ?? '';
+                    document.getElementById('prod-shelf-life-info').value = p.shelf_life_info ?? '';
+
+                    const allergens = Array.isArray(p.allergens) ? p.allergens : [];
+                    document.querySelectorAll('#prod-allergens-grid input[type="checkbox"]').forEach(c => {
+                        c.checked = allergens.includes(c.value);
+                    });
+
+                    const dietary = Array.isArray(p.dietary_tags) ? p.dietary_tags : [];
+                    document.querySelectorAll('#prod-dietary-grid input[type="checkbox"]').forEach(c => {
+                        c.checked = dietary.includes(c.value);
+                    });
+
+                    // Availability
+                    const branches = Array.isArray(p.available_branch_ids) ? p.available_branch_ids : [];
+                    document.querySelectorAll('#prod-branches-grid input[type="checkbox"]').forEach(c => {
+                        c.checked = branches.includes(c.value);
+                    });
+
+                    document.getElementById('prod-avail-from').value = p.time_availability?.from || '';
+                    document.getElementById('prod-avail-to').value = p.time_availability?.to || '';
+                    document.getElementById('prod-discount-from').value = p.discount_hours?.from || '';
+                    document.getElementById('prod-discount-to').value = p.discount_hours?.to || '';
+
+                    // Tech card button in edit modal
+                    const tcBtn = document.getElementById('btn-modal-tech-card');
+                    if (tcBtn) {
+                        tcBtn.style.display = 'inline-flex';
+                        tcBtn.setAttribute('data-id', p.id);
+                    }
+
+                    ERP.catalog.switchModalTab('tab-prod-general');
+                    modal.classList.add('active');
+                } catch (err) {
+                    ERP.toast(`Սխալ ապրանքի տվյալների բեռնման ժամանակ: ${err.message}`, 'error');
+                }
             },
 
             closeCreateProductModal: function () {
@@ -589,47 +974,769 @@
                 if (modal) modal.classList.remove('active');
             },
 
+            switchModalTab: function (tabId) {
+                const tabs = document.querySelectorAll('.product-modal-tabs .product-tab-btn');
+                tabs.forEach(btn => {
+                    if (btn.getAttribute('data-tab') === tabId) {
+                        btn.classList.add('active');
+                    } else {
+                        btn.classList.remove('active');
+                    }
+                });
+
+                const panes = document.querySelectorAll('.product-tab-pane');
+                panes.forEach(pane => {
+                    if (pane.id === tabId) {
+                        pane.style.display = 'block';
+                    } else {
+                        pane.style.display = 'none';
+                    }
+                });
+            },
+
+            generateSku: function () {
+                const type = document.getElementById('prod-type')?.value || 'PRD';
+                const prefixMap = {
+                    finished_product: 'PRD',
+                    semi_finished: 'SEMI',
+                    ingredient: 'ING',
+                    raw_material: 'RAW',
+                    packaging: 'PKG',
+                    service: 'SRV',
+                    modifier: 'MOD'
+                };
+                const pfx = prefixMap[type] || 'PRD';
+                const rand = Math.random().toString(36).substring(2, 7).toUpperCase();
+                const skuInput = document.getElementById('prod-sku');
+                if (skuInput) skuInput.value = `${pfx}-${rand}`;
+            },
+
+            onTypeChange: function () {
+                const type = document.getElementById('prod-type')?.value;
+                if (type === 'modifier') {
+                    const modChk = document.getElementById('prod-allow-modifiers');
+                    const ungrpChk = document.getElementById('prod-is-ungrouped');
+                    if (modChk) modChk.checked = true;
+                    if (ungrpChk) ungrpChk.checked = true;
+                }
+            },
+
+            onCategoryChange: function (catId) {
+                const subSelect = document.getElementById('prod-subcategory-id');
+                if (!subSelect) return;
+
+                const allCats = (ERP.directory?.categories?.list && ERP.directory.categories.list.length > 0)
+                    ? ERP.directory.categories.list
+                    : (window.SERVER_INITIAL_DATA?.categories || []);
+
+                const productCats = allCats.filter(c => (c.type === 'product' || !c.type));
+
+                let subCats = [];
+                if (catId) {
+                    subCats = productCats.filter(c => c.parent_id === catId);
+                }
+
+                if (subCats.length === 0) {
+                    subSelect.innerHTML = '<option value="">-- Առանց ենթախմբի --</option>';
+                    productCats.filter(c => c.id !== catId).forEach(c => {
+                        const name = typeof c.name === 'object' && c.name !== null ? (c.name.hy || Object.values(c.name)[0]) : c.name;
+                        subSelect.innerHTML += `<option value="${c.id}">${name}</option>`;
+                    });
+                } else {
+                    let html = '<option value="">-- Առանց ենթախմբի --</option>';
+                    subCats.forEach(c => {
+                        const name = typeof c.name === 'object' && c.name !== null ? (c.name.hy || Object.values(c.name)[0]) : c.name;
+                        html += `<option value="${c.id}">${name}</option>`;
+                    });
+                    subSelect.innerHTML = html;
+                }
+            },
+
+            onVatToggle: function () {
+                const noVat = document.getElementById('prod-vat-no')?.checked;
+                const group = document.getElementById('prod-vat-rate-group');
+                const rateInput = document.getElementById('prod-vat-rate');
+                if (noVat) {
+                    if (group) group.style.opacity = '0.5';
+                    if (rateInput) rateInput.value = '0';
+                } else {
+                    if (group) group.style.opacity = '1';
+                    if (rateInput && (!rateInput.value || parseFloat(rateInput.value) === 0)) {
+                        rateInput.value = '20';
+                    }
+                }
+            },
+
+            onModifierToggle: function () {
+                const allowMods = document.getElementById('prod-allow-modifiers')?.checked;
+                const ungrouped = document.getElementById('prod-is-ungrouped');
+                if (allowMods && ungrouped) {
+                    ungrouped.checked = true;
+                }
+            },
+
+            onTrackStockToggle: function () {
+                const track = document.getElementById('prod-track-stock')?.checked;
+                const fields = document.getElementById('prod-stock-fields');
+                if (fields) {
+                    fields.style.display = track ? 'grid' : 'none';
+                }
+            },
+
+            addVariantRow: function (variant = null) {
+                const tbody = document.getElementById('prod-variants-tbody');
+                if (!tbody) return;
+
+                const row = document.createElement('tr');
+                row.className = 'variant-row';
+                const varName = (typeof variant?.name === 'object' && variant?.name !== null) ? (variant.name.hy || Object.values(variant.name)[0]) : (variant?.name || '');
+                row.innerHTML = `
+                    <td><input type="text" class="form-control form-control-sm var-name" value="${varName}" placeholder="Չափս / Գույն / Տարողություն"></td>
+                    <td><input type="text" class="form-control form-control-sm font-mono var-sku" value="${variant?.sku || ''}" placeholder="SKU-VAR"></td>
+                    <td><input type="text" class="form-control form-control-sm font-mono var-barcode" value="${variant?.barcode || ''}" placeholder="EAN-13"></td>
+                    <td><input type="number" step="any" class="form-control form-control-sm font-mono var-sale-price" value="${variant?.sale_price ?? ''}" placeholder="0"></td>
+                    <td><input type="number" step="any" class="form-control form-control-sm font-mono var-cost-price" value="${variant?.cost_price ?? ''}" placeholder="0"></td>
+                    <td><button type="button" class="btn btn-xs btn-outline-danger" onclick="this.closest('tr').remove()" title="Հեռացնել"><i class="fa-solid fa-trash-can"></i></button></td>
+                `;
+                tbody.appendChild(row);
+            },
+
             submitProduct: async function (e) {
                 if (e) e.preventDefault();
-                const nameHy = document.getElementById('prod-name-hy')?.value;
-                const nameEn = document.getElementById('prod-name-en')?.value || nameHy;
+                const editId = document.getElementById('prod-edit-id')?.value;
+                const nameHy = document.getElementById('prod-name-hy')?.value?.trim();
+                const nameEn = document.getElementById('prod-name-en')?.value?.trim() || nameHy;
+                const nameRu = document.getElementById('prod-name-ru')?.value?.trim() || nameHy;
                 const type = document.getElementById('prod-type')?.value || 'finished_product';
-                const categoryId = document.getElementById('prod-category-id')?.value;
+                const categoryId = document.getElementById('prod-category-id')?.value || null;
+                const subcategoryId = document.getElementById('prod-subcategory-id')?.value || null;
                 const unitId = document.getElementById('prod-unit-id')?.value;
-                const sku = document.getElementById('prod-sku')?.value;
-                const costPrice = parseFloat(document.getElementById('prod-cost-price')?.value || 0);
+                const sku = document.getElementById('prod-sku')?.value?.trim();
+                const barcode = document.getElementById('prod-barcode')?.value?.trim() || null;
+                const hsCode = document.getElementById('prod-hs-code')?.value?.trim() || null;
+                const netQuantity = document.getElementById('prod-net-quantity')?.value?.trim() || null;
+                const packaging = document.getElementById('prod-packaging')?.value?.trim() || null;
+                const imageUrl = document.getElementById('prod-image-url')?.value?.trim();
+                const description = document.getElementById('prod-description')?.value?.trim();
+
                 const salePrice = parseFloat(document.getElementById('prod-sale-price')?.value || 0);
+                const specialPriceVal = document.getElementById('prod-special-price')?.value;
+                const specialPrice = (specialPriceVal !== '' && !isNaN(parseFloat(specialPriceVal))) ? parseFloat(specialPriceVal) : null;
+                const costPrice = parseFloat(document.getElementById('prod-cost-price')?.value || 0);
+
+                const hasVat = document.getElementById('prod-vat-yes')?.checked;
+                const vatRate = hasVat ? parseFloat(document.getElementById('prod-vat-rate')?.value || 20) : 0;
+                const allowDiscount = document.getElementById('prod-allow-discount')?.checked;
+                const allowPriceEdit = document.getElementById('prod-allow-price-edit')?.checked;
+
+                const allowModifiers = document.getElementById('prod-allow-modifiers')?.checked;
+                const isUngrouped = document.getElementById('prod-is-ungrouped')?.checked;
+                const isStopList = document.getElementById('prod-is-stop-list')?.checked;
+                const isExcise = document.getElementById('prod-is-excise')?.checked;
+                const isMarked = document.getElementById('prod-is-marked')?.checked;
+                const trackStock = document.getElementById('prod-track-stock')?.checked;
+                const minStock = parseFloat(document.getElementById('prod-min-stock')?.value || 0);
+                const initialStock = parseFloat(document.getElementById('prod-initial-stock')?.value || 0);
+
+                // Nutrition & Tags
+                const calVal = document.getElementById('prod-calories')?.value;
+                const calories = calVal !== '' ? parseFloat(calVal) : null;
+                const protVal = document.getElementById('prod-protein')?.value;
+                const fatVal = document.getElementById('prod-fat')?.value;
+                const carbsVal = document.getElementById('prod-carbs')?.value;
+                const protein = protVal !== '' ? parseFloat(protVal) : null;
+                const fat = fatVal !== '' ? parseFloat(fatVal) : null;
+                const carbs = carbsVal !== '' ? parseFloat(carbsVal) : null;
+                const shelfLifeInfo = document.getElementById('prod-shelf-life-info')?.value?.trim() || null;
+
+                const allergens = [];
+                document.querySelectorAll('#prod-allergens-grid input[type="checkbox"]:checked').forEach(c => allergens.push(c.value));
+
+                const dietaryTags = [];
+                document.querySelectorAll('#prod-dietary-grid input[type="checkbox"]:checked').forEach(c => dietaryTags.push(c.value));
+
+                const branchIds = [];
+                document.querySelectorAll('#prod-branches-grid input[type="checkbox"]:checked').forEach(c => branchIds.push(c.value));
+
+                const timeFrom = document.getElementById('prod-avail-from')?.value || null;
+                const timeTo = document.getElementById('prod-avail-to')?.value || null;
+                const timeAvailability = (timeFrom || timeTo) ? { from: timeFrom, to: timeTo } : null;
+
+                const discFrom = document.getElementById('prod-discount-from')?.value || null;
+                const discTo = document.getElementById('prod-discount-to')?.value || null;
+                const discountHours = (discFrom || discTo) ? { from: discFrom, to: discTo } : null;
+
+                // Variants
+                const variants = [];
+                document.querySelectorAll('#prod-variants-tbody tr.variant-row').forEach(tr => {
+                    const vName = tr.querySelector('.var-name')?.value?.trim();
+                    const vSku = tr.querySelector('.var-sku')?.value?.trim();
+                    const vBarcode = tr.querySelector('.var-barcode')?.value?.trim() || null;
+                    const vSale = parseFloat(tr.querySelector('.var-sale-price')?.value || 0);
+                    const vCost = parseFloat(tr.querySelector('.var-cost-price')?.value || 0);
+                    if (vName && vSku) {
+                        variants.push({
+                            name: { hy: vName },
+                            sku: vSku,
+                            barcode: vBarcode,
+                            sale_price: vSale,
+                            cost_price: vCost
+                        });
+                    }
+                });
 
                 if (!nameHy || !sku || !unitId) {
-                    ERP.toast('Լրացրեք պարտադիր դաշտերը (Անվանում, SKU, Միավոր)', 'warning');
+                    ERP.toast('Լրացրեք պարտադիր դաշտերը (Անվանում, SKU, Միավոր):', 'warning');
                     return;
                 }
 
-                ERP.toast('Ապրանքը պահպանվում է...', 'info');
+                const payload = {
+                    name: { hy: nameHy, en: nameEn, ru: nameRu },
+                    type: type,
+                    category_id: categoryId,
+                    subcategory_id: subcategoryId,
+                    unit_id: unitId,
+                    sku: sku,
+                    barcode: barcode,
+                    hs_code: hsCode,
+                    net_quantity: netQuantity,
+                    packaging: packaging,
+                    description: description ? { hy: description } : null,
+                    images: imageUrl ? [imageUrl] : [],
+                    sale_price: salePrice,
+                    special_price: specialPrice,
+                    cost_price: costPrice,
+                    has_vat: hasVat,
+                    vat_rate: vatRate,
+                    allow_discount: allowDiscount,
+                    allow_price_edit: allowPriceEdit,
+                    allow_modifiers: allowModifiers,
+                    is_ungrouped_in_order: isUngrouped,
+                    is_stop_list: isStopList,
+                    is_excise: isExcise,
+                    is_marked: isMarked,
+                    track_stock: trackStock,
+                    min_stock_level: minStock,
+                    calories: calories,
+                    nutritional_info: (protein !== null || fat !== null || carbs !== null) ? { protein, fat, carbs } : null,
+                    allergens: allergens,
+                    dietary_tags: dietaryTags,
+                    available_branch_ids: branchIds,
+                    time_availability: timeAvailability,
+                    discount_hours: discountHours,
+                    shelf_life_info: shelfLifeInfo,
+                    variants: variants
+                };
+
+                if (!editId && initialStock > 0) {
+                    payload.initial_stock = initialStock;
+                }
+
+                ERP.toast('Տվյալները պահպանվում են...', 'info');
 
                 try {
-                    const res = await ERP.api('/products', {
+                    if (editId) {
+                        await ERP.api(`/products/${editId}`, {
+                            method: 'PUT',
+                            body: JSON.stringify(payload)
+                        });
+                        ERP.toast(`Ապրանքը՝ «${nameHy}» հաջողությամբ թարմացվեց:`, 'success', 'Catalog Updated');
+                    } else {
+                        await ERP.api('/products', {
+                            method: 'POST',
+                            body: JSON.stringify(payload)
+                        });
+                        ERP.toast(`Ապրանքը՝ «${nameHy}» հաջողությամբ ստեղծվեց:`, 'success', 'Product Created');
+                    }
+
+                    ERP.catalog.closeCreateProductModal();
+                    setTimeout(() => window.location.reload(), 800);
+                } catch (err) {
+                    ERP.toast(`Սխալ պահպանելիս: ${err.message}`, 'error');
+                }
+            },
+
+            deleteProduct: async function (id) {
+                if (!confirm('Վստա՞հ եք, որ ցանկանում եք հեռացնել այս ապրանքը:')) return;
+
+                ERP.toast('Ապրանքը հեռացվում է...', 'info');
+                try {
+                    await ERP.api(`/products/${id}`, { method: 'DELETE' });
+                    ERP.toast('Ապրանքը հաջողությամբ հեռացվեց:', 'success');
+                    const row = document.querySelector(`#catalog-table-body tr[data-id="${id}"]`);
+                    if (row) row.remove();
+                } catch (err) {
+                    ERP.toast(`Սխալ հեռացնելիս: ${err.message}`, 'error');
+                }
+            },
+
+            openTechCardFromEdit: function () {
+                const id = document.getElementById('prod-edit-id')?.value;
+                if (!id) return;
+                ERP.catalog.closeCreateProductModal();
+                ERP.catalog.openTechnicalCard(id);
+            },
+
+            // -----------------------------------------------------------------
+            // Technical Card / BOM Subsystem
+            // -----------------------------------------------------------------
+            getAvailableComponents: function () {
+                const list = [];
+                const ings = window.SERVER_INITIAL_DATA?.ingredients || [];
+                ings.forEach(i => {
+                    const name = (typeof i.name === 'object' && i.name !== null ? (i.name.hy || Object.values(i.name)[0]) : i.name) || i.sku;
+                    list.push({
+                        id: i.id,
+                        name: `[Բաղադրիչ] ${name} (${i.sku})`,
+                        type: 'ingredient',
+                        cost_price: parseFloat(i.cost_price || 0),
+                        unit_id: i.unit_id,
+                        unit_code: i.unit?.code || 'կգ'
+                    });
+                });
+
+                const prods = window.SERVER_INITIAL_DATA?.products || [];
+                prods.forEach(p => {
+                    const name = (typeof p.name === 'object' && p.name !== null ? (p.name.hy || Object.values(p.name)[0]) : p.name) || p.sku;
+                    const typeLabel = p.type === 'semi_finished' ? 'Կիսաֆաբրիկատ' : (p.type === 'modifier' ? 'Մոդիֆիկատոր' : 'Ապրանք');
+                    list.push({
+                        id: p.id,
+                        name: `[${typeLabel}] ${name} (${p.sku})`,
+                        type: p.type,
+                        cost_price: parseFloat(p.cost_price || 0),
+                        unit_id: p.unit_id,
+                        unit_code: p.unit?.code || 'հատ'
+                    });
+                });
+                return list;
+            },
+
+            openTechnicalCard: async function (productId) {
+                ERP.toast('Բեռնվում է տեխնիկական քարտը...', 'info');
+
+                try {
+                    const res = await ERP.api(`/products/${productId}/technical-card`);
+                    const p = res.product;
+                    const cardData = res.data;
+                    ERP.catalog.state.currentTechCardProduct = p;
+
+                    document.getElementById('tc-product-id').value = productId;
+                    document.getElementById('tc-product-title').innerHTML = `
+                        <i class="fa-solid fa-scroll" style="color: #059669; margin-right: 6px;"></i> 
+                        Տեխնիկական Քարտ — «${p.name}» (${p.sku})
+                    `;
+                    document.getElementById('tc-product-subtitle').innerText = `Ելք՝ 1 ${p.unit_name || p.unit_code || 'միավոր'}, Վաճառքի գին՝ ${Math.round(p.sale_price).toLocaleString()} ֏`;
+
+                    document.getElementById('tc-code').value = cardData.code || `RCP-${p.sku}-V1`;
+                    document.getElementById('tc-name').value = cardData.name || `${p.name} — Տեխնիկական Քարտ`;
+                    document.getElementById('tc-yield-qty').value = cardData.yield_quantity || 1;
+                    document.getElementById('tc-yield-unit-id').value = cardData.yield_unit_id || p.unit_id;
+                    document.getElementById('tc-scrap-pct').value = cardData.scrap_percentage || 0;
+                    document.getElementById('tc-labor-cost').value = cardData.labor_cost || 0;
+                    document.getElementById('tc-overhead-cost').value = cardData.overhead_cost || 0;
+                    document.getElementById('tc-instructions').value = cardData.instructions || '';
+
+                    const tbody = document.getElementById('tc-components-tbody');
+                    if (tbody) {
+                        tbody.innerHTML = '';
+                        const items = cardData.items || [];
+                        if (items.length > 0) {
+                            items.forEach(item => ERP.catalog.addRecipeComponentRow(item));
+                        } else {
+                            ERP.catalog.addRecipeComponentRow();
+                        }
+                    }
+
+                    ERP.catalog.recalculateTechCard();
+
+                    const modal = document.getElementById('product-technical-card-modal');
+                    if (modal) modal.classList.add('active');
+                } catch (err) {
+                    ERP.toast(`Սխալ տեխնիկական քարտը բեռնելիս: ${err.message}`, 'error');
+                }
+            },
+
+            closeTechnicalCardModal: function () {
+                const modal = document.getElementById('product-technical-card-modal');
+                if (modal) modal.classList.remove('active');
+            },
+
+            addRecipeComponentRow: function (item = null) {
+                const tbody = document.getElementById('tc-components-tbody');
+                if (!tbody) return;
+
+                const components = ERP.catalog.getAvailableComponents();
+                const units = window.SERVER_INITIAL_DATA?.units || [];
+
+                let compOptions = '<option value="">-- Ընտրեք բաղադրիչ կամ կիսաֆաբրիկատ --</option>';
+                components.forEach(c => {
+                    const isSel = (item && item.product_id === c.id) ? 'selected' : '';
+                    compOptions += `<option value="${c.id}" data-cost="${c.cost_price}" data-unit="${c.unit_id}" ${isSel}>${c.name}</option>`;
+                });
+
+                let unitOptions = '';
+                units.forEach(u => {
+                    const uName = (typeof u.name === 'object' && u.name !== null ? (u.name.hy || Object.values(u.name)[0]) : u.name) || u.code;
+                    const isSel = (item && item.unit_id === u.id) ? 'selected' : '';
+                    unitOptions += `<option value="${u.id}" ${isSel}>${uName} (${u.code})</option>`;
+                });
+
+                const netQty = item ? parseFloat(item.quantity || 1) : 1;
+                const wastePct = item ? parseFloat(item.waste_percentage || 0) : 0;
+                const grossQty = item ? (item.gross_quantity || (netQty * (1 + wastePct / 100))) : (netQty * (1 + wastePct / 100));
+                const unitCost = item ? parseFloat(item.cost_per_unit || 0) : 0;
+                const lineTotal = Math.round(grossQty * unitCost);
+
+                const tr = document.createElement('tr');
+                tr.className = 'tc-component-row';
+                tr.innerHTML = `
+                    <td>
+                        <select class="select select-sm tc-comp-select" required onchange="ERP.catalog.onComponentSelected(this)">
+                            ${compOptions}
+                        </select>
+                    </td>
+                    <td>
+                        <input type="number" step="any" min="0.0001" class="form-control form-control-sm font-mono tc-comp-net" value="${netQty}" required oninput="ERP.catalog.onRowValuesChanged(this)">
+                    </td>
+                    <td>
+                        <select class="select select-sm tc-comp-unit" required>
+                            ${unitOptions}
+                        </select>
+                    </td>
+                    <td>
+                        <input type="number" step="any" min="0" max="100" class="form-control form-control-sm font-mono tc-comp-waste" value="${wastePct}" oninput="ERP.catalog.onRowValuesChanged(this)">
+                    </td>
+                    <td>
+                        <input type="number" step="any" class="form-control form-control-sm font-mono tc-comp-gross" value="${grossQty.toFixed(4)}" readonly style="background: #F8FAFC;">
+                    </td>
+                    <td>
+                        <input type="number" step="any" min="0" class="form-control form-control-sm font-mono tc-comp-cost" value="${unitCost}" oninput="ERP.catalog.onRowValuesChanged(this)">
+                    </td>
+                    <td>
+                        <div class="font-mono tc-comp-total" style="font-weight: 700; color: #334155;">${lineTotal.toLocaleString()} ֏</div>
+                    </td>
+                    <td>
+                        <button type="button" class="btn btn-xs btn-outline-danger" onclick="ERP.catalog.removeComponentRow(this)" title="Հեռացնել"><i class="fa-solid fa-trash-can"></i></button>
+                    </td>
+                `;
+
+                tbody.appendChild(tr);
+                ERP.catalog.recalculateTechCard();
+            },
+
+            removeComponentRow: function (btn) {
+                const tr = btn.closest('tr');
+                if (tr) tr.remove();
+                ERP.catalog.recalculateTechCard();
+            },
+
+            onComponentSelected: function (selectEl) {
+                const opt = selectEl.options[selectEl.selectedIndex];
+                const cost = parseFloat(opt.getAttribute('data-cost') || 0);
+                const unitId = opt.getAttribute('data-unit');
+                const row = selectEl.closest('tr');
+                if (row) {
+                    if (cost > 0) row.querySelector('.tc-comp-cost').value = cost;
+                    if (unitId) row.querySelector('.tc-comp-unit').value = unitId;
+                    ERP.catalog.onRowValuesChanged(selectEl);
+                }
+            },
+
+            onRowValuesChanged: function (el) {
+                const row = el.closest('tr');
+                if (!row) return;
+
+                const net = parseFloat(row.querySelector('.tc-comp-net')?.value || 0);
+                const waste = parseFloat(row.querySelector('.tc-comp-waste')?.value || 0);
+                const cost = parseFloat(row.querySelector('.tc-comp-cost')?.value || 0);
+
+                const gross = net * (1 + (waste / 100));
+                const grossEl = row.querySelector('.tc-comp-gross');
+                if (grossEl) grossEl.value = gross.toFixed(4);
+
+                const total = Math.round(gross * cost);
+                const totalEl = row.querySelector('.tc-comp-total');
+                if (totalEl) totalEl.innerText = `${total.toLocaleString()} ֏`;
+
+                ERP.catalog.recalculateTechCard();
+            },
+
+            recalculateTechCard: function () {
+                let totalMaterials = 0;
+                document.querySelectorAll('#tc-components-tbody tr.tc-component-row').forEach(row => {
+                    const gross = parseFloat(row.querySelector('.tc-comp-gross')?.value || 0);
+                    const cost = parseFloat(row.querySelector('.tc-comp-cost')?.value || 0);
+                    totalMaterials += (gross * cost);
+                });
+
+                const scrapPct = parseFloat(document.getElementById('tc-scrap-pct')?.value || 0);
+                const scrapCost = totalMaterials * (scrapPct / 100);
+                const laborCost = parseFloat(document.getElementById('tc-labor-cost')?.value || 0);
+                const overheadCost = parseFloat(document.getElementById('tc-overhead-cost')?.value || 0);
+
+                const totalExtra = scrapCost + laborCost + overheadCost;
+                const totalBatchCost = totalMaterials + totalExtra;
+
+                const yieldQty = Math.max(0.0001, parseFloat(document.getElementById('tc-yield-qty')?.value || 1));
+                const unitCost = Math.round(totalBatchCost / yieldQty);
+
+                const product = ERP.catalog.state.currentTechCardProduct;
+                const salePrice = product ? (parseFloat(product.sale_price) || 0) : 0;
+
+                const margin = salePrice > 0 ? Math.round(((salePrice - unitCost) / salePrice) * 100) : 0;
+                const markup = unitCost > 0 ? Math.round(((salePrice - unitCost) / unitCost) * 100) : 0;
+
+                const matEl = document.getElementById('tc-calc-materials');
+                const extraEl = document.getElementById('tc-calc-extra');
+                const unitEl = document.getElementById('tc-calc-unit-cost');
+                const saleEl = document.getElementById('tc-calc-sale-price');
+                const marginEl = document.getElementById('tc-calc-margin');
+                const markupEl = document.getElementById('tc-calc-markup');
+
+                if (matEl) matEl.innerText = `${Math.round(totalMaterials).toLocaleString()} ֏`;
+                if (extraEl) extraEl.innerText = `${Math.round(totalExtra).toLocaleString()} ֏`;
+                if (unitEl) unitEl.innerText = `${unitCost.toLocaleString()} ֏`;
+                if (saleEl) saleEl.innerText = `${Math.round(salePrice).toLocaleString()} ֏`;
+                if (marginEl) marginEl.innerText = `${margin}%`;
+                if (markupEl) markupEl.innerText = `${markup}%`;
+            },
+
+            submitTechnicalCard: async function (e) {
+                if (e) e.preventDefault();
+                const productId = document.getElementById('tc-product-id')?.value;
+                if (!productId) return;
+
+                const code = document.getElementById('tc-code')?.value?.trim();
+                const name = document.getElementById('tc-name')?.value?.trim();
+                const yieldQty = parseFloat(document.getElementById('tc-yield-qty')?.value || 1);
+                const yieldUnitId = document.getElementById('tc-yield-unit-id')?.value;
+                const scrapPct = parseFloat(document.getElementById('tc-scrap-pct')?.value || 0);
+                const laborCost = parseFloat(document.getElementById('tc-labor-cost')?.value || 0);
+                const overheadCost = parseFloat(document.getElementById('tc-overhead-cost')?.value || 0);
+                const instructions = document.getElementById('tc-instructions')?.value?.trim() || null;
+
+                const items = [];
+                document.querySelectorAll('#tc-components-tbody tr.tc-component-row').forEach(row => {
+                    const compId = row.querySelector('.tc-comp-select')?.value;
+                    const net = parseFloat(row.querySelector('.tc-comp-net')?.value || 0);
+                    const unit = row.querySelector('.tc-comp-unit')?.value;
+                    const waste = parseFloat(row.querySelector('.tc-comp-waste')?.value || 0);
+                    const gross = parseFloat(row.querySelector('.tc-comp-gross')?.value || 0);
+                    const cost = parseFloat(row.querySelector('.tc-comp-cost')?.value || 0);
+
+                    if (compId && net > 0 && unit) {
+                        items.push({
+                            product_id: compId,
+                            quantity: net,
+                            gross_quantity: gross,
+                            unit_id: unit,
+                            waste_percentage: waste,
+                            cost_per_unit: cost
+                        });
+                    }
+                });
+
+                if (items.length === 0) {
+                    ERP.toast('Ավելացրեք առնվազն 1 բաղադրիչ կամ կիսաֆաբրիկատ:', 'warning');
+                    return;
+                }
+
+                ERP.toast('Տեխնիկական քարտը պահպանվում է...', 'info');
+
+                try {
+                    const res = await ERP.api(`/products/${productId}/technical-card`, {
                         method: 'POST',
                         body: JSON.stringify({
-                            name: { hy: nameHy, en: nameEn },
-                            type: type,
-                            category_id: categoryId || null,
-                            unit_id: unitId,
-                            sku: sku,
-                            cost_price: costPrice,
-                            sale_price: salePrice,
-                            currency: 'AMD',
-                            track_stock: true,
-                            is_active: true
+                            code: code,
+                            name: name,
+                            yield_quantity: yieldQty,
+                            yield_unit_id: yieldUnitId,
+                            scrap_percentage: scrapPct,
+                            labor_cost: laborCost,
+                            overhead_cost: overheadCost,
+                            instructions: instructions,
+                            apply_to_cost_price: true,
+                            items: items
                         })
                     });
 
-                    ERP.toast(`Ապրանքը՝ «${nameHy}» հաջողությամբ ստեղծվեց:`, 'success', 'Catalog Updated');
-                    ERP.catalog.closeCreateProductModal();
+                    ERP.toast(`Տեխնիկական քարտը պահպանվեց: Միավորի ինքնարժեք՝ ${res.breakdown?.unit_cost || 0} ֏`, 'success');
+                    ERP.catalog.closeTechnicalCardModal();
                     setTimeout(() => window.location.reload(), 1000);
                 } catch (err) {
-                    ERP.toast(`Սխալ ապրանքի ստեղծման ժամանակ: ${err.message}`, 'error');
+                    ERP.toast(`Սխալ պահպանելիս: ${err.message}`, 'error');
                 }
+            },
+
+            quickProduceFromTechCard: function () {
+                const productId = document.getElementById('tc-product-id')?.value;
+                if (!productId) return;
+                ERP.catalog.closeTechnicalCardModal();
+                ERP.catalog.openQuickProduce(productId);
+            },
+
+            openQuickProduce: function (productId) {
+                const p = (window.SERVER_INITIAL_DATA?.products || []).find(item => item.id === productId);
+                document.getElementById('qp-product-id').value = productId;
+                const pName = p ? ((typeof p.name === 'object' && p.name !== null ? (p.name.hy || Object.values(p.name)[0]) : p.name) || p.sku) : 'Ապրանք';
+                const pSku = p?.sku || '';
+
+                document.getElementById('qp-product-name').innerText = pName;
+                document.getElementById('qp-product-sku').innerText = pSku;
+                document.getElementById('qp-quantity').value = '1';
+
+                const modal = document.getElementById('product-quick-produce-modal');
+                if (modal) modal.classList.add('active');
+            },
+
+            closeQuickProduceModal: function () {
+                const modal = document.getElementById('product-quick-produce-modal');
+                if (modal) modal.classList.remove('active');
+            },
+
+            submitProduce: async function (e) {
+                if (e) e.preventDefault();
+                const productId = document.getElementById('qp-product-id')?.value;
+                const qty = parseFloat(document.getElementById('qp-quantity')?.value || 0);
+                const targetWh = document.getElementById('qp-target-warehouse')?.value;
+                const sourceWh = document.getElementById('qp-source-warehouse')?.value;
+
+                if (!productId || qty <= 0) {
+                    ERP.toast('Մուտքագրեք վավեր արտադրվող քանակ:', 'warning');
+                    return;
+                }
+
+                ERP.toast('Արտադրությունը ձևակերպվում է...', 'info');
+
+                try {
+                    const res = await ERP.api(`/products/${productId}/produce`, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            quantity: qty,
+                            warehouse_id: targetWh,
+                            source_warehouse_id: sourceWh
+                        })
+                    });
+
+                    ERP.toast(res.message, 'success', 'Արտադրություն կատարված է');
+                    ERP.catalog.closeQuickProduceModal();
+                    setTimeout(() => window.location.reload(), 1200);
+                } catch (err) {
+                    ERP.toast(`Արտադրության սխալ: ${err.message}`, 'error');
+                }
+            },
+
+            printTechnicalCard: function () {
+                const product = ERP.catalog.state.currentTechCardProduct;
+                const code = document.getElementById('tc-code')?.value;
+                const name = document.getElementById('tc-name')?.value;
+                const yieldQty = document.getElementById('tc-yield-qty')?.value;
+                const scrapPct = document.getElementById('tc-scrap-pct')?.value;
+                const laborCost = document.getElementById('tc-labor-cost')?.value;
+                const overheadCost = document.getElementById('tc-overhead-cost')?.value;
+                const instructions = document.getElementById('tc-instructions')?.value;
+                const unitCost = document.getElementById('tc-calc-unit-cost')?.innerText;
+                const salePrice = document.getElementById('tc-calc-sale-price')?.innerText;
+                const margin = document.getElementById('tc-calc-margin')?.innerText;
+
+                let rowsHtml = '';
+                document.querySelectorAll('#tc-components-tbody tr.tc-component-row').forEach((row, i) => {
+                    const selectEl = row.querySelector('.tc-comp-select');
+                    const compName = selectEl ? (selectEl.options[selectEl.selectedIndex]?.text || '') : '';
+                    const net = row.querySelector('.tc-comp-net')?.value || '';
+                    const unitSelect = row.querySelector('.tc-comp-unit');
+                    const unitName = unitSelect ? (unitSelect.options[unitSelect.selectedIndex]?.text || '') : '';
+                    const waste = row.querySelector('.tc-comp-waste')?.value || '0';
+                    const gross = row.querySelector('.tc-comp-gross')?.value || '';
+                    const cost = row.querySelector('.tc-comp-cost')?.value || '';
+                    const total = row.querySelector('.tc-comp-total')?.innerText || '';
+
+                    rowsHtml += `
+                        <tr>
+                            <td style="border: 1px solid #333; padding: 6px;">${i + 1}</td>
+                            <td style="border: 1px solid #333; padding: 6px;">${compName}</td>
+                            <td style="border: 1px solid #333; padding: 6px; text-align: right;">${net}</td>
+                            <td style="border: 1px solid #333; padding: 6px;">${unitName}</td>
+                            <td style="border: 1px solid #333; padding: 6px; text-align: right;">${waste}%</td>
+                            <td style="border: 1px solid #333; padding: 6px; text-align: right;">${gross}</td>
+                            <td style="border: 1px solid #333; padding: 6px; text-align: right;">${cost} ֏</td>
+                            <td style="border: 1px solid #333; padding: 6px; text-align: right; font-weight: bold;">${total}</td>
+                        </tr>
+                    `;
+                });
+
+                const printWindow = window.open('', '_blank', 'width=900,height=700');
+                if (!printWindow) {
+                    ERP.toast('Թույլատրեք popup պատուհանները տպելու համար:', 'warning');
+                    return;
+                }
+
+                printWindow.document.write(`
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <title>Տեխնիկական Քարտ - ${code}</title>
+                        <style>
+                            body { font-family: Arial, sans-serif; font-size: 12px; margin: 25px; color: #111; }
+                            h2, h3 { margin: 4px 0; }
+                            table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+                            .header-box { display: flex; justify-content: space-between; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 15px; }
+                            .summary-box { margin-top: 15px; display: flex; gap: 20px; font-weight: bold; background: #F1F5F9; padding: 10px; border: 1px solid #CBD5E1; }
+                            .signatures { margin-top: 40px; display: flex; justify-content: space-between; }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="header-box">
+                            <div>
+                                <h2>ՏԵԽՆՈԼՈԳԻԱԿԱՆ ՔԱՐՏ / ԲԱՂԱԴՐԱՏՈՄՍ (BOM)</h2>
+                                <h3>Ապրանք՝ ${name}</h3>
+                                <div>Կոդ: <strong>${code}</strong> | SKU: <strong>${product?.sku || ''}</strong></div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div>Ելք՝ <strong>${yieldQty}</strong> ${product?.unit_code || 'հատ'}</div>
+                                <div>Ամսաթիվ՝ ${new Date().toLocaleDateString('hy-AM')}</div>
+                            </div>
+                        </div>
+
+                        <table>
+                            <thead>
+                                <tr style="background: #E2E8F0;">
+                                    <th style="border: 1px solid #333; padding: 6px; width: 30px;">#</th>
+                                    <th style="border: 1px solid #333; padding: 6px; text-align: left;">Բաղադրիչ / Կիսաֆաբրիկատ</th>
+                                    <th style="border: 1px solid #333; padding: 6px;">Նետտո</th>
+                                    <th style="border: 1px solid #333; padding: 6px;">Միավոր</th>
+                                    <th style="border: 1px solid #333; padding: 6px;">Կորուստ %</th>
+                                    <th style="border: 1px solid #333; padding: 6px;">Բրուտտո</th>
+                                    <th style="border: 1px solid #333; padding: 6px;">Գին ֏</th>
+                                    <th style="border: 1px solid #333; padding: 6px;">Ընդհանուր ֏</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${rowsHtml}
+                            </tbody>
+                        </table>
+
+                        <div class="summary-box">
+                            <div>Խոտան / Կորուստ՝ ${scrapPct}%</div>
+                            <div>Աշխատուժ՝ ${laborCost} ֏</div>
+                            <div>Վերադիր՝ ${overheadCost} ֏</div>
+                            <div>ՄԻԱՎՈՐԻ ԻՆՔՆԱՐԺԵՔ՝ ${unitCost}</div>
+                            <div>Վաճառքի Գին՝ ${salePrice}</div>
+                            <div>Մարժա՝ ${margin}</div>
+                        </div>
+
+                        ${instructions ? `<div style="margin-top: 20px;"><strong>Պատրաստման տեխնոլոգիա և հրահանգներ՝</strong><p style="white-space: pre-line; margin-top: 5px;">${instructions}</p></div>` : ''}
+
+                        <div class="signatures">
+                            <div>Տեխնոլոգ / Շեֆ-խոհարար՝ _________________</div>
+                            <div>Հաստատող / Տնօրեն՝ _________________</div>
+                        </div>
+                    </body>
+                    </html>
+                `);
+                printWindow.document.close();
+                printWindow.focus();
+                setTimeout(() => printWindow.print(), 500);
             }
         },
 
@@ -1230,9 +2337,460 @@
         },
 
         // =====================================================================
-        // 9.5 Directory Subsystem (Տեղեկագիր: Մատակարարներ & Բաղադրիչներ)
+        // 9.5 Directory Subsystem (Տեղեկագիր: Կատեգորիաներ, Մատակարարներ, Բաղադրիչներ)
         // =====================================================================
         directory: {
+            categories: {
+                currentFilter: 'all',
+                searchQuery: '',
+                list: [],
+
+                load: async function () {
+                    const tbody = document.getElementById('directory-categories-table-body');
+                    if (!tbody) return;
+
+                    try {
+                        let query = '';
+                        if (this.searchQuery) query += `?search=${encodeURIComponent(this.searchQuery)}`;
+
+                        const res = await ERP.api(`/categories${query}`);
+                        if (res && res.success) {
+                            this.list = res.data || [];
+                            this.applyFilter();
+                            this.updateKPIs(this.list);
+                            this.updateSelectDropdowns(this.list);
+                        }
+                    } catch (err) {
+                        console.error('Failed to load categories:', err);
+                        ERP.toast('Չհաջողվեց բեռնել կատեգորիաները: ' + err.message, 'error');
+                    }
+                },
+
+                updateKPIs: function (list) {
+                    const total = list.length;
+                    const prodCount = list.filter(c => (c.type === 'product' || !c.type)).length;
+                    const ingCount = list.filter(c => c.type === 'ingredient').length;
+                    const root = list.filter(c => !c.parent_id).length;
+                    const sub = list.filter(c => !!c.parent_id).length;
+
+                    const totalEl = document.getElementById('cat-kpi-total');
+                    const prodEl = document.getElementById('cat-kpi-product');
+                    const ingEl = document.getElementById('cat-kpi-ingredient');
+                    const subEl = document.getElementById('cat-kpi-sub');
+                    const badgeEl = document.getElementById('cat-count-badge');
+                    const navBadge = document.getElementById('nav-categories-count');
+
+                    const tabAll = document.getElementById('cat-tab-count-all');
+                    const tabProduct = document.getElementById('cat-tab-count-product');
+                    const tabIngredient = document.getElementById('cat-tab-count-ingredient');
+                    const tabRoot = document.getElementById('cat-tab-count-root');
+                    const tabSub = document.getElementById('cat-tab-count-sub');
+
+                    if (totalEl) totalEl.innerText = total;
+                    if (prodEl) prodEl.innerText = prodCount;
+                    if (ingEl) ingEl.innerText = ingCount;
+                    if (subEl) subEl.innerText = sub;
+                    if (badgeEl) badgeEl.innerText = `${total} Խումբ`;
+                    if (navBadge) navBadge.innerText = total;
+
+                    if (tabAll) tabAll.innerText = total;
+                    if (tabProduct) tabProduct.innerText = prodCount;
+                    if (tabIngredient) tabIngredient.innerText = ingCount;
+                    if (tabRoot) tabRoot.innerText = root;
+                    if (tabSub) tabSub.innerText = sub;
+                },
+
+                updateSelectDropdowns: function (list) {
+                    const prodCat = document.getElementById('prod-category-id');
+                    const parentCat = document.getElementById('cat-parent-id');
+                    const ingCat = document.getElementById('ing-category-id');
+                    const catalogFilter = document.getElementById('catalog-category-filter');
+                    const ingFilter = document.getElementById('ing-category-filter');
+
+                    const buildOptions = (cats, includeEmpty = true, emptyLabel = '-- Ընտրել --') => {
+                        let html = includeEmpty ? `<option value="">${emptyLabel}</option>` : '';
+                        cats.forEach(c => {
+                            const name = typeof c.name === 'object' && c.name !== null ? (c.name.hy || Object.values(c.name)[0]) : c.name;
+                            html += `<option value="${c.id}" data-type="${c.type || 'product'}">${name}</option>`;
+                        });
+                        return html;
+                    };
+
+                    const productCats = list.filter(c => (c.type === 'product' || !c.type));
+                    const ingredientCats = list.filter(c => c.type === 'ingredient');
+
+                    if (prodCat) {
+                        const currentVal = prodCat.value;
+                        prodCat.innerHTML = buildOptions(productCats, true, '-- Առանց կատեգորիայի --');
+                        if (currentVal) prodCat.value = currentVal;
+                    }
+
+                    if (catalogFilter) {
+                        const currentVal = catalogFilter.value;
+                        catalogFilter.innerHTML = buildOptions(productCats, true, 'Բոլոր կատեգորիաները');
+                        if (currentVal) catalogFilter.value = currentVal;
+                    }
+
+                    if (parentCat) {
+                        const currentVal = parentCat.value;
+                        const currentModalType = document.querySelector('input[name="cat_type"]:checked')?.value || 'product';
+                        const matchingRoots = list.filter(c => !c.parent_id && (c.type || 'product') === currentModalType);
+                        parentCat.innerHTML = buildOptions(matchingRoots, true, '-- Գլխավոր Կատեգորիա (Առանց ծնողի) --');
+                        if (currentVal && matchingRoots.some(c => c.id === currentVal)) {
+                            parentCat.value = currentVal;
+                        }
+                    }
+
+                    if (ingCat) {
+                        const currentVal = ingCat.value;
+                        ingCat.innerHTML = buildOptions(ingredientCats, true, '-- Ընտրեք Բաղադրիչների Կատեգորիան --');
+                        if (currentVal) ingCat.value = currentVal;
+                    }
+
+                    if (ingFilter) {
+                        const currentVal = ingFilter.value;
+                        ingFilter.innerHTML = buildOptions(ingredientCats, true, 'Բոլոր Կատեգորիաները');
+                        if (currentVal) ingFilter.value = currentVal;
+                    }
+                },
+
+                filterType: function (type) {
+                    this.currentFilter = type;
+                    const tabs = document.querySelectorAll('#category-filter-tabs .directory-tab-btn');
+                    tabs.forEach(btn => {
+                        if (btn.getAttribute('data-type') === type) {
+                            btn.classList.add('active');
+                        } else {
+                            btn.classList.remove('active');
+                        }
+                    });
+                    this.applyFilter();
+                },
+
+                handleSearch: function (query) {
+                    this.searchQuery = (query || '').toLowerCase().trim();
+                    this.applyFilter();
+                },
+
+                applyFilter: function () {
+                    let filtered = this.list;
+
+                    if (this.currentFilter === 'product') {
+                        filtered = filtered.filter(c => (c.type === 'product' || !c.type));
+                    } else if (this.currentFilter === 'ingredient') {
+                        filtered = filtered.filter(c => c.type === 'ingredient');
+                    } else if (this.currentFilter === 'root') {
+                        filtered = filtered.filter(c => !c.parent_id);
+                    } else if (this.currentFilter === 'sub') {
+                        filtered = filtered.filter(c => !!c.parent_id);
+                    }
+
+                    if (this.searchQuery) {
+                        const q = this.searchQuery;
+                        filtered = filtered.filter(c => {
+                            const nameHy = (typeof c.name === 'object' && c.name?.hy ? c.name.hy : (typeof c.name === 'string' ? c.name : '')).toLowerCase();
+                            const nameEn = (typeof c.name === 'object' && c.name?.en ? c.name.en : '').toLowerCase();
+                            const slug = (c.slug || '').toLowerCase();
+                            return nameHy.includes(q) || nameEn.includes(q) || slug.includes(q);
+                        });
+                    }
+
+                    this.render(filtered);
+                },
+
+                render: function (items) {
+                    const tbody = document.getElementById('directory-categories-table-body');
+                    if (!tbody) return;
+
+                    if (!items || items.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 2rem; color: var(--text-muted);">Համապատասխան կատեգորիաներ չեն գտնվել:</td></tr>';
+                        return;
+                    }
+
+                    tbody.innerHTML = items.map(cat => {
+                        const nameHy = typeof cat.name === 'object' && cat.name !== null ? (cat.name.hy || Object.values(cat.name)[0]) : cat.name;
+                        const nameEn = typeof cat.name === 'object' && cat.name !== null ? (cat.name.en || '') : '';
+                        const parentName = cat.parent ? (typeof cat.parent.name === 'object' && cat.parent.name !== null ? (cat.parent.name.hy || Object.values(cat.parent.name)[0]) : cat.parent.name) : null;
+                        const catType = cat.type || 'product';
+                        const thumb = cat.image_url
+                            ? `<img src="${cat.image_url}" class="category-thumb-sm" alt="Thumbnail">`
+                            : `<div class="category-thumb-sm"><i class="fa-solid ${catType === 'ingredient' ? 'fa-mortar-pestle' : 'fa-folder'}"></i></div>`;
+
+                        return `
+                            <tr data-id="${cat.id}" data-type="${catType}" data-parent="${cat.parent_id ? '1' : '0'}">
+                                <td>${thumb}</td>
+                                <td>
+                                    <div style="font-weight: 700; color: var(--text-heading); font-size: 0.88rem;">${nameHy}</div>
+                                    ${nameEn ? `<div style="font-size: 0.72rem; color: var(--text-muted);">${nameEn}</div>` : ''}
+                                </td>
+                                <td>
+                                    ${catType === 'ingredient'
+                                        ? `<span class="badge badge-amber" style="font-size: 0.72rem; font-weight: 700;"><i class="fa-solid fa-mortar-pestle"></i> Բաղադրիչների</span>`
+                                        : `<span class="badge badge-indigo" style="font-size: 0.72rem; font-weight: 700;"><i class="fa-solid fa-boxes-stacked"></i> Ապրանքային</span>`
+                                    }
+                                </td>
+                                <td><span class="font-mono" style="font-size: 0.78rem; font-weight: 700; color: var(--color-primary);">${cat.slug || ''}</span></td>
+                                <td>
+                                    ${parentName
+                                        ? `<span class="item-chip" style="background: #F5F3FF; color: #7C3AED; border-color: #DDD6FE;"><i class="fa-solid fa-folder-open"></i> ${parentName}</span>`
+                                        : `<span class="badge badge-emerald" style="font-size: 0.68rem;">Գլխավոր Խումբ</span>`
+                                    }
+                                </td>
+                                <td>
+                                    <span class="badge badge-slate" style="font-weight: 700; font-size: 0.75rem;">
+                                        <i class="fa-solid fa-box"></i> ${cat.products_count || 0} ապրանք
+                                    </span>
+                                </td>
+                                <td><span class="font-mono" style="font-size: 0.78rem; color: #64748B;">${cat.sort_order ?? 0}</span></td>
+                                <td>
+                                    ${cat.is_active
+                                        ? `<span class="badge badge-emerald"><i class="fa-solid fa-circle-check"></i> Ակտիվ</span>`
+                                        : `<span class="badge badge-amber"><i class="fa-solid fa-circle-pause"></i> Պասիվ</span>`
+                                    }
+                                </td>
+                                <td style="text-align: right; white-space: nowrap;">
+                                    <button class="btn btn-xs btn-outline-secondary" onclick="ERP.directory.categories.openEditModal('${cat.id}')" title="Խմբագրել" style="padding: 4px 7px;">
+                                        <i class="fa-solid fa-pen-to-square"></i>
+                                    </button>
+                                    <button class="btn btn-xs btn-outline-secondary" onclick="ERP.directory.categories.deleteCategory('${cat.id}')" title="Հեռացնել" style="padding: 4px 7px; color: #DC2626;">
+                                        <i class="fa-solid fa-trash-can"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('');
+                },
+
+                onModalTypeChange: function (type) {
+                    const productLabel = document.getElementById('cat-type-product-label');
+                    const ingredientLabel = document.getElementById('cat-type-ingredient-label');
+                    if (productLabel && ingredientLabel) {
+                        if (type === 'product') {
+                            productLabel.style.borderColor = '#3B82F6';
+                            productLabel.style.background = '#EFF6FF';
+                            ingredientLabel.style.borderColor = '#E2E8F0';
+                            ingredientLabel.style.background = '#fff';
+                        } else {
+                            ingredientLabel.style.borderColor = '#F59E0B';
+                            ingredientLabel.style.background = '#FFFBEB';
+                            productLabel.style.borderColor = '#E2E8F0';
+                            productLabel.style.background = '#fff';
+                        }
+                    }
+
+                    const parentSelect = document.getElementById('cat-parent-id');
+                    if (parentSelect) {
+                        const editId = document.getElementById('cat-id')?.value;
+                        const currentVal = parentSelect.value;
+                        const cats = (this.list && this.list.length > 0) ? this.list : (window.SERVER_INITIAL_DATA?.categories || []);
+                        const matchingRoots = cats.filter(c => !c.parent_id && (c.type || 'product') === type && c.id !== editId);
+
+                        let html = '<option value="">-- Գլխավոր Կատեգորիա (Առանց ծնողի) --</option>';
+                        matchingRoots.forEach(c => {
+                            const name = typeof c.name === 'object' && c.name !== null ? (c.name.hy || Object.values(c.name)[0]) : c.name;
+                            html += `<option value="${c.id}">${name}</option>`;
+                        });
+                        parentSelect.innerHTML = html;
+                        if (currentVal && matchingRoots.some(c => c.id === currentVal)) {
+                            parentSelect.value = currentVal;
+                        } else {
+                            parentSelect.value = '';
+                        }
+                    }
+                },
+
+                openCreateModal: function (parentId = null, defaultType = 'product') {
+                    const modal = document.getElementById('directory-category-modal');
+                    if (!modal) return;
+
+                    const form = document.getElementById('category-master-form');
+                    if (form) form.reset();
+
+                    document.getElementById('cat-id').value = '';
+                    const title = document.getElementById('category-modal-title');
+                    if (title) title.innerHTML = '<i class="fa-solid fa-folder-plus"></i> Ավելացնել Կատեգորիա';
+
+                    const radProduct = document.getElementById('cat-type-product');
+                    const radIngredient = document.getElementById('cat-type-ingredient');
+                    if (defaultType === 'ingredient') {
+                        if (radIngredient) radIngredient.checked = true;
+                    } else {
+                        if (radProduct) radProduct.checked = true;
+                    }
+                    this.onModalTypeChange(defaultType);
+
+                    document.getElementById('cat-name-hy').value = '';
+                    document.getElementById('cat-name-en').value = '';
+                    document.getElementById('cat-name-ru').value = '';
+                    document.getElementById('cat-slug').value = '';
+                    document.getElementById('cat-sort-order').value = '0';
+                    document.getElementById('cat-is-active').checked = true;
+                    document.getElementById('cat-description').value = '';
+
+                    const parentSelect = document.getElementById('cat-parent-id');
+                    if (parentSelect && parentId) parentSelect.value = parentId;
+
+                    ERP.media.clearCategoryImage();
+
+                    modal.classList.add('active');
+                },
+
+                openEditModal: async function (id) {
+                    const modal = document.getElementById('directory-category-modal');
+                    if (!modal) return;
+
+                    ERP.toast('Բեռնվում են կատեգորիայի տվյալները...', 'info');
+
+                    try {
+                        const res = await ERP.api(`/categories/${id}`);
+                        const cat = res.data;
+                        if (!cat) throw new Error('Կատեգորիան չի գտնվել:');
+
+                        document.getElementById('cat-id').value = cat.id;
+                        const title = document.getElementById('category-modal-title');
+                        const catName = typeof cat.name === 'object' && cat.name !== null ? (cat.name.hy || Object.values(cat.name)[0]) : cat.name;
+                        if (title) title.innerHTML = `<i class="fa-solid fa-pen-to-square"></i> Խմբագրել Կատեգորիա՝ «${catName}»`;
+
+                        const catType = cat.type || 'product';
+                        const radProduct = document.getElementById('cat-type-product');
+                        const radIngredient = document.getElementById('cat-type-ingredient');
+                        if (catType === 'ingredient') {
+                            if (radIngredient) radIngredient.checked = true;
+                        } else {
+                            if (radProduct) radProduct.checked = true;
+                        }
+                        this.onModalTypeChange(catType);
+
+                        if (typeof cat.name === 'object' && cat.name !== null) {
+                            document.getElementById('cat-name-hy').value = cat.name.hy || Object.values(cat.name)[0] || '';
+                            document.getElementById('cat-name-en').value = cat.name.en || '';
+                            document.getElementById('cat-name-ru').value = cat.name.ru || '';
+                        } else {
+                            document.getElementById('cat-name-hy').value = cat.name || '';
+                            document.getElementById('cat-name-en').value = '';
+                            document.getElementById('cat-name-ru').value = '';
+                        }
+
+                        const parentSelect = document.getElementById('cat-parent-id');
+                        if (parentSelect) parentSelect.value = cat.parent_id || '';
+
+                        document.getElementById('cat-slug').value = cat.slug || '';
+                        document.getElementById('cat-sort-order').value = cat.sort_order ?? 0;
+                        document.getElementById('cat-is-active').checked = (cat.is_active !== false);
+
+                        if (typeof cat.description === 'object' && cat.description !== null) {
+                            document.getElementById('cat-description').value = cat.description.hy || Object.values(cat.description)[0] || '';
+                        } else {
+                            document.getElementById('cat-description').value = cat.description || '';
+                        }
+
+                        document.getElementById('cat-image-url').value = cat.image_url || '';
+                        ERP.media.setPreview(cat.image_url || '', 'cat-image-preview', 'cat-image-preview-box', 'cat-image-remove-btn', 'cat-image-placeholder-icon');
+
+                        modal.classList.add('active');
+                    } catch (err) {
+                        ERP.toast('Սխալ կատեգորիայի բեռնման ժամանակ: ' + err.message, 'error');
+                    }
+                },
+
+                closeModal: function () {
+                    const modal = document.getElementById('directory-category-modal');
+                    if (modal) modal.classList.remove('active');
+                },
+
+                onNameInput: function (val) {
+                    const editId = document.getElementById('cat-id').value;
+                    const slugInput = document.getElementById('cat-slug');
+                    if (!editId && slugInput && (!slugInput.value || slugInput.dataset.manual !== '1')) {
+                        slugInput.value = val.toLowerCase().replace(/[^a-z0-9\u0531-\u058F]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+                    }
+                },
+
+                generateSlug: function () {
+                    const name = document.getElementById('cat-name-en').value || document.getElementById('cat-name-hy').value || 'category';
+                    const rand = Math.random().toString(36).substring(2, 6);
+                    const clean = name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || 'cat';
+                    const slugInput = document.getElementById('cat-slug');
+                    if (slugInput) {
+                        slugInput.value = `${clean}-${rand}`;
+                        slugInput.dataset.manual = '1';
+                    }
+                },
+
+                submitForm: async function (e) {
+                    if (e) e.preventDefault();
+
+                    const id = document.getElementById('cat-id').value;
+                    const catType = document.querySelector('input[name="cat_type"]:checked')?.value || 'product';
+                    const nameHy = document.getElementById('cat-name-hy').value.trim();
+                    const nameEn = document.getElementById('cat-name-en').value.trim();
+                    const nameRu = document.getElementById('cat-name-ru').value.trim();
+                    const parentId = document.getElementById('cat-parent-id').value || null;
+                    const slug = document.getElementById('cat-slug').value.trim() || null;
+                    const sortOrder = parseInt(document.getElementById('cat-sort-order').value || '0', 10);
+                    const isActive = document.getElementById('cat-is-active').checked;
+                    const imageUrl = document.getElementById('cat-image-url').value.trim() || null;
+                    const description = document.getElementById('cat-description').value.trim();
+
+                    if (!nameHy) {
+                        ERP.toast('Լրացրեք հայերեն անվանումը:', 'warning');
+                        return;
+                    }
+
+                    const submitBtn = document.getElementById('cat-submit-btn');
+                    if (submitBtn) submitBtn.disabled = true;
+
+                    const payload = {
+                        name: { hy: nameHy, en: nameEn || nameHy, ru: nameRu || nameHy },
+                        type: catType,
+                        parent_id: parentId,
+                        slug: slug,
+                        sort_order: sortOrder,
+                        is_active: isActive,
+                        image_url: imageUrl,
+                        description: description ? { hy: description } : null
+                    };
+
+                    try {
+                        let res;
+                        if (id) {
+                            res = await ERP.api(`/categories/${id}`, {
+                                method: 'PUT',
+                                body: JSON.stringify(payload)
+                            });
+                            ERP.toast('Կատեգորիան հաջողությամբ թարմացվեց:', 'success');
+                        } else {
+                            res = await ERP.api('/categories', {
+                                method: 'POST',
+                                body: JSON.stringify(payload)
+                            });
+                            ERP.toast('Կատեգորիան հաջողությամբ ստեղծվեց:', 'success');
+                        }
+
+                        this.closeModal();
+                        await this.load();
+                    } catch (err) {
+                        ERP.toast('Չհաջողվեց պահպանել կատեգորիան: ' + err.message, 'error');
+                    } finally {
+                        if (submitBtn) submitBtn.disabled = false;
+                    }
+                },
+
+                deleteCategory: async function (id) {
+                    if (!confirm('Վստա՞հ եք, որ ցանկանում եք հեռացնել այս կատեգորիան:')) return;
+
+                    try {
+                        const res = await ERP.api(`/categories/${id}`, {
+                            method: 'DELETE'
+                        });
+                        ERP.toast(res.message || 'Կատեգորիան հեռացվել է:', 'success');
+                        await this.load();
+                    } catch (err) {
+                        ERP.toast('Չհաջողվեց հեռացնել կատեգորիան: ' + err.message, 'error');
+                    }
+                }
+            },
+
             suppliers: {
                 currentTab: 'all',
                 searchQuery: '',
@@ -1841,6 +3399,8 @@
                     document.querySelectorAll('.ing-sup-chk').forEach(cb => cb.checked = false);
                     this.recalculate();
 
+                    ERP.media.clearIngredientImage();
+
                     modal.classList.add('active');
                 },
 
@@ -1876,6 +3436,10 @@
                             cb.checked = attachedSupIds.includes(cb.value);
                         });
 
+                        const ingImg = (Array.isArray(ing.images) && ing.images[0]) ? ing.images[0] : '';
+                        document.getElementById('ing-image-url').value = ingImg;
+                        ERP.media.setPreview(ingImg, 'ing-image-preview', 'ing-image-preview-box', 'ing-image-remove-btn', 'ing-image-placeholder-icon');
+
                         this.recalculate();
                         modal.classList.add('active');
                     } catch (err) {
@@ -1902,8 +3466,10 @@
                     subcatSelect.innerHTML = '<option value="">-- Ընտրեք Ենթակատեգորիան --</option>';
                     if (!parentId) return;
 
-                    const allCats = window.SERVER_INITIAL_DATA?.categories || [];
-                    const subs = allCats.filter(c => c.parent_id === parentId);
+                    const allCats = (ERP.directory?.categories?.list && ERP.directory.categories.list.length > 0)
+                        ? ERP.directory.categories.list
+                        : (window.SERVER_INITIAL_DATA?.categories || []);
+                    const subs = allCats.filter(c => c.parent_id === parentId && c.type === 'ingredient');
 
                     subs.forEach(s => {
                         const opt = document.createElement('option');
@@ -1960,6 +3526,7 @@
                         min_stock_level: parseFloat(document.getElementById('ing-min-stock-level').value) || 0,
                         warehouse_id: document.getElementById('ing-warehouse-id').value || null,
                         supplier_ids: supIds,
+                        images: document.getElementById('ing-image-url')?.value?.trim() ? [document.getElementById('ing-image-url').value.trim()] : [],
                     };
 
                     try {
@@ -2140,9 +3707,15 @@
             ERP.state.token = window.SERVER_INITIAL_DATA?.token || localStorage.getItem('erplannet_token') || '';
             ERP.state.tenantSlug = window.SERVER_INITIAL_DATA?.currentTenant?.slug || window.SERVER_INITIAL_DATA?.demoTenant?.slug || 'gourmet';
 
+            // Hydrate categories from bootstrap data if available
+            if (window.SERVER_INITIAL_DATA?.categories && window.SERVER_INITIAL_DATA.categories.length > 0) {
+                ERP.directory.categories.list = window.SERVER_INITIAL_DATA.categories;
+                ERP.directory.categories.updateSelectDropdowns(ERP.directory.categories.list);
+            }
+
             // Check hash in URL or default to dashboard
             const hash = window.location.hash.replace('#', '') || 'dashboard';
-            const validViews = ['dashboard', 'catalog', 'directory-suppliers', 'directory-ingredients', 'procurement', 'pos', 'inventory', 'manufacturing', 'quality', 'delivery', 'users', 'roles', 'billing', 'settings', 'api-console'];
+            const validViews = ['dashboard', 'catalog', 'directory-categories', 'directory-suppliers', 'directory-ingredients', 'procurement', 'pos', 'inventory', 'manufacturing', 'quality', 'delivery', 'users', 'roles', 'billing', 'settings', 'api-console'];
             const targetView = validViews.includes(hash) ? hash : 'dashboard';
 
             ERP.navigateTo(targetView);

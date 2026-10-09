@@ -22,7 +22,7 @@ class ClosePosSessionAction
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            if (!$session->isOpen()) {
+            if (! $session->isOpen()) {
                 throw new \InvalidArgumentException("Session {$session->session_number} is already closed.");
             }
 

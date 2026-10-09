@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Api\V1\Tenant;
 
-use App\Domain\Billing\Models\Invoice;
 use App\Domain\Billing\Models\Payment;
 use App\Http\Controllers\Controller;
 use App\Infrastructure\MultiTenancy\TenantContext;

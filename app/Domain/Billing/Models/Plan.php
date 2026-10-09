@@ -49,6 +49,7 @@ class Plan extends Model
     public function getFeatureValue(string $featureCode): ?string
     {
         $feature = $this->features->firstWhere('code', $featureCode);
+
         return $feature?->pivot?->value;
     }
 }

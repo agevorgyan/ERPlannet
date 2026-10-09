@@ -19,7 +19,7 @@ class SettleCourierCodAction
         return DB::transaction(function () use ($codSettlementId, $submittedAmount) {
             $settlement = CodSettlement::lockForUpdate()->findOrFail($codSettlementId);
 
-            if (!in_array($settlement->status, ['expected', 'collected', 'courier_holding'], true)) {
+            if (! in_array($settlement->status, ['expected', 'collected', 'courier_holding'], true)) {
                 throw new InvalidArgumentException("Cannot submit COD from status {$settlement->status}.");
             }
 

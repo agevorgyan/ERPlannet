@@ -6,17 +6,23 @@ use App\Domain\Billing\Models\Payment;
 use App\Domain\Branch\Models\Branch;
 use App\Domain\CRM\Models\Customer;
 use App\Domain\CRM\Models\CustomerAddress;
+use App\Domain\Delivery\Models\DeliveryShipment;
+use App\Domain\Fiscal\Models\FiscalReceipt;
+use App\Domain\Payments\Models\PaymentTransaction;
+use App\Domain\POS\Models\PosSession;
+use App\Domain\POS\Models\PosTerminal;
 use App\Infrastructure\MultiTenancy\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Order extends Model
 {
-    use HasFactory, HasUuids, BelongsToTenant, SoftDeletes;
+    use BelongsToTenant, HasFactory, HasUuids, SoftDeletes;
 
     protected $table = 'orders';
 
@@ -67,27 +73,27 @@ class Order extends Model
 
     public function posTerminal(): BelongsTo
     {
-        return $this->belongsTo(\App\Domain\POS\Models\PosTerminal::class, 'pos_terminal_id');
+        return $this->belongsTo(PosTerminal::class, 'pos_terminal_id');
     }
 
     public function posSession(): BelongsTo
     {
-        return $this->belongsTo(\App\Domain\POS\Models\PosSession::class, 'pos_session_id');
+        return $this->belongsTo(PosSession::class, 'pos_session_id');
     }
 
-    public function fiscalReceipt(): \Illuminate\Database\Eloquent\Relations\HasOne
+    public function fiscalReceipt(): HasOne
     {
-        return $this->hasOne(\App\Domain\Fiscal\Models\FiscalReceipt::class, 'order_id');
+        return $this->hasOne(FiscalReceipt::class, 'order_id');
     }
 
-    public function shipment(): \Illuminate\Database\Eloquent\Relations\HasOne
+    public function shipment(): HasOne
     {
-        return $this->hasOne(\App\Domain\Delivery\Models\DeliveryShipment::class, 'order_id');
+        return $this->hasOne(DeliveryShipment::class, 'order_id');
     }
 
     public function paymentTransactions(): HasMany
     {
-        return $this->hasMany(\App\Domain\Payments\Models\PaymentTransaction::class, 'order_id');
+        return $this->hasMany(PaymentTransaction::class, 'order_id');
     }
 
     public function customer(): BelongsTo

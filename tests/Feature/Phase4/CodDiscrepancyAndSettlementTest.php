@@ -31,9 +31,13 @@ class CodDiscrepancyAndSettlementTest extends TestCase
     use RefreshDatabase;
 
     protected Tenant $tenant;
+
     protected User $user;
+
     protected DeliveryDriver $driver;
+
     protected Order $order;
+
     protected PosTerminal $terminal;
 
     protected function setUp(): void

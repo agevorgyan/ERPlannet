@@ -28,7 +28,7 @@ class CompleteProductionOrderAction
         }
 
         $tenant = $this->tenantContext->getTenant();
-        if (!$tenant) {
+        if (! $tenant) {
             throw new \RuntimeException('Tenant context not set.');
         }
 
@@ -37,14 +37,14 @@ class CompleteProductionOrderAction
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            if (!in_array($order->status, ['in_progress', 'quality_check'], true)) {
+            if (! in_array($order->status, ['in_progress', 'quality_check'], true)) {
                 throw new \InvalidArgumentException("Production order cannot be completed from current status: {$order->status}.");
             }
 
             // 1. ISO 22000 Gating check: if tenant has ISO 22000 feature, verify inspection passed
             if ($this->entitlements->can('feature.iso22000')) {
                 $hasPassedInspection = $order->inspections()->where('status', 'passed')->exists();
-                if (!$hasPassedInspection) {
+                if (! $hasPassedInspection) {
                     throw new \InvalidArgumentException(
                         'ISO 22000 compliance violation: Production order cannot be released into inventory without a PASSED quality inspection.'
                     );
@@ -61,7 +61,7 @@ class CompleteProductionOrderAction
             // 3. Batch formulation with automatic shelf-life expiration
             $shelfLife = $order->product->shelf_life_days ?? 30;
             $expiryDate = now()->addDays($shelfLife)->toDateString();
-            $batchNumber = 'LOT-' . date('Ymd') . '-' . substr($order->order_number, -6);
+            $batchNumber = 'LOT-'.date('Ymd').'-'.substr($order->order_number, -6);
 
             $batch = StockBatch::firstOrCreate(
                 [

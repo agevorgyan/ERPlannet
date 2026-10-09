@@ -4,15 +4,16 @@ declare(strict_types=1);
 
 namespace App\Domain\Integration\Services;
 
+use App\Domain\Branch\Models\Branch;
 use App\Domain\Catalog\Models\Product;
 use App\Domain\CRM\Models\Customer;
 use App\Domain\Integration\Contracts\ECommerceDriverInterface;
 use App\Domain\Integration\Models\TenantIntegration;
 use App\Domain\Integration\Models\TenantIntegrationEntityMap;
 use App\Domain\Integration\Models\TenantIntegrationSyncLog;
-use App\Domain\Warehouse\Models\StockLevel;
 use App\Domain\Sales\Models\Order;
 use App\Domain\Sales\Models\OrderItem;
+use App\Domain\Warehouse\Models\StockLevel;
 use Illuminate\Support\Facades\DB;
 
 class WooCommerceSyncService
@@ -24,7 +25,7 @@ class WooCommerceSyncService
     /**
      * Push tenant products to WooCommerce and record entity maps.
      *
-     * @param array<int, string>|null $productIds
+     * @param  array<int, string>|null  $productIds
      * @return array{processed: int, failed: int, details: array}
      */
     public function syncProducts(TenantIntegration $integration, ?array $productIds = null): array
@@ -36,7 +37,7 @@ class WooCommerceSyncService
         $query = Product::where('tenant_id', $integration->tenant_id)
             ->where('is_active', true);
 
-        if (!empty($productIds)) {
+        if (! empty($productIds)) {
             $query->whereIn('id', $productIds);
         }
 
@@ -125,7 +126,9 @@ class WooCommerceSyncService
 
         foreach ($maps as $map) {
             $product = Product::where('tenant_id', $integration->tenant_id)->find($map->internal_id);
-            if (!$product) continue;
+            if (! $product) {
+                continue;
+            }
 
             $totalStock = (float) StockLevel::where('tenant_id', $integration->tenant_id)
                 ->where('product_id', $product->id)
@@ -171,7 +174,9 @@ class WooCommerceSyncService
 
         foreach ($externalOrders as $extOrder) {
             $extId = (string) ($extOrder['id'] ?? '');
-            if (empty($extId)) continue;
+            if (empty($extId)) {
+                continue;
+            }
 
             // Check if already imported
             $exists = TenantIntegrationEntityMap::where('tenant_id', $integration->tenant_id)
@@ -182,6 +187,7 @@ class WooCommerceSyncService
 
             if ($exists) {
                 $skipped++;
+
                 continue;
             }
 
@@ -207,9 +213,9 @@ class WooCommerceSyncService
                 );
 
                 // 2. Create Order
-                $orderNumber = ($integration->settings['order_prefix'] ?? 'WC-') . $extId;
+                $orderNumber = ($integration->settings['order_prefix'] ?? 'WC-').$extId;
                 $total = (float) ($extOrder['total'] ?? 0);
-                $branchId = $integration->settings['default_branch_id'] ?? \App\Domain\Branch\Models\Branch::where('tenant_id', $integration->tenant_id)->value('id');
+                $branchId = $integration->settings['default_branch_id'] ?? Branch::where('tenant_id', $integration->tenant_id)->value('id');
 
                 $order = Order::create([
                     'tenant_id' => $integration->tenant_id,
@@ -224,7 +230,7 @@ class WooCommerceSyncService
                     'tax' => (float) ($extOrder['total_tax'] ?? 0),
                     'total' => $total,
                     'placed_at' => now(),
-                    'internal_notes' => 'Imported from WooCommerce order #' . $extId,
+                    'internal_notes' => 'Imported from WooCommerce order #'.$extId,
                 ]);
 
                 // 3. Import Order Items

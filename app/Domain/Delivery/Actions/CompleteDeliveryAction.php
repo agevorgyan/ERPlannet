@@ -38,7 +38,7 @@ class CompleteDeliveryAction
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            if (!in_array($shipment->status, ['assigned', 'in_transit'], true)) {
+            if (! in_array($shipment->status, ['assigned', 'in_transit'], true)) {
                 throw new \InvalidArgumentException("Cannot complete shipment from status {$shipment->status}.");
             }
 
@@ -95,7 +95,7 @@ class CompleteDeliveryAction
                     'order_id' => $order->id,
                     'gateway' => 'cash',
                     'payment_method' => 'cash',
-                    'transaction_id' => 'TX-COD-' . strtoupper(Str::random(10)),
+                    'transaction_id' => 'TX-COD-'.strtoupper(Str::random(10)),
                     'amount' => $codCollected > 0 ? $codCollected : $expectedAmt,
                     'currency' => $order->currency,
                     'status' => 'successful',

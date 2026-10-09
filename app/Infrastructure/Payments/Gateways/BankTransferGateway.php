@@ -24,7 +24,7 @@ class BankTransferGateway implements PaymentGatewayInterface
 
     public function initiatePayment(PaymentIntentDTO $intent): PaymentResultDTO
     {
-        $refNumber = 'BT-' . strtoupper(Str::random(8));
+        $refNumber = 'BT-'.strtoupper(Str::random(8));
 
         return new PaymentResultDTO(
             status: 'pending',
@@ -40,7 +40,8 @@ class BankTransferGateway implements PaymentGatewayInterface
 
     public function authorize(PaymentIntentDTO $intent): PaymentResultDTO
     {
-        $refNumber = 'BT-AUTH-' . strtoupper(Str::random(8));
+        $refNumber = 'BT-AUTH-'.strtoupper(Str::random(8));
+
         return new PaymentResultDTO(
             status: 'authorized',
             transactionId: $refNumber,
@@ -90,7 +91,7 @@ class BankTransferGateway implements PaymentGatewayInterface
     {
         return new RefundResultDTO(
             success: true,
-            refundId: 'BT_REF_' . strtoupper(Str::random(8)),
+            refundId: 'BT_REF_'.strtoupper(Str::random(8)),
             gatewayResponse: ['refunded_amount' => $dto->amount]
         );
     }

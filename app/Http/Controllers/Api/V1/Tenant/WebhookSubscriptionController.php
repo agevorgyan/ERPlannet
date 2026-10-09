@@ -99,7 +99,7 @@ class WebhookSubscriptionController extends Controller
     public function retry(TenantWebhookDelivery $delivery): JsonResponse
     {
         $sub = $delivery->subscription;
-        if (!$sub) {
+        if (! $sub) {
             return response()->json(['success' => false, 'message' => 'Subscription not found'], 404);
         }
 

@@ -19,10 +19,10 @@ class CustomerController extends Controller
             $search = $request->query('search');
             $query->where(function ($q) use ($search) {
                 $q->where('first_name', 'like', "%{$search}%")
-                  ->orWhere('last_name', 'like', "%{$search}%")
-                  ->orWhere('phone', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('company_name', 'like', "%{$search}%");
+                    ->orWhere('last_name', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('company_name', 'like', "%{$search}%");
             });
         }
 
@@ -74,7 +74,7 @@ class CustomerController extends Controller
                 'notes' => $validated['notes'] ?? null,
             ]);
 
-            if (!empty($validated['address'])) {
+            if (! empty($validated['address'])) {
                 CustomerAddress::create([
                     'tenant_id' => $customer->tenant_id,
                     'customer_id' => $customer->id,
@@ -100,7 +100,7 @@ class CustomerController extends Controller
 
     public function show(string $id): JsonResponse
     {
-        $customer = Customer::with(['addresses', 'orders' => fn($q) => $q->latest()->limit(10)])
+        $customer = Customer::with(['addresses', 'orders' => fn ($q) => $q->latest()->limit(10)])
             ->findOrFail($id);
 
         return response()->json([
@@ -147,7 +147,7 @@ class CustomerController extends Controller
             'is_default' => ['nullable', 'boolean'],
         ]);
 
-        if (!empty($validated['is_default'])) {
+        if (! empty($validated['is_default'])) {
             $customer->addresses()->update(['is_default' => false]);
         }
 

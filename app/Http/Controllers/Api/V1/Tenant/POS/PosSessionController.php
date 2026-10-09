@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1\Tenant\POS;
 
 use App\Domain\POS\Actions\ClosePosSessionAction;
+use App\Domain\POS\Actions\GenerateZReportAction;
 use App\Domain\POS\Actions\OpenPosSessionAction;
 use App\Domain\POS\Actions\RecordPosCashMovementAction;
 use App\Domain\POS\Models\PosSession;
@@ -47,7 +48,7 @@ class PosSessionController extends Controller
 
         $session = $query->latest('opened_at')->first();
 
-        if (!$session) {
+        if (! $session) {
             return response()->json([
                 'success' => false,
                 'message' => 'No active open session found.',
@@ -105,7 +106,7 @@ class PosSessionController extends Controller
         ]);
     }
 
-    public function zReport(string $id, \App\Domain\POS\Actions\GenerateZReportAction $action): JsonResponse
+    public function zReport(string $id, GenerateZReportAction $action): JsonResponse
     {
         $zReport = $action->execute($id);
 

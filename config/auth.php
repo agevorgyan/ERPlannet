@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Platform\Models\PlatformUser;
 use App\Models\User;
 
 return [
@@ -57,11 +58,11 @@ return [
     'providers' => [
         'users' => [
             'driver' => 'eloquent',
-            'model' => \App\Domain\IAM\Models\User::class,
+            'model' => App\Domain\IAM\Models\User::class,
         ],
         'platform_users' => [
             'driver' => 'eloquent',
-            'model' => \App\Domain\Platform\Models\PlatformUser::class,
+            'model' => PlatformUser::class,
         ],
     ],
 

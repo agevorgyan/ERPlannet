@@ -33,7 +33,7 @@ class OrderStatusStateMachine
             return $order;
         }
 
-        if (!$this->canTransition($currentStatus, $newStatus)) {
+        if (! $this->canTransition($currentStatus, $newStatus)) {
             throw new InvalidStatusTransitionException($currentStatus, $newStatus);
         }
 

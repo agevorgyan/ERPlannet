@@ -8,7 +8,6 @@ use App\Domain\Payments\Models\PaymentTransaction;
 use App\Domain\POS\Events\PosRefundCompletedEvent;
 use App\Domain\POS\Models\PosCashMovement;
 use App\Domain\POS\Models\PosRefund;
-use App\Domain\POS\Models\PosSession;
 use App\Domain\Sales\Models\Order;
 use App\Domain\Sales\Models\OrderItem;
 use App\Domain\Warehouse\Actions\RecordStockMovementAction;
@@ -53,7 +52,7 @@ class PosRefundAction
 
             $session = $order->posSession;
             $cashier = $cashierId ?? $session?->cashier_id ?? auth()->id();
-            $refundNumber = 'REF-' . date('Ymd') . '-' . strtoupper(Str::random(6));
+            $refundNumber = 'REF-'.date('Ymd').'-'.strtoupper(Str::random(6));
 
             // 1. Restock items to warehouse if provided
             $restockedSummary = [];
@@ -111,7 +110,7 @@ class PosRefundAction
                 'pos_session_id' => $session?->id,
                 'gateway' => $refundMethod === 'cash' ? 'cash' : 'ameria',
                 'payment_method' => $refundMethod,
-                'transaction_id' => 'TX-REF-' . strtoupper(Str::random(10)),
+                'transaction_id' => 'TX-REF-'.strtoupper(Str::random(10)),
                 'amount' => -$amount,
                 'currency' => $order->currency,
                 'status' => 'refunded',
@@ -125,7 +124,7 @@ class PosRefundAction
             // 4. Update order payment status
             $isFullRefund = ($amount >= (float) $order->total);
             $order->payment_status = $isFullRefund ? 'refunded' : 'partially_refunded';
-            if ($isFullRefund && !empty($itemsToRestock)) {
+            if ($isFullRefund && ! empty($itemsToRestock)) {
                 $order->status = 'delivered'; // keep delivered or set returned
             }
             $order->save();

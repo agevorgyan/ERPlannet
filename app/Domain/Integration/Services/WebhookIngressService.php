@@ -32,7 +32,7 @@ class WebhookIngressService
         $secret = $creds['webhook_secret'] ?? $creds['consumer_secret'] ?? '';
 
         // 1. Verify signature
-        if (!$this->wooCommerceDriver->verifyWebhookSignature($rawPayload, $signature, $secret)) {
+        if (! $this->wooCommerceDriver->verifyWebhookSignature($rawPayload, $signature, $secret)) {
             TenantIntegrationSyncLog::create([
                 'tenant_id' => $integration->tenant_id,
                 'integration_id' => $integration->id,

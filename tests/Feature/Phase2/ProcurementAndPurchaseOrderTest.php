@@ -7,7 +7,6 @@ use App\Domain\IAM\Models\User;
 use App\Domain\Procurement\Models\PurchaseOrder;
 use App\Domain\Procurement\Models\Supplier;
 use App\Domain\Tenant\Models\Tenant;
-use App\Domain\Warehouse\Models\StockBatch;
 use App\Domain\Warehouse\Models\StockLevel;
 use App\Domain\Warehouse\Models\Warehouse;
 use App\Infrastructure\MultiTenancy\TenantContext;
@@ -19,9 +18,13 @@ class ProcurementAndPurchaseOrderTest extends TestCase
     use RefreshDatabase;
 
     protected Tenant $tenant;
+
     protected User $user;
+
     protected Warehouse $warehouse;
+
     protected Product $product;
+
     protected Supplier $supplier;
 
     protected function setUp(): void
@@ -102,7 +105,7 @@ class ProcurementAndPurchaseOrderTest extends TestCase
         $itemId = $createRes->json('data.items.0.id');
         $poNumber = $createRes->json('data.po_number');
 
-        $this->assertStringStartsWith('PO-' . date('Y') . '-', $poNumber);
+        $this->assertStringStartsWith('PO-'.date('Y').'-', $poNumber);
 
         // 2. Submit PO to supplier -> ordered
         $submitRes = $this->actingAs($this->user)

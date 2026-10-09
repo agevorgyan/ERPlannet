@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\V1\Tenant\InboundWebhookController;
 use App\Http\Controllers\Api\V1\Tenant\IntegrationController;
 use App\Http\Controllers\Api\V1\Tenant\Manufacturing\ProductionOrderController;
 use App\Http\Controllers\Api\V1\Tenant\Manufacturing\RecipeController;
+use App\Http\Controllers\Api\V1\Tenant\MediaController;
 use App\Http\Controllers\Api\V1\Tenant\NotificationTemplateController;
 use App\Http\Controllers\Api\V1\Tenant\PaymentController;
 use App\Http\Controllers\Api\V1\Tenant\Payments\OrderPaymentController;
@@ -160,11 +161,14 @@ Route::prefix('v1')->group(function () {
             Route::post('/purchase-orders/{id}/cancel', [PurchaseOrderController::class, 'cancel']);
 
             // Catalog & Directory
+            Route::post('/media/upload', [MediaController::class, 'upload']);
             Route::post('/ingredients/import-invoices', [IngredientController::class, 'importInvoices']);
             Route::apiResource('ingredients', IngredientController::class);
             Route::apiResource('categories', CategoryController::class);
             Route::get('/units', [UnitController::class, 'index']);
-            Route::post('/units', [UnitController::class, 'store']);
+            Route::get('/products/{id}/technical-card', [ProductController::class, 'getTechnicalCard']);
+            Route::post('/products/{id}/technical-card', [ProductController::class, 'saveTechnicalCard']);
+            Route::post('/products/{id}/produce', [ProductController::class, 'produce']);
             Route::apiResource('products', ProductController::class);
 
             // CRM & Customers

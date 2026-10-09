@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Crypt;
 
 class TenantIntegration extends Model
 {
-    use HasFactory, HasUuids, BelongsToTenant;
+    use BelongsToTenant, HasFactory, HasUuids;
 
     protected $table = 'tenant_integrations';
 
@@ -46,6 +46,7 @@ class TenantIntegration extends Model
 
         try {
             $decrypted = Crypt::decryptString($this->credentials_encrypted);
+
             return json_decode($decrypted, true) ?: [];
         } catch (\Throwable) {
             return [];
@@ -55,11 +56,12 @@ class TenantIntegration extends Model
     /**
      * Set and encrypt credentials.
      *
-     * @param array<string, mixed> $credentials
+     * @param  array<string, mixed>  $credentials
      */
     public function setCredentials(array $credentials): self
     {
         $this->credentials_encrypted = Crypt::encryptString(json_encode($credentials, JSON_THROW_ON_ERROR));
+
         return $this;
     }
 

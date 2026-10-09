@@ -6,7 +6,6 @@ use App\Domain\Payments\Models\PaymentTransaction;
 use App\Domain\Sales\Models\Order;
 use App\Infrastructure\MultiTenancy\TenantContext;
 use App\Infrastructure\Payments\DTOs\PaymentIntentDTO;
-use App\Infrastructure\Payments\DTOs\PaymentResultDTO;
 use App\Infrastructure\Payments\PaymentGatewayManager;
 
 class InitiateOrderPaymentAction
@@ -24,7 +23,7 @@ class InitiateOrderPaymentAction
         ?string $paymentMethod = null
     ): array {
         $tenant = $this->tenantContext->getTenant();
-        if (!$tenant) {
+        if (! $tenant) {
             throw new \RuntimeException('Tenant context not set.');
         }
 

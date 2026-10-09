@@ -19,6 +19,6 @@ readonly class PaymentResultDTO
 
     public function requiresRedirect(): bool
     {
-        return $this->status === 'redirect' && !empty($this->redirectUrl);
+        return $this->status === 'redirect' && ! empty($this->redirectUrl);
     }
 }

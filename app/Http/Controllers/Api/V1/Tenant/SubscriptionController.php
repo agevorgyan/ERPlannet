@@ -19,7 +19,7 @@ class SubscriptionController extends Controller
         $tenant = $this->tenantContext->getTenant();
         $subscription = $tenant?->activeSubscription?->load(['plan.features', 'usages']);
 
-        if (!$subscription) {
+        if (! $subscription) {
             return response()->json([
                 'success' => false,
                 'error' => [

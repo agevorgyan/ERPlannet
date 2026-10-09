@@ -1,5 +1,8 @@
 <?php
 
+use App\Http\Middleware\CheckFeatureEntitlement;
+use App\Http\Middleware\IdentifyTenant;
+use App\Http\Middleware\VerifyTenantActive;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -14,9 +17,9 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
-            'tenant.identify' => \App\Http\Middleware\IdentifyTenant::class,
-            'tenant.active' => \App\Http\Middleware\VerifyTenantActive::class,
-            'feature' => \App\Http\Middleware\CheckFeatureEntitlement::class,
+            'tenant.identify' => IdentifyTenant::class,
+            'tenant.active' => VerifyTenantActive::class,
+            'feature' => CheckFeatureEntitlement::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

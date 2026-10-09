@@ -53,7 +53,7 @@ class GenerateZReportAction
             $declaredCash = (float) ($session->closing_cash_declared ?? $session->closing_cash_calculated);
             $cashDifference = round($declaredCash - $expectedCash, 2);
 
-            $zReportNumber = 'Z-' . date('Ymd') . '-' . substr($session->session_number, -6);
+            $zReportNumber = 'Z-'.date('Ymd').'-'.substr($session->session_number, -6);
 
             $zReport = PosZReport::updateOrCreate(
                 [

@@ -33,11 +33,12 @@ class IntegrationManager
     {
         $provider = $integration->provider;
 
-        if (!isset($this->drivers[$provider])) {
+        if (! isset($this->drivers[$provider])) {
             throw new \InvalidArgumentException("Unsupported integration provider: [{$provider}]");
         }
 
         $driverClass = $this->drivers[$provider];
+
         return app($driverClass);
     }
 }

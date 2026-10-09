@@ -21,6 +21,7 @@ use App\Domain\Warehouse\Models\StockLevel;
 use App\Domain\Warehouse\Models\Warehouse;
 use App\Infrastructure\MultiTenancy\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class POSRefundAndZReportTest extends TestCase
@@ -28,9 +29,13 @@ class POSRefundAndZReportTest extends TestCase
     use RefreshDatabase;
 
     protected Tenant $tenant;
+
     protected User $user;
+
     protected PosTerminal $terminal;
+
     protected Product $product;
+
     protected Warehouse $warehouse;
 
     protected function setUp(): void
@@ -84,7 +89,7 @@ class POSRefundAndZReportTest extends TestCase
             quantity: 30.0,
             unitCost: 1200.0,
             referenceType: 'test_seed',
-            referenceId: (string) \Illuminate\Support\Str::uuid(),
+            referenceId: (string) Str::uuid(),
             notes: 'Initial test stock'
         );
 

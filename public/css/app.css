@@ -1926,4 +1926,161 @@ button {
     border-radius: 6px;
 }
 
+/* ==========================================================================
+   Product Catalog Extended Attributes & Technical Card (BOM) Styles
+   ========================================================================== */
+.form-hint {
+    font-size: 0.72rem;
+    color: #64748B;
+    margin-top: 3px;
+    line-height: 1.35;
+    display: flex;
+    align-items: flex-start;
+    gap: 4px;
+}
+
+.form-hint i {
+    color: var(--color-primary);
+    margin-top: 2px;
+    font-size: 0.68rem;
+    flex-shrink: 0;
+}
+
+.product-modal-tabs {
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+    border-bottom: 2px solid #E2E8F0;
+    margin-bottom: 1.25rem;
+    padding-bottom: 2px;
+}
+
+.product-tab-btn {
+    padding: 0.5rem 0.85rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #64748B;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -4px;
+    cursor: pointer;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all var(--transition-fast);
+}
+
+.product-tab-btn:hover {
+    color: var(--color-primary);
+}
+
+.product-tab-btn.active {
+    color: var(--color-primary);
+    border-bottom-color: var(--color-primary);
+}
+
+.tech-card-container {
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+.tech-summary-box {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 0.75rem;
+    background: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    border-radius: var(--radius-md);
+    padding: 1rem;
+    margin-top: 1rem;
+}
+
+.tech-kpi {
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: var(--radius-sm);
+    padding: 0.65rem 0.75rem;
+}
+
+.tech-kpi-lbl {
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: #64748B;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.tech-kpi-val {
+    font-size: 1.15rem;
+    font-weight: 800;
+    font-family: var(--font-mono);
+    color: #0F172A;
+    margin-top: 2px;
+}
+
+.badge-stop-list {
+    background: #FEF2F2;
+    color: #DC2626;
+    border: 1px solid #FCA5A5;
+    font-weight: 800;
+    font-size: 0.68rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.product-thumb-sm {
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
+    object-fit: cover;
+    background: #F1F5F9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #94A3B8;
+    border: 1px solid #E2E8F0;
+    flex-shrink: 0;
+}
+
+.category-thumb-sm {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    object-fit: cover;
+    background: #F8FAFC;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-primary);
+    border: 1px solid #E2E8F0;
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
+}
+
+.category-thumb-sm:hover {
+    transform: scale(1.12);
+}
+
+.image-upload-dropzone {
+    border: 2px dashed #CBD5E1;
+    border-radius: 8px;
+    background: #F8FAFC;
+    padding: 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.image-upload-dropzone:hover,
+.image-upload-dropzone.dragover {
+    border-color: var(--color-primary);
+    background: #EFF6FF;
+}
+
+
+
 

@@ -24,7 +24,7 @@ class StripeGateway implements PaymentGatewayInterface
 
     public function initiatePayment(PaymentIntentDTO $intent): PaymentResultDTO
     {
-        $paymentIntentId = 'pi_' . Str::lower(Str::random(24));
+        $paymentIntentId = 'pi_'.Str::lower(Str::random(24));
         $checkoutUrl = "https://checkout.stripe.com/c/pay/{$paymentIntentId}";
 
         return new PaymentResultDTO(
@@ -42,7 +42,8 @@ class StripeGateway implements PaymentGatewayInterface
 
     public function authorize(PaymentIntentDTO $intent): PaymentResultDTO
     {
-        $paymentIntentId = 'pi_auth_' . Str::lower(Str::random(22));
+        $paymentIntentId = 'pi_auth_'.Str::lower(Str::random(22));
+
         return new PaymentResultDTO(
             status: 'authorized',
             transactionId: $paymentIntentId,
@@ -92,7 +93,7 @@ class StripeGateway implements PaymentGatewayInterface
     {
         return new RefundResultDTO(
             success: true,
-            refundId: 're_' . Str::lower(Str::random(24)),
+            refundId: 're_'.Str::lower(Str::random(24)),
             gatewayResponse: ['amount' => $dto->amount]
         );
     }

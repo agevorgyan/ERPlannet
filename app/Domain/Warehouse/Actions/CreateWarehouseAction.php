@@ -17,13 +17,13 @@ class CreateWarehouseAction
     public function execute(array $data): Warehouse
     {
         $tenant = $this->tenantContext->getTenant();
-        if (!$tenant) {
+        if (! $tenant) {
             throw new \RuntimeException('Tenant context not set.');
         }
 
         // 1. Feature check: if adding more than 1 warehouse, require multi-warehouse feature
         $existingCount = Warehouse::whereNull('deleted_at')->count();
-        if ($existingCount >= 1 && !$this->entitlements->can('feature.inventory_multi_warehouse')) {
+        if ($existingCount >= 1 && ! $this->entitlements->can('feature.inventory_multi_warehouse')) {
             throw new FeatureNotAvailableException(
                 'feature.inventory_multi_warehouse',
                 'Multi-Warehouse management is not available on your current plan. Please upgrade to Growth or Enterprise.'

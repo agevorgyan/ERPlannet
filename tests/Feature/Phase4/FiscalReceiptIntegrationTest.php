@@ -18,6 +18,7 @@ use App\Domain\Warehouse\Actions\RecordStockMovementAction;
 use App\Domain\Warehouse\Models\Warehouse;
 use App\Infrastructure\MultiTenancy\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class FiscalReceiptIntegrationTest extends TestCase
@@ -25,7 +26,9 @@ class FiscalReceiptIntegrationTest extends TestCase
     use RefreshDatabase;
 
     protected Tenant $tenant;
+
     protected User $user;
+
     protected PosTerminal $terminal;
 
     protected function setUp(): void
@@ -121,7 +124,7 @@ class FiscalReceiptIntegrationTest extends TestCase
             quantity: 10.0,
             unitCost: 300.0,
             referenceType: 'test_seed',
-            referenceId: (string) \Illuminate\Support\Str::uuid(),
+            referenceId: (string) Str::uuid(),
             notes: 'Stock for fiscal test'
         );
 

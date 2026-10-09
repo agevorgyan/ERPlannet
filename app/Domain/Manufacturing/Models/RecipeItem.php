@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class RecipeItem extends Model
 {
-    use HasFactory, HasUuids, BelongsToTenant;
+    use BelongsToTenant, HasFactory, HasUuids;
 
     protected $table = 'recipe_items';
 
@@ -25,8 +25,10 @@ class RecipeItem extends Model
         'product_id',
         'product_variant_id',
         'quantity',
+        'gross_quantity',
         'unit_id',
         'waste_percentage',
+        'cost_per_unit',
         'sort_order',
         'notes',
         'created_at',
@@ -34,7 +36,9 @@ class RecipeItem extends Model
 
     protected $casts = [
         'quantity' => 'float',
+        'gross_quantity' => 'float',
         'waste_percentage' => 'float',
+        'cost_per_unit' => 'float',
         'sort_order' => 'integer',
         'created_at' => 'datetime',
     ];

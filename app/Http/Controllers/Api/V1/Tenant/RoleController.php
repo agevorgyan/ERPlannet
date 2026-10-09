@@ -37,7 +37,7 @@ class RoleController extends Controller
             'is_system' => false,
         ]);
 
-        if (!empty($validated['permissions'])) {
+        if (! empty($validated['permissions'])) {
             $permissionIds = Permission::whereIn('code', $validated['permissions'])->pluck('id');
             $role->permissions()->sync($permissionIds);
         }

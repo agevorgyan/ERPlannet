@@ -32,21 +32,22 @@ class TelegramBotDriver implements NotificationProviderInterface
 
             if ($res->successful() && ($res->json()['ok'] ?? false)) {
                 $user = $res->json()['result'] ?? [];
+
                 return [
                     'success' => true,
-                    'message' => 'Telegram Bot connected successfully: @' . ($user['username'] ?? 'bot'),
+                    'message' => 'Telegram Bot connected successfully: @'.($user['username'] ?? 'bot'),
                     'details' => $user,
                 ];
             }
 
             return [
                 'success' => false,
-                'message' => 'Telegram API error: ' . ($res->json()['description'] ?? 'Unauthorized'),
+                'message' => 'Telegram API error: '.($res->json()['description'] ?? 'Unauthorized'),
             ];
         } catch (\Throwable $e) {
             return [
                 'success' => false,
-                'message' => 'Telegram connection failed: ' . $e->getMessage(),
+                'message' => 'Telegram connection failed: '.$e->getMessage(),
             ];
         }
     }
@@ -56,7 +57,7 @@ class TelegramBotDriver implements NotificationProviderInterface
         $creds = $integration->getCredentials();
         $token = $creds['bot_token'] ?? '';
         $defaultChatId = $creds['default_chat_id'] ?? null;
-        $chatId = !empty($recipient) ? $recipient : $defaultChatId;
+        $chatId = ! empty($recipient) ? $recipient : $defaultChatId;
 
         if (empty($token) || empty($chatId)) {
             return [
@@ -74,6 +75,7 @@ class TelegramBotDriver implements NotificationProviderInterface
 
             if ($res->successful() && ($res->json()['ok'] ?? false)) {
                 $msgId = (string) ($res->json()['result']['message_id'] ?? '');
+
                 return [
                     'success' => true,
                     'message_id' => $msgId,

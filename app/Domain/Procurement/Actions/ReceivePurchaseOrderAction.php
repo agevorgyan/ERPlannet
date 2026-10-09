@@ -28,7 +28,7 @@ class ReceivePurchaseOrderAction
         }
 
         $tenant = $this->tenantContext->getTenant();
-        if (!$tenant) {
+        if (! $tenant) {
             throw new \RuntimeException('Tenant context not set.');
         }
 
@@ -56,7 +56,7 @@ class ReceivePurchaseOrderAction
 
                 // 1. Batch management if batch_number specified
                 $batchId = null;
-                if (!empty($receipt['batch_number'])) {
+                if (! empty($receipt['batch_number'])) {
                     $batch = StockBatch::firstOrCreate(
                         [
                             'tenant_id' => $tenant->id,

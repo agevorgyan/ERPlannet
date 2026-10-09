@@ -2,6 +2,7 @@
 
 namespace App\Domain\Catalog\Models;
 
+use App\Domain\Manufacturing\Models\Recipe;
 use App\Domain\Manufacturing\Models\RecipeItem;
 use App\Domain\Procurement\Models\Supplier;
 use App\Domain\Procurement\Models\SupplierProduct;
@@ -46,19 +47,37 @@ class Product extends Model
         'barcode',
         'hs_code',
         'packaging',
+        'net_quantity',
         'name',
         'description',
         'cost_price',
         'sale_price',
+        'special_price',
         'vat_rate',
+        'has_vat',
         'discount_percent',
+        'allow_discount',
+        'allow_price_edit',
         'transaction_type',
         'min_stock_level',
         'currency',
         'shelf_life_days',
+        'shelf_life_info',
         'track_stock',
         'is_produced',
+        'allow_modifiers',
+        'is_ungrouped_in_order',
+        'is_excise',
+        'is_marked',
+        'is_stop_list',
         'is_active',
+        'calories',
+        'nutritional_info',
+        'allergens',
+        'dietary_tags',
+        'available_branch_ids',
+        'time_availability',
+        'discount_hours',
         'images',
         'metadata',
     ];
@@ -68,13 +87,29 @@ class Product extends Model
         'description' => 'array',
         'cost_price' => 'decimal:2',
         'sale_price' => 'decimal:2',
+        'special_price' => 'decimal:2',
         'vat_rate' => 'decimal:2',
+        'has_vat' => 'boolean',
         'discount_percent' => 'decimal:2',
+        'allow_discount' => 'boolean',
+        'allow_price_edit' => 'boolean',
         'min_stock_level' => 'decimal:3',
         'shelf_life_days' => 'integer',
         'track_stock' => 'boolean',
         'is_produced' => 'boolean',
+        'allow_modifiers' => 'boolean',
+        'is_ungrouped_in_order' => 'boolean',
+        'is_excise' => 'boolean',
+        'is_marked' => 'boolean',
+        'is_stop_list' => 'boolean',
         'is_active' => 'boolean',
+        'calories' => 'decimal:2',
+        'nutritional_info' => 'array',
+        'allergens' => 'array',
+        'dietary_tags' => 'array',
+        'available_branch_ids' => 'array',
+        'time_availability' => 'array',
+        'discount_hours' => 'array',
         'images' => 'array',
         'metadata' => 'array',
     ];
@@ -123,6 +158,25 @@ class Product extends Model
     public function recipesWhereUsed(): HasMany
     {
         return $this->hasMany(RecipeItem::class, 'product_id')->with('recipe.product');
+    }
+
+    /**
+     * Recipes / BOMs defined for producing this product.
+     */
+    public function recipes(): HasMany
+    {
+        return $this->hasMany(Recipe::class, 'product_id');
+    }
+
+    /**
+     * Get active recipe / technical card.
+     */
+    public function activeRecipe(): ?Recipe
+    {
+        return $this->recipes()
+            ->where('is_active', true)
+            ->with(['items.product.unit', 'items.unit', 'yieldUnit'])
+            ->first();
     }
 
     public function isRawMaterial(): bool

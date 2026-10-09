@@ -14,6 +14,7 @@ class TenantManagementApiTest extends TestCase
     use RefreshDatabase;
 
     protected PlatformUser $admin;
+
     protected string $adminToken;
 
     protected function setUp(): void

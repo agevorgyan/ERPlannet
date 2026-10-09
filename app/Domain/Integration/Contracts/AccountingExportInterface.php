@@ -11,7 +11,7 @@ interface AccountingExportInterface extends IntegrationDriverInterface
     /**
      * Export sales invoices in standardized interchange format (XML/JSON).
      *
-     * @param array<string, mixed> $filters
+     * @param  array<string, mixed>  $filters
      * @return array{format: string, filename: string, content: string, count: int}
      */
     public function exportInvoices(TenantIntegration $integration, array $filters = []): array;
@@ -19,7 +19,7 @@ interface AccountingExportInterface extends IntegrationDriverInterface
     /**
      * Export inventory balances and movements in standardized interchange format.
      *
-     * @param array<string, mixed> $filters
+     * @param  array<string, mixed>  $filters
      * @return array{format: string, filename: string, content: string, count: int}
      */
     public function exportInventory(TenantIntegration $integration, array $filters = []): array;

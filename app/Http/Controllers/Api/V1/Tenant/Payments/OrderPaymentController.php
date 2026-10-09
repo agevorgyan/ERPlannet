@@ -121,7 +121,7 @@ class OrderPaymentController extends Controller
 
             $webhookResult = $gatewayInstance->handleWebhook($request->all(), $normalizedHeaders);
 
-            if (!$webhookResult->verified) {
+            if (! $webhookResult->verified) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Invalid webhook signature or unverified payload.',
@@ -129,7 +129,7 @@ class OrderPaymentController extends Controller
             }
 
             $txIdentifier = $webhookResult->transactionId;
-            if (!$txIdentifier) {
+            if (! $txIdentifier) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Transaction ID missing from webhook payload.',
@@ -138,12 +138,12 @@ class OrderPaymentController extends Controller
 
             // Find transaction (scoped by tenant if tenant context is present, otherwise global lookup)
             $query = PaymentTransaction::with('order')->where('transaction_id', $txIdentifier);
-            if (!$this->tenantContext->hasTenant()) {
+            if (! $this->tenantContext->hasTenant()) {
                 $query = $query->withoutTenantScope();
             }
             $transaction = $query->lockForUpdate()->first();
 
-            if (!$transaction) {
+            if (! $transaction) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Transaction not found for webhook notification.',

@@ -11,6 +11,7 @@ class TenantContext
     public function setCurrentTenant(?Tenant $tenant): self
     {
         $this->currentTenant = $tenant;
+
         return $this;
     }
 

@@ -4,17 +4,13 @@ namespace Tests\Feature\Phase4;
 
 use App\Domain\Billing\Models\Feature;
 use App\Domain\Billing\Models\Plan;
+use App\Domain\Branch\Models\Branch;
 use App\Domain\Catalog\Models\Category;
 use App\Domain\Catalog\Models\Product;
 use App\Domain\Catalog\Models\Unit;
-use App\Domain\Branch\Models\Branch;
 use App\Domain\CRM\Models\Customer;
-use App\Domain\Delivery\Actions\AssignDeliveryDriverAction;
-use App\Domain\Delivery\Actions\CompleteDeliveryAction;
 use App\Domain\Delivery\Actions\CreateDeliveryShipmentAction;
-use App\Domain\Delivery\Actions\DispatchShipmentAction;
 use App\Domain\Delivery\Models\DeliveryDriver;
-use App\Domain\Delivery\Models\DeliveryShipment;
 use App\Domain\IAM\Models\User;
 use App\Domain\Sales\Actions\CreateOrderAction;
 use App\Domain\Sales\Models\Order;
@@ -29,9 +25,13 @@ class DeliveryFleetAndDispatchTest extends TestCase
     use RefreshDatabase;
 
     protected Tenant $tenant;
+
     protected User $user;
+
     protected Customer $customer;
+
     protected Order $order;
+
     protected Product $product;
 
     protected function setUp(): void

@@ -43,7 +43,7 @@ class CreateOrderAction
         $this->entitlementManager->assertCan('limit.orders_monthly', 1);
 
         $tenant = $this->tenantContext->getTenant();
-        if (!$tenant) {
+        if (! $tenant) {
             throw new InvalidArgumentException('No active tenant context.');
         }
 
@@ -51,7 +51,7 @@ class CreateOrderAction
         $branch = Branch::where('id', $data['branch_id'])->where('is_active', true)->firstOrFail();
 
         // 3. Validate Customer if provided
-        if (!empty($data['customer_id'])) {
+        if (! empty($data['customer_id'])) {
             Customer::findOrFail($data['customer_id']);
         }
 
@@ -70,7 +70,7 @@ class CreateOrderAction
                 $unitPrice = (float) $product->sale_price;
                 $variant = null;
 
-                if (!empty($itemData['variant_id'])) {
+                if (! empty($itemData['variant_id'])) {
                     $variant = ProductVariant::where('id', $itemData['variant_id'])
                         ->where('product_id', $product->id)
                         ->where('is_active', true)

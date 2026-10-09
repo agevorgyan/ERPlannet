@@ -142,6 +142,7 @@ class IngredientController extends Controller
                 ]),
                 'where_used_products' => $usedInProducts,
                 'where_used_count' => $usedInProducts->count(),
+                'images' => $item->images,
                 'created_at' => $item->created_at?->toIso8601String(),
             ];
         });
@@ -188,6 +189,7 @@ class IngredientController extends Controller
             'supplier_ids' => ['nullable', 'array'],
             'supplier_ids.*' => ['uuid', 'exists:suppliers,id'],
             'warehouse_id' => ['nullable', 'uuid', 'exists:warehouses,id'],
+            'images' => ['nullable', 'array'],
         ]);
 
         $name = is_array($validated['name'])
@@ -225,6 +227,7 @@ class IngredientController extends Controller
             'track_stock' => true,
             'is_produced' => false,
             'is_active' => true,
+            'images' => $validated['images'] ?? [],
         ]);
 
         if (! empty($validated['supplier_ids'])) {
@@ -308,6 +311,7 @@ class IngredientController extends Controller
             'supplier_ids.*' => ['uuid', 'exists:suppliers,id'],
             'adjust_stock' => ['nullable', 'numeric'],
             'warehouse_id' => ['nullable', 'uuid', 'exists:warehouses,id'],
+            'images' => ['nullable', 'array'],
         ]);
 
         if (isset($validated['name']) && ! is_array($validated['name'])) {

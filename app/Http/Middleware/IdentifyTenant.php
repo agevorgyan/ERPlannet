@@ -19,7 +19,7 @@ class IdentifyTenant
     {
         $tenant = $this->resolver->resolve($request);
 
-        if (!$tenant) {
+        if (! $tenant) {
             return response()->json([
                 'success' => false,
                 'error' => [

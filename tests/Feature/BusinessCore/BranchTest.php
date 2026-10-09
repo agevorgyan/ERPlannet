@@ -17,7 +17,9 @@ class BranchTest extends TestCase
     use RefreshDatabase;
 
     protected Tenant $tenant;
+
     protected User $user;
+
     protected string $token;
 
     protected function setUp(): void

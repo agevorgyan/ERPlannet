@@ -22,9 +22,13 @@ class CrossTenantWebhookAccessTest extends TestCase
     use RefreshDatabase;
 
     protected Tenant $tenantA;
+
     protected User $userA;
+
     protected Tenant $tenantB;
+
     protected Order $orderA;
+
     protected PaymentTransaction $transactionA;
 
     protected function setUp(): void

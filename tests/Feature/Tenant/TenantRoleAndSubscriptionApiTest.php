@@ -5,7 +5,6 @@ namespace Tests\Feature\Tenant;
 use App\Domain\Billing\Models\Feature;
 use App\Domain\Billing\Models\Plan;
 use App\Domain\Billing\Models\Subscription;
-use App\Domain\IAM\Models\Permission;
 use App\Domain\IAM\Models\Role;
 use App\Domain\IAM\Models\User;
 use App\Domain\Tenant\Models\Tenant;
@@ -18,7 +17,9 @@ class TenantRoleAndSubscriptionApiTest extends TestCase
     use RefreshDatabase;
 
     protected Tenant $tenant;
+
     protected User $owner;
+
     protected string $token;
 
     protected function setUp(): void

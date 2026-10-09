@@ -20,7 +20,7 @@ class CreateRecipeAction
     public function execute(array $data): Recipe
     {
         $tenant = $this->tenantContext->getTenant();
-        if (!$tenant) {
+        if (! $tenant) {
             throw new \RuntimeException('Tenant context not set.');
         }
 

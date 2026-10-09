@@ -3,7 +3,6 @@
 namespace Tests\Feature\Billing;
 
 use App\Domain\Billing\Contracts\EntitlementManagerInterface;
-use App\Domain\Billing\Exceptions\FeatureNotAvailableException;
 use App\Domain\Billing\Exceptions\PlanLimitExceededException;
 use App\Domain\Billing\Models\Feature;
 use App\Domain\Billing\Models\Plan;
@@ -18,6 +17,7 @@ class EntitlementTest extends TestCase
     use RefreshDatabase;
 
     protected EntitlementManagerInterface $entitlementManager;
+
     protected TenantContext $tenantContext;
 
     protected function setUp(): void

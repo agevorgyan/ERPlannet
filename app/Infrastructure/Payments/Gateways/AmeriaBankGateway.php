@@ -25,7 +25,7 @@ class AmeriaBankGateway implements PaymentGatewayInterface
     public function initiatePayment(PaymentIntentDTO $intent): PaymentResultDTO
     {
         // Generates payment order ID for Ameriabank vPOS
-        $orderId = 'AMERIA_' . Str::upper(Str::random(12));
+        $orderId = 'AMERIA_'.Str::upper(Str::random(12));
 
         // In production: calls Ameriabank vPOS InitPayment API endpoint with ClientID, Username, Password, Description, Amount, OrderID, BackURL
         $redirectUrl = "https://services.ameriabank.am/VPOS/Payments/Pay?id={$orderId}";
@@ -45,7 +45,8 @@ class AmeriaBankGateway implements PaymentGatewayInterface
 
     public function authorize(PaymentIntentDTO $intent): PaymentResultDTO
     {
-        $orderId = 'AMERIA_AUTH_' . Str::upper(Str::random(12));
+        $orderId = 'AMERIA_AUTH_'.Str::upper(Str::random(12));
+
         return new PaymentResultDTO(
             status: 'authorized',
             transactionId: $orderId,
@@ -113,7 +114,7 @@ class AmeriaBankGateway implements PaymentGatewayInterface
     {
         return new RefundResultDTO(
             success: true,
-            refundId: 'AMERIA_REF_' . Str::upper(Str::random(10)),
+            refundId: 'AMERIA_REF_'.Str::upper(Str::random(10)),
             gatewayResponse: ['refunded_amount' => $dto->amount]
         );
     }

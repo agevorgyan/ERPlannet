@@ -18,7 +18,7 @@ class AssignDeliveryDriverAction
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            if (!in_array($shipment->status, ['pending', 'failed'], true)) {
+            if (! in_array($shipment->status, ['pending', 'failed'], true)) {
                 throw new InvalidArgumentException("Cannot assign driver to shipment in status {$shipment->status}.");
             }
 
@@ -26,7 +26,7 @@ class AssignDeliveryDriverAction
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            if (!$driver->is_active) {
+            if (! $driver->is_active) {
                 throw new InvalidArgumentException("Driver {$driver->full_name} is inactive.");
             }
 

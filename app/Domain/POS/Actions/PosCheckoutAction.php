@@ -9,7 +9,6 @@ use App\Domain\Fiscal\FiscalProviderManager;
 use App\Domain\Fiscal\Models\FiscalReceipt;
 use App\Domain\Payments\Models\PaymentTransaction;
 use App\Domain\POS\Events\PosSaleCompletedEvent;
-use App\Domain\POS\Models\PosCashMovement;
 use App\Domain\POS\Models\PosSession;
 use App\Domain\POS\Services\PosReceiptNumberGenerator;
 use App\Domain\Sales\Models\Order;
@@ -48,12 +47,12 @@ class PosCheckoutAction
         }
 
         $tenant = $this->tenantContext->getTenant();
-        if (!$tenant) {
+        if (! $tenant) {
             throw new \RuntimeException('Tenant context not set.');
         }
 
         // 1. Idempotency Check: return existing order if same key was already processed
-        if (!empty($idempotencyKey)) {
+        if (! empty($idempotencyKey)) {
             $existing = Order::where('tenant_id', $tenant->id)
                 ->where('idempotency_key', $idempotencyKey)
                 ->first();
@@ -70,7 +69,7 @@ class PosCheckoutAction
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            if (!$session->isOpen()) {
+            if (! $session->isOpen()) {
                 throw new \InvalidArgumentException("POS Session {$session->session_number} is closed.");
             }
 
@@ -85,7 +84,7 @@ class PosCheckoutAction
 
             foreach ($items as $itemData) {
                 $product = Product::findOrFail($itemData['product_id']);
-                $variant = !empty($itemData['product_variant_id'])
+                $variant = ! empty($itemData['product_variant_id'])
                     ? ProductVariant::findOrFail($itemData['product_variant_id'])
                     : null;
 
@@ -97,7 +96,7 @@ class PosCheckoutAction
                 // Row-lock stock level
                 StockLevel::where('warehouse_id', $warehouseId)
                     ->where('product_id', $product->id)
-                    ->when($variant, fn($q) => $q->where('product_variant_id', $variant->id))
+                    ->when($variant, fn ($q) => $q->where('product_variant_id', $variant->id))
                     ->lockForUpdate()
                     ->first();
 
@@ -235,7 +234,7 @@ class PosCheckoutAction
                     'pos_session_id' => $session->id,
                     'gateway' => $payGateway,
                     'payment_method' => $payMethod,
-                    'transaction_id' => 'TX-POS-' . strtoupper(Str::random(10)),
+                    'transaction_id' => 'TX-POS-'.strtoupper(Str::random(10)),
                     'amount' => $actualTxAmount,
                     'currency' => $tenant->currency,
                     'status' => 'successful',
@@ -256,7 +255,7 @@ class PosCheckoutAction
             // 9. Fiscal Receipt Generation (Decoupled Fiscal Provider Hook)
             $fiscalProvider = $this->fiscalProviderManager->provider();
             $fiscalResult = $fiscalProvider->createReceipt($order, [
-                'crn' => $terminal->device_uid ?? 'CRN-' . rand(10000000, 99999999),
+                'crn' => $terminal->device_uid ?? 'CRN-'.rand(10000000, 99999999),
             ]);
 
             FiscalReceipt::create([
@@ -264,7 +263,7 @@ class PosCheckoutAction
                 'order_id' => $order->id,
                 'pos_session_id' => $session->id,
                 'provider' => $fiscalProvider->getIdentifier(),
-                'fiscal_number' => $fiscalResult->fiscalNumber ?? 'SRC-REC-' . strtoupper(Str::random(8)),
+                'fiscal_number' => $fiscalResult->fiscalNumber ?? 'SRC-REC-'.strtoupper(Str::random(8)),
                 'crn' => $fiscalResult->crn ?? 'CRN-POS-01',
                 'status' => $fiscalResult->status,
                 'total_amount' => $order->total,

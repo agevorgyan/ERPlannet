@@ -11,15 +11,15 @@ use App\Domain\Catalog\Models\ProductVariant;
 use App\Domain\Catalog\Models\Unit;
 use App\Domain\CRM\Models\Customer;
 use App\Domain\CRM\Models\CustomerAddress;
+use App\Domain\Delivery\Models\DeliveryDriver;
+use App\Domain\Delivery\Models\DeliveryProof;
+use App\Domain\Delivery\Models\DeliveryShipment;
 use App\Domain\IAM\Models\Permission;
 use App\Domain\IAM\Models\Role;
 use App\Domain\IAM\Models\User;
 use App\Domain\Manufacturing\Models\ProductionOrder;
 use App\Domain\Manufacturing\Models\ProductionOrderItem;
 use App\Domain\Manufacturing\Models\Recipe;
-use App\Domain\Delivery\Models\DeliveryDriver;
-use App\Domain\Delivery\Models\DeliveryProof;
-use App\Domain\Delivery\Models\DeliveryShipment;
 use App\Domain\Manufacturing\Models\RecipeItem;
 use App\Domain\Payments\Models\PaymentTransaction;
 use App\Domain\POS\Models\PosCashMovement;
@@ -38,8 +38,6 @@ use App\Domain\Tenant\Models\TenantDomain;
 use App\Domain\Warehouse\Models\StockBatch;
 use App\Domain\Warehouse\Models\StockLevel;
 use App\Domain\Warehouse\Models\StockMovement;
-use App\Domain\Warehouse\Models\StockTransfer;
-use App\Domain\Warehouse\Models\StockTransferItem;
 use App\Domain\Warehouse\Models\Warehouse;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -157,17 +155,17 @@ class DemoTenantSeeder extends Seeder
         // 6. Categories
         $catBakery = Category::firstOrCreate(
             ['tenant_id' => $tenant->id, 'slug' => 'bakery'],
-            ['name' => ['hy' => 'Հացաբուլկեղեն', 'en' => 'Bakery', 'ru' => 'Выпечка'], 'sort_order' => 1]
+            ['name' => ['hy' => 'Հացաբուլկեղեն', 'en' => 'Bakery', 'ru' => 'Выпечка'], 'type' => 'product', 'sort_order' => 1]
         );
 
         $catDairy = Category::firstOrCreate(
             ['tenant_id' => $tenant->id, 'slug' => 'dairy'],
-            ['name' => ['hy' => 'Կաթնամթերք', 'en' => 'Dairy', 'ru' => 'Молочные продукты'], 'sort_order' => 2]
+            ['name' => ['hy' => 'Կաթնամթերք', 'en' => 'Dairy', 'ru' => 'Молочные продукты'], 'type' => 'product', 'sort_order' => 2]
         );
 
         $catMeat = Category::firstOrCreate(
             ['tenant_id' => $tenant->id, 'slug' => 'meat'],
-            ['name' => ['hy' => 'Մսամթերք', 'en' => 'Meat Products', 'ru' => 'Мясные изделия'], 'sort_order' => 3]
+            ['name' => ['hy' => 'Մսամթերք', 'en' => 'Meat Products', 'ru' => 'Мясные изделия'], 'type' => 'product', 'sort_order' => 3]
         );
 
         // 7. Products
@@ -229,7 +227,7 @@ class DemoTenantSeeder extends Seeder
 
         $catRaw = Category::firstOrCreate(
             ['tenant_id' => $tenant->id, 'slug' => 'raw-materials'],
-            ['name' => ['hy' => 'Հումք և նյութեր', 'en' => 'Raw Materials', 'ru' => 'Сырье и материалы'], 'sort_order' => 4]
+            ['name' => ['hy' => 'Հումք և նյութեր', 'en' => 'Raw Materials', 'ru' => 'Сырье и материалы'], 'type' => 'ingredient', 'sort_order' => 4]
         );
 
         $pFlour = Product::firstOrCreate(

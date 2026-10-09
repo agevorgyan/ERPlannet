@@ -2,21 +2,16 @@
 
 namespace Tests\Feature\Phase4;
 
-use App\Domain\Billing\Exceptions\FeatureNotAvailableException;
 use App\Domain\Billing\Models\Feature;
 use App\Domain\Billing\Models\Plan;
-use App\Domain\Billing\Models\Subscription;
+use App\Domain\Branch\Models\Branch;
 use App\Domain\Catalog\Models\Category;
 use App\Domain\Catalog\Models\Product;
 use App\Domain\Catalog\Models\Unit;
-use App\Domain\Branch\Models\Branch;
 use App\Domain\IAM\Models\User;
 use App\Domain\POS\Actions\ClosePosSessionAction;
 use App\Domain\POS\Actions\OpenPosSessionAction;
 use App\Domain\POS\Actions\PosCheckoutAction;
-use App\Domain\POS\Actions\RecordPosCashMovementAction;
-use App\Domain\POS\Models\PosCashMovement;
-use App\Domain\POS\Models\PosSession;
 use App\Domain\POS\Models\PosTerminal;
 use App\Domain\Tenant\Models\Tenant;
 use App\Domain\Warehouse\Actions\RecordStockMovementAction;
@@ -24,6 +19,7 @@ use App\Domain\Warehouse\Models\StockLevel;
 use App\Domain\Warehouse\Models\Warehouse;
 use App\Infrastructure\MultiTenancy\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class POSTerminalAndCheckoutTest extends TestCase
@@ -31,10 +27,15 @@ class POSTerminalAndCheckoutTest extends TestCase
     use RefreshDatabase;
 
     protected Tenant $tenant;
+
     protected User $user;
+
     protected Branch $branch;
+
     protected Warehouse $warehouse;
+
     protected Product $product;
+
     protected Unit $pcs;
 
     protected function setUp(): void
@@ -89,7 +90,7 @@ class POSTerminalAndCheckoutTest extends TestCase
             quantity: 50.0,
             unitCost: 450.0,
             referenceType: 'test_seed',
-            referenceId: (string) \Illuminate\Support\Str::uuid(),
+            referenceId: (string) Str::uuid(),
             notes: 'Initial POS test stock'
         );
     }

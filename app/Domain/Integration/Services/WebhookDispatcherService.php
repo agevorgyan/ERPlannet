@@ -15,7 +15,7 @@ class WebhookDispatcherService
     /**
      * Dispatch an outbound event to all matching tenant subscriptions.
      *
-     * @param array<string, mixed> $payload
+     * @param  array<string, mixed>  $payload
      * @return array<int, TenantWebhookDelivery>
      */
     public function dispatch(string $tenantId, string $eventName, array $payload): array
@@ -28,7 +28,7 @@ class WebhookDispatcherService
 
         foreach ($subscriptions as $sub) {
             $events = $sub->events ?? [];
-            if (!in_array('*', $events, true) && !in_array($eventName, $events, true)) {
+            if (! in_array('*', $events, true) && ! in_array($eventName, $events, true)) {
                 continue;
             }
 
@@ -104,7 +104,7 @@ class WebhookDispatcherService
 
         // Prohibit localhost names
         if (in_array(strtolower($host), ['localhost', '127.0.0.1', '::1'], true)) {
-            throw new SecurityException("Webhook delivery to loopback is blocked for security.");
+            throw new SecurityException('Webhook delivery to loopback is blocked for security.');
         }
 
         $ip = gethostbyname($host);

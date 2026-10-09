@@ -17,7 +17,7 @@ class VerifyTenantActive
     {
         $tenant = $this->context->getTenant();
 
-        if (!$tenant) {
+        if (! $tenant) {
             return response()->json([
                 'success' => false,
                 'error' => [

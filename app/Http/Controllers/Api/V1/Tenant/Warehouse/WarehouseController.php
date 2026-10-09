@@ -73,7 +73,7 @@ class WarehouseController extends Controller
             'settings' => ['nullable', 'array'],
         ]);
 
-        if (!empty($validated['is_default'])) {
+        if (! empty($validated['is_default'])) {
             Warehouse::where('is_default', true)->where('id', '!=', $warehouse->id)->update(['is_default' => false]);
         }
 

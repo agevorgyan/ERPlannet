@@ -24,7 +24,7 @@ class IdramGateway implements PaymentGatewayInterface
 
     public function initiatePayment(PaymentIntentDTO $intent): PaymentResultDTO
     {
-        $billNo = 'IDRAM_' . Str::upper(Str::random(10));
+        $billNo = 'IDRAM_'.Str::upper(Str::random(10));
 
         // Idram standard checkout redirection
         $redirectUrl = "https://banking.idram.am/Payment/GetPayment?EDP_BILL_NO={$billNo}&EDP_AMOUNT={$intent->amount}";
@@ -44,7 +44,8 @@ class IdramGateway implements PaymentGatewayInterface
 
     public function authorize(PaymentIntentDTO $intent): PaymentResultDTO
     {
-        $billNo = 'IDRAM_AUTH_' . Str::upper(Str::random(10));
+        $billNo = 'IDRAM_AUTH_'.Str::upper(Str::random(10));
+
         return new PaymentResultDTO(
             status: 'authorized',
             transactionId: $billNo,
@@ -95,7 +96,7 @@ class IdramGateway implements PaymentGatewayInterface
     {
         return new RefundResultDTO(
             success: true,
-            refundId: 'IDRAM_REF_' . Str::upper(Str::random(10)),
+            refundId: 'IDRAM_REF_'.Str::upper(Str::random(10)),
             gatewayResponse: ['refunded_amount' => $dto->amount]
         );
     }

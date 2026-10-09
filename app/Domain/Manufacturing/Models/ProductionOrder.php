@@ -18,7 +18,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class ProductionOrder extends Model
 {
-    use HasFactory, HasUuids, BelongsToTenant, SoftDeletes;
+    use BelongsToTenant, HasFactory, HasUuids, SoftDeletes;
 
     protected $table = 'production_orders';
 

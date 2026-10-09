@@ -33,7 +33,7 @@ interface ECommerceDriverInterface extends IntegrationDriverInterface
     /**
      * Fetch orders from the e-commerce platform.
      *
-     * @param array<string, mixed> $params
+     * @param  array<string, mixed>  $params
      * @return array<int, array<string, mixed>>
      */
     public function fetchOrders(TenantIntegration $integration, array $params = []): array;

@@ -3,7 +3,6 @@
 namespace Tests\Feature\Security;
 
 use App\Domain\Audit\Models\AuditLog;
-use App\Domain\Billing\Models\Invoice;
 use App\Domain\Branch\Models\Branch;
 use App\Domain\Catalog\Models\Category;
 use App\Domain\Catalog\Models\Product;
@@ -22,9 +21,13 @@ class CrossTenantApiAccessTest extends TestCase
     use RefreshDatabase;
 
     protected Tenant $tenantA;
+
     protected User $userA;
+
     protected Tenant $tenantB;
+
     protected User $userB;
+
     protected Order $orderA;
 
     protected function setUp(): void

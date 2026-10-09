@@ -7,7 +7,6 @@ use App\Domain\IAM\Models\User;
 use App\Domain\Tenant\Models\Tenant;
 use App\Domain\Warehouse\Actions\RecordStockMovementAction;
 use App\Domain\Warehouse\Models\StockLevel;
-use App\Domain\Warehouse\Models\StockTransfer;
 use App\Domain\Warehouse\Models\Warehouse;
 use App\Infrastructure\MultiTenancy\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -18,9 +17,13 @@ class StockTransferTest extends TestCase
     use RefreshDatabase;
 
     protected Tenant $tenant;
+
     protected User $user;
+
     protected Warehouse $sourceWh;
+
     protected Warehouse $destWh;
+
     protected Product $product;
 
     protected function setUp(): void
@@ -60,7 +63,7 @@ class StockTransferTest extends TestCase
             ->assertJsonPath('data.status', 'draft');
 
         $transferNumber = $response->json('data.transfer_number');
-        $this->assertStringStartsWith('TRF-' . date('Y') . '-', $transferNumber);
+        $this->assertStringStartsWith('TRF-'.date('Y').'-', $transferNumber);
     }
 
     public function test_full_two_step_stock_transfer_lifecycle(): void

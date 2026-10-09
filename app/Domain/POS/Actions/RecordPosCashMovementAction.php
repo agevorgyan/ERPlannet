@@ -19,7 +19,7 @@ class RecordPosCashMovementAction
             throw new \InvalidArgumentException('Cash movement amount must be greater than zero.');
         }
 
-        if (!in_array($type, ['cash_in', 'cash_out'], true)) {
+        if (! in_array($type, ['cash_in', 'cash_out'], true)) {
             throw new \InvalidArgumentException("Invalid cash movement type: {$type}. Must be 'cash_in' or 'cash_out'.");
         }
 
@@ -28,7 +28,7 @@ class RecordPosCashMovementAction
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            if (!$session->isOpen()) {
+            if (! $session->isOpen()) {
                 throw new \InvalidArgumentException("Cannot record cash movement on a closed session ({$session->session_number}).");
             }
 

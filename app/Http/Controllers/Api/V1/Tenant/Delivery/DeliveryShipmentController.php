@@ -6,6 +6,9 @@ use App\Domain\Delivery\Actions\AssignDeliveryDriverAction;
 use App\Domain\Delivery\Actions\CompleteDeliveryAction;
 use App\Domain\Delivery\Actions\CreateDeliveryShipmentAction;
 use App\Domain\Delivery\Actions\DispatchShipmentAction;
+use App\Domain\Delivery\Actions\FailDeliveryAction;
+use App\Domain\Delivery\Actions\RecordGpsPingAction;
+use App\Domain\Delivery\Actions\ReturnDeliveryShipmentAction;
 use App\Domain\Delivery\Models\DeliveryShipment;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
@@ -135,7 +138,7 @@ class DeliveryShipmentController extends Controller
         ]);
     }
 
-    public function fail(Request $request, string $id, \App\Domain\Delivery\Actions\FailDeliveryAction $action): JsonResponse
+    public function fail(Request $request, string $id, FailDeliveryAction $action): JsonResponse
     {
         $validated = $request->validate([
             'reason' => ['required', 'string', 'max:255'],
@@ -150,7 +153,7 @@ class DeliveryShipmentController extends Controller
         ]);
     }
 
-    public function return(Request $request, string $id, \App\Domain\Delivery\Actions\ReturnDeliveryShipmentAction $action): JsonResponse
+    public function return(Request $request, string $id, ReturnDeliveryShipmentAction $action): JsonResponse
     {
         $validated = $request->validate([
             'reason' => ['nullable', 'string', 'max:255'],
@@ -165,7 +168,7 @@ class DeliveryShipmentController extends Controller
         ]);
     }
 
-    public function gps(Request $request, string $id, \App\Domain\Delivery\Actions\RecordGpsPingAction $action): JsonResponse
+    public function gps(Request $request, string $id, RecordGpsPingAction $action): JsonResponse
     {
         $validated = $request->validate([
             'latitude' => ['required', 'numeric'],

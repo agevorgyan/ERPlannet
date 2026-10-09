@@ -13,11 +13,16 @@ class Category extends Model
 {
     use BelongsToTenant, HasFactory, HasUuids;
 
+    public const TYPE_PRODUCT = 'product';
+
+    public const TYPE_INGREDIENT = 'ingredient';
+
     protected $table = 'categories';
 
     protected $fillable = [
         'tenant_id',
         'parent_id',
+        'type',
         'slug',
         'name',
         'description',
@@ -53,5 +58,15 @@ class Category extends Model
         $locale = $locale ?: app()->getLocale();
 
         return $this->name[$locale] ?? $this->name['hy'] ?? $this->name['en'] ?? '';
+    }
+
+    public function scopeProducts($query)
+    {
+        return $query->where('type', self::TYPE_PRODUCT);
+    }
+
+    public function scopeIngredients($query)
+    {
+        return $query->where('type', self::TYPE_INGREDIENT);
     }
 }

@@ -20,7 +20,7 @@ class TenantAuthController extends Controller
     public function login(Request $request): JsonResponse
     {
         $tenant = $this->tenantContext->getTenant();
-        if (!$tenant) {
+        if (! $tenant) {
             return response()->json([
                 'success' => false,
                 'error' => [
@@ -40,13 +40,13 @@ class TenantAuthController extends Controller
             ->where('email', $validated['email'])
             ->first();
 
-        if (!$user || !Hash::check($validated['password'], $user->password)) {
+        if (! $user || ! Hash::check($validated['password'], $user->password)) {
             throw ValidationException::withMessages([
                 'email' => [__('auth.failed')],
             ]);
         }
 
-        if (!$user->is_active) {
+        if (! $user->is_active) {
             return response()->json([
                 'success' => false,
                 'error' => [
@@ -120,7 +120,7 @@ class TenantAuthController extends Controller
                     'phone' => $user->phone,
                     'is_owner' => $user->is_owner,
                     'locale' => $user->locale,
-                    'roles' => $user->roles->map(fn($r) => ['id' => $r->id, 'name' => $r->name, 'slug' => $r->slug]),
+                    'roles' => $user->roles->map(fn ($r) => ['id' => $r->id, 'name' => $r->name, 'slug' => $r->slug]),
                     'permissions' => $permissions,
                 ],
                 'tenant' => [

@@ -17,7 +17,7 @@ class DispatchShipmentAction
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            if (!in_array($shipment->status, ['pending', 'assigned'], true)) {
+            if (! in_array($shipment->status, ['pending', 'assigned'], true)) {
                 throw new InvalidArgumentException("Cannot dispatch shipment in status {$shipment->status}.");
             }
 

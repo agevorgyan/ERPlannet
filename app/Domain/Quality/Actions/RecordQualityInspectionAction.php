@@ -26,7 +26,7 @@ class RecordQualityInspectionAction
         ?string $notes = null
     ): QualityInspection {
         $tenant = $this->tenantContext->getTenant();
-        if (!$tenant) {
+        if (! $tenant) {
             throw new \RuntimeException('Tenant context not set.');
         }
 
@@ -70,7 +70,7 @@ class RecordQualityInspectionAction
                     }
                 }
 
-                if (!$isPassed) {
+                if (! $isPassed) {
                     $hasFailed = true;
                 } else {
                     $passedCount++;

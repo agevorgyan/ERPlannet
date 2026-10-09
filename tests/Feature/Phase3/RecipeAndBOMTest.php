@@ -12,6 +12,7 @@ use App\Domain\IAM\Models\User;
 use App\Domain\Manufacturing\Actions\CreateRecipeAction;
 use App\Domain\Manufacturing\Models\Recipe;
 use App\Domain\Tenant\Models\Tenant;
+use App\Infrastructure\MultiTenancy\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -20,11 +21,17 @@ class RecipeAndBOMTest extends TestCase
     use RefreshDatabase;
 
     protected Tenant $tenant;
+
     protected User $user;
+
     protected Product $matnakash;
+
     protected Product $flour;
+
     protected Product $yeast;
+
     protected Unit $kg;
+
     protected Unit $pcs;
 
     protected function setUp(): void
@@ -35,7 +42,7 @@ class RecipeAndBOMTest extends TestCase
         $this->tenant = Tenant::where('slug', 'gourmet')->firstOrFail();
         $this->user = User::where('tenant_id', $this->tenant->id)->where('is_owner', true)->firstOrFail();
 
-        app(\App\Infrastructure\MultiTenancy\TenantContext::class)->setCurrentTenant($this->tenant);
+        app(TenantContext::class)->setCurrentTenant($this->tenant);
 
         $this->kg = Unit::firstOrCreate(
             ['tenant_id' => $this->tenant->id, 'code' => 'KG'],

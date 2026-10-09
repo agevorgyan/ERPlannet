@@ -29,7 +29,7 @@ class CreateStockTransferAction
         }
 
         $tenant = $this->tenantContext->getTenant();
-        if (!$tenant) {
+        if (! $tenant) {
             throw new \RuntimeException('Tenant context not set.');
         }
 
@@ -57,7 +57,7 @@ class CreateStockTransferAction
                 $nextSequence = $lastNum + 1;
             }
 
-            $transferNumber = $prefix . str_pad((string) $nextSequence, 6, '0', STR_PAD_LEFT);
+            $transferNumber = $prefix.str_pad((string) $nextSequence, 6, '0', STR_PAD_LEFT);
 
             $transfer = StockTransfer::create([
                 'tenant_id' => $tenant->id,

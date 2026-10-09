@@ -22,11 +22,17 @@ class OrderLifecycleTest extends TestCase
     use RefreshDatabase;
 
     protected Tenant $tenant;
+
     protected User $user;
+
     protected string $token;
+
     protected Branch $branch;
+
     protected Customer $customer;
+
     protected Product $productPizza;
+
     protected ProductVariant $variantLarge;
 
     protected function setUp(): void

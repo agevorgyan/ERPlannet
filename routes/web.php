@@ -77,7 +77,7 @@ Route::get('/{view?}', function (Request $request, TenantResolver $resolver, ?st
     $warehouses = $demoTenant ? Warehouse::withoutGlobalScopes()->where('tenant_id', $demoTenant->id)->with('branch')->get() : collect();
     $suppliers = $demoTenant ? Supplier::withoutGlobalScopes()->where('tenant_id', $demoTenant->id)->with(['couriers', 'products'])->get() : collect();
     $ingredients = $demoTenant ? Product::withoutGlobalScopes()->where('tenant_id', $demoTenant->id)->whereIn('type', ['ingredient', 'raw_material', 'semi_finished'])->with(['category', 'subcategory', 'unit', 'suppliers', 'recipesWhereUsed.recipe.product'])->withSum('stockLevels as current_stock', 'quantity_on_hand')->get() : collect();
-    $products = $demoTenant ? Product::withoutGlobalScopes()->where('tenant_id', $demoTenant->id)->with(['category', 'unit'])->get() : collect();
+    $products = $demoTenant ? Product::withoutGlobalScopes()->where('tenant_id', $demoTenant->id)->with(['category', 'subcategory', 'unit', 'variants', 'recipes.yieldUnit', 'recipes.items.product', 'recipes.items.unit'])->withSum('stockLevels as current_stock', 'quantity_on_hand')->get() : collect();
     $customers = $demoTenant ? Customer::withoutGlobalScopes()->where('tenant_id', $demoTenant->id)->get() : collect();
     $orders = $demoTenant ? Order::withoutGlobalScopes()->where('tenant_id', $demoTenant->id)->with(['items', 'customer'])->latest()->get() : collect();
     $batches = $demoTenant ? StockBatch::withoutGlobalScopes()->where('tenant_id', $demoTenant->id)->with(['product', 'warehouse'])->get() : collect();
@@ -96,7 +96,9 @@ Route::get('/{view?}', function (Request $request, TenantResolver $resolver, ?st
     $users = $demoTenant ? User::where('tenant_id', $demoTenant->id)->with('roles')->get() : collect();
 
     // Catalog Categories & Units for dynamic forms
-    $categories = $demoTenant ? Category::where('tenant_id', $demoTenant->id)->get() : collect();
+    $categories = $demoTenant ? Category::where('tenant_id', $demoTenant->id)->with(['parent', 'children'])->withCount('products')->orderBy('sort_order')->get() : collect();
+    $productCategories = $categories->filter(fn ($c) => $c->type === 'product' || empty($c->type));
+    $ingredientCategories = $categories->filter(fn ($c) => $c->type === 'ingredient');
     $units = $demoTenant ? Unit::where('tenant_id', $demoTenant->id)->get() : collect();
 
     // Generate valid session token for browser API execution
@@ -117,6 +119,8 @@ Route::get('/{view?}', function (Request $request, TenantResolver $resolver, ?st
         'ingredients',
         'products',
         'categories',
+        'productCategories',
+        'ingredientCategories',
         'units',
         'customers',
         'orders',

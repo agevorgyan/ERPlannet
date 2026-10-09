@@ -49,7 +49,7 @@ class PlanManagementController extends Controller
                 'sort_order' => $validated['sort_order'] ?? 0,
             ]);
 
-            if (!empty($validated['features'])) {
+            if (! empty($validated['features'])) {
                 foreach ($validated['features'] as $featData) {
                     $feature = Feature::where('code', $featData['code'])->first();
                     if ($feature) {

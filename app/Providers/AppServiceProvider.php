@@ -2,6 +2,10 @@
 
 namespace App\Providers;
 
+use App\Domain\Billing\Contracts\EntitlementManagerInterface;
+use App\Domain\Billing\Services\EntitlementManager;
+use App\Infrastructure\MultiTenancy\TenantContext;
+use App\Infrastructure\Payments\PaymentGatewayManager;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -11,12 +15,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->singleton(\App\Infrastructure\MultiTenancy\TenantContext::class);
-        $this->app->singleton(\App\Infrastructure\Payments\PaymentGatewayManager::class);
+        $this->app->singleton(TenantContext::class);
+        $this->app->singleton(PaymentGatewayManager::class);
 
         $this->app->bind(
-            \App\Domain\Billing\Contracts\EntitlementManagerInterface::class,
-            \App\Domain\Billing\Services\EntitlementManager::class
+            EntitlementManagerInterface::class,
+            EntitlementManager::class
         );
     }
 

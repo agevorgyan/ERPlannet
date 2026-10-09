@@ -7,7 +7,6 @@ use App\Domain\Billing\Models\Subscription;
 use App\Domain\Branch\Models\Branch;
 use App\Domain\IAM\Models\User;
 use App\Domain\Tenant\Models\Tenant;
-use App\Domain\Warehouse\Models\StockLevel;
 use App\Domain\Warehouse\Models\Warehouse;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -17,7 +16,9 @@ class WarehouseManagementTest extends TestCase
     use RefreshDatabase;
 
     protected Tenant $tenant;
+
     protected User $user;
+
     protected Branch $branch;
 
     protected function setUp(): void

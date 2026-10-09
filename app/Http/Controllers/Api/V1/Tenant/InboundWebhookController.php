@@ -21,7 +21,7 @@ class InboundWebhookController extends Controller
         // Integration lookup without tenant context (inbound webhook from external internet)
         $integration = TenantIntegration::withoutGlobalScopes()->find($integrationId);
 
-        if (!$integration) {
+        if (! $integration) {
             return response()->json([
                 'success' => false,
                 'message' => 'Integration endpoint not found.',

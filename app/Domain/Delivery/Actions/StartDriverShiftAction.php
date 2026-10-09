@@ -25,7 +25,7 @@ class StartDriverShiftAction
                 ->first();
 
             if ($activeShift) {
-                throw new InvalidArgumentException("Driver already has an active shift.");
+                throw new InvalidArgumentException('Driver already has an active shift.');
             }
 
             $shift = DeliveryDriverShift::create([
@@ -65,14 +65,14 @@ class StartDriverShiftAction
             $shift = DeliveryDriverShift::lockForUpdate()->findOrFail($shiftId);
 
             if ($shift->status !== 'active') {
-                throw new InvalidArgumentException("Shift is already completed.");
+                throw new InvalidArgumentException('Shift is already completed.');
             }
 
             $shift->status = 'completed';
             $shift->shift_end = now();
             $shift->ending_odometer = $endingOdometer;
             if ($notes) {
-                $shift->notes = ($shift->notes ? $shift->notes . "\n" : '') . $notes;
+                $shift->notes = ($shift->notes ? $shift->notes."\n" : '').$notes;
             }
             $shift->save();
 

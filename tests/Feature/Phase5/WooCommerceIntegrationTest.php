@@ -24,7 +24,9 @@ class WooCommerceIntegrationTest extends TestCase
     use RefreshDatabase;
 
     protected Tenant $tenant;
+
     protected User $user;
+
     protected Product $product;
 
     protected function setUp(): void
