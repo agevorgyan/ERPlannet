@@ -7,6 +7,7 @@ namespace App\Domain\Integration\Drivers;
 use App\Domain\Catalog\Models\Product;
 use App\Domain\Integration\Contracts\ECommerceDriverInterface;
 use App\Domain\Integration\Models\TenantIntegration;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Http;
 
 class WooCommerceDriver implements ECommerceDriverInterface
@@ -68,8 +69,8 @@ class WooCommerceDriver implements ECommerceDriverInterface
         $key = $creds['consumer_key'] ?? '';
         $secret = $creds['consumer_secret'] ?? '';
 
-        $name = is_array($product->name) ? ($product->name['en'] ?? $product->name['hy'] ?? reset($product->name)) : (string) $product->name;
-        $description = is_array($product->description) ? ($product->description['en'] ?? $product->description['hy'] ?? reset($product->description)) : (string) ($product->description ?? '');
+        $name = is_array($product->name) ? ($product->name['en'] ?? $product->name['hy'] ?? Arr::first($product->name)) : (string) $product->name;
+        $description = is_array($product->description) ? ($product->description['en'] ?? $product->description['hy'] ?? Arr::first($product->description)) : (string) ($product->description ?? '');
 
         $payload = [
             'name' => $name,

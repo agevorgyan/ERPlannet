@@ -14,6 +14,7 @@ use App\Domain\Integration\Models\TenantIntegrationSyncLog;
 use App\Domain\Sales\Models\Order;
 use App\Domain\Sales\Models\OrderItem;
 use App\Domain\Warehouse\Models\StockLevel;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 
 class WooCommerceSyncService
@@ -243,7 +244,7 @@ class WooCommerceSyncService
                     }
 
                     if ($product) {
-                        $pName = is_array($product->name) ? ($product->name['en'] ?? $product->name['hy'] ?? reset($product->name)) : (string) $product->name;
+                        $pName = is_array($product->name) ? ($product->name['en'] ?? $product->name['hy'] ?? Arr::first($product->name)) : (string) $product->name;
                         OrderItem::create([
                             'tenant_id' => $integration->tenant_id,
                             'order_id' => $order->id,

@@ -903,7 +903,7 @@
                                 <select class="select" id="catalog-category-filter" onchange="ERP.catalog.load()" style="min-width: 170px; font-size: 0.8rem; padding: 6px 10px;">
                                     <option value="">Բոլոր կատեգորիաները</option>
                                     @foreach($productCategories ?? $categories as $cat)
-                                        <option value="{{ $cat->id }}">{{ is_array($cat->name) ? ($cat->name['hy'] ?? reset($cat->name)) : $cat->name }}</option>
+                                        <option value="{{ $cat->id }}">{{ is_array($cat->name) ? ($cat->name['hy'] ?? \Illuminate\Support\Arr::first($cat->name)) : $cat->name }}</option>
                                     @endforeach
                                 </select>
                                 <div style="position: relative; width: 240px;">
@@ -951,7 +951,7 @@
                                                 'modifier' => ['cls' => 'badge-orange', 'lbl' => 'Մոդիֆիկատոր'],
                                             ];
                                             $tInfo = $typeBadges[$p->type ?? 'finished_product'] ?? ['cls' => 'badge-slate', 'lbl' => $p->type];
-                                            $imgUrl = !empty($p->images) && is_array($p->images) ? reset($p->images) : null;
+                                            $imgUrl = !empty($p->images) && is_array($p->images) ? \Illuminate\Support\Arr::first($p->images) : null;
                                             $stock = (float) ($p->current_stock ?? 0);
                                             $isLowStock = $p->track_stock && $stock <= (float) ($p->min_stock_level ?? 0);
                                             $hasRecipe = $p->recipes->isNotEmpty();
@@ -966,11 +966,11 @@
                                             </td>
                                             <td>
                                                 <div style="font-weight: 700; color: var(--text-heading); font-size: 0.88rem;">
-                                                    {{ is_array($p->name) ? ($p->name['hy'] ?? reset($p->name)) : $p->name }}
+                                                    {{ is_array($p->name) ? ($p->name['hy'] ?? \Illuminate\Support\Arr::first($p->name)) : $p->name }}
                                                 </div>
                                                 <div style="display: flex; gap: 4px; align-items: center; margin-top: 2px;">
                                                     <span style="font-size: 0.72rem; color: var(--text-muted);">
-                                                        {{ $p->category?->name ? (is_array($p->category->name) ? ($p->category->name['hy'] ?? reset($p->category->name)) : $p->category->name) : 'Ընդհանուր' }}
+                                                        {{ $p->category?->name ? (is_array($p->category->name) ? ($p->category->name['hy'] ?? \Illuminate\Support\Arr::first($p->category->name)) : $p->category->name) : 'Ընդհանուր' }}
                                                     </span>
                                                     @if($p->packaging)
                                                         <span class="item-chip" style="font-size: 0.65rem; padding: 1px 4px;">{{ $p->packaging }}</span>
@@ -993,7 +993,7 @@
                                                 @if($p->net_quantity)
                                                     <div style="font-weight: 600; font-size: 0.8rem; color: var(--text-heading);">{{ $p->net_quantity }}</div>
                                                 @endif
-                                                <span class="font-mono" style="font-size: 0.72rem; color: var(--text-muted);">{{ $p->unit?->name ? (is_array($p->unit->name) ? ($p->unit->name['hy'] ?? reset($p->unit->name)) : $p->unit->name) : ($p->unit?->code ?? 'հատ') }}</span>
+                                                <span class="font-mono" style="font-size: 0.72rem; color: var(--text-muted);">{{ $p->unit?->name ? (is_array($p->unit->name) ? ($p->unit->name['hy'] ?? \Illuminate\Support\Arr::first($p->unit->name)) : $p->unit->name) : ($p->unit?->code ?? 'հատ') }}</span>
                                             </td>
                                             <td>
                                                 <div class="font-mono" style="font-weight: 700; color: #334155;">{{ number_format($p->cost_price ?? 0, 0) }} ֏</div>
@@ -1009,7 +1009,7 @@
                                                 </div>
                                                 @if($p->special_price && $p->special_price > 0)
                                                     <div class="font-mono" style="font-size: 0.72rem; color: #D97706; text-decoration: line-through;">
-                                                        Ակցիա՝ {{ number_format($p->special_price, 0) }} ֏
+                                                        Ակցիա՝ {{ number_format($p->special_price ?? 0, 0) }} ֏
                                                     </div>
                                                 @endif
                                             </td>
@@ -1195,9 +1195,9 @@
                                 <tbody id="directory-categories-table-body">
                                     @forelse($categories as $cat)
                                         @php
-                                            $nameHy = is_array($cat->name) ? ($cat->name['hy'] ?? reset($cat->name)) : $cat->name;
+                                            $nameHy = is_array($cat->name) ? ($cat->name['hy'] ?? \Illuminate\Support\Arr::first($cat->name)) : $cat->name;
                                             $nameEn = is_array($cat->name) ? ($cat->name['en'] ?? '') : '';
-                                            $parentName = $cat->parent ? (is_array($cat->parent->name) ? ($cat->parent->name['hy'] ?? reset($cat->parent->name)) : $cat->parent->name) : null;
+                                            $parentName = $cat->parent ? (is_array($cat->parent->name) ? ($cat->parent->name['hy'] ?? \Illuminate\Support\Arr::first($cat->parent->name)) : $cat->parent->name) : null;
                                             $catType = $cat->type ?? 'product';
                                         @endphp
                                         <tr data-id="{{ $cat->id }}" data-type="{{ $catType }}" data-parent="{{ $cat->parent_id ? '1' : '0' }}">
@@ -1487,7 +1487,7 @@
                                 <select class="select select-sm" id="ing-category-filter" style="width: 170px;" onchange="ERP.directory.ingredients.handleCategoryFilter(this.value)">
                                     <option value="">Բոլոր Կատեգորիաները</option>
                                     @foreach($ingredientCategories ?? $categories as $cat)
-                                        <option value="{{ $cat->id }}">{{ is_array($cat->name) ? ($cat->name['hy'] ?? reset($cat->name)) : $cat->name }}</option>
+                                        <option value="{{ $cat->id }}">{{ is_array($cat->name) ? ($cat->name['hy'] ?? \Illuminate\Support\Arr::first($cat->name)) : $cat->name }}</option>
                                     @endforeach
                                 </select>
 
@@ -1545,11 +1545,11 @@
                                         <tr id="ing-row-{{ $ing->id }}" class="{{ $isLow ? 'low-stock-alert' : '' }}">
                                             <td>
                                                 <div style="font-weight: 700; color: var(--text-heading);">
-                                                    {{ $ing->category ? (is_array($ing->category->name) ? ($ing->category->name['hy'] ?? reset($ing->category->name)) : $ing->category->name) : '—' }}
+                                                    {{ $ing->category ? (is_array($ing->category->name) ? ($ing->category->name['hy'] ?? \Illuminate\Support\Arr::first($ing->category->name)) : $ing->category->name) : '—' }}
                                                 </div>
                                                 @if($ing->subcategory)
                                                     <div style="font-size: 0.72rem; color: var(--color-primary);">
-                                                        ↳ {{ is_array($ing->subcategory->name) ? ($ing->subcategory->name['hy'] ?? reset($ing->subcategory->name)) : $ing->subcategory->name }}
+                                                        ↳ {{ is_array($ing->subcategory->name) ? ($ing->subcategory->name['hy'] ?? \Illuminate\Support\Arr::first($ing->subcategory->name)) : $ing->subcategory->name }}
                                                     </div>
                                                 @endif
                                             </td>
@@ -1575,7 +1575,7 @@
                                                 @endif
                                             </td>
                                             <td class="font-mono">
-                                                {{ $ing->unit ? (is_array($ing->unit->name) ? ($ing->unit->name['hy'] ?? reset($ing->unit->name)) : $ing->unit->name) : 'կգ' }}
+                                                {{ $ing->unit ? (is_array($ing->unit->name) ? ($ing->unit->name['hy'] ?? \Illuminate\Support\Arr::first($ing->unit->name)) : $ing->unit->name) : 'կգ' }}
                                             </td>
                                             <td class="font-mono" style="font-weight: 700;">
                                                 {{ number_format($stock, 2) }}
@@ -1707,7 +1707,7 @@
                                             <td>
                                                 <span class="badge badge-slate font-mono">{{ count($po->items) }} items</span>
                                             </td>
-                                            <td class="font-mono" style="font-weight: 800; color: var(--color-primary);">{{ number_format($po->total_amount, 0) }} ֏</td>
+                                            <td class="font-mono" style="font-weight: 800; color: var(--color-primary);">{{ number_format($po->total_amount ?? 0, 0) }} ֏</td>
                                             <td>
                                                 <span class="badge {{ $po->status === 'received' ? 'badge-emerald' : ($po->status === 'cancelled' ? 'badge-rose' : 'badge-amber') }}">
                                                     {{ strtoupper($po->status) }}
@@ -1868,11 +1868,11 @@
                                         <tr>
                                             <td class="font-mono" style="font-weight: 700; color: var(--color-primary);">{{ $b->batch_number }}</td>
                                             <td style="font-weight: 700; color: var(--text-heading);">
-                                                {{ is_array($b->product->name) ? ($b->product->name['hy'] ?? reset($b->product->name)) : $b->product->name }}
+                                                {{ is_array($b->product->name) ? ($b->product->name['hy'] ?? \Illuminate\Support\Arr::first($b->product->name)) : $b->product->name }}
                                             </td>
                                             <td class="font-mono">{{ $b->warehouse?->code }}</td>
-                                            <td class="font-mono" style="font-weight: 800;">{{ number_format($b->quantity_on_hand, 2) }} kg</td>
-                                            <td class="font-mono">{{ number_format($b->cost_price, 0) }} ֏</td>
+                                            <td class="font-mono" style="font-weight: 800;">{{ number_format($b->quantity_on_hand ?? 0, 2) }} kg</td>
+                                            <td class="font-mono">{{ number_format($b->cost_price ?? 0, 0) }} ֏</td>
                                             <td>
                                                 <span class="badge badge-amber font-mono">{{ $b->expiry_date }}</span>
                                             </td>
@@ -1913,10 +1913,10 @@
                                         <span class="font-mono" style="font-size: 0.75rem; font-weight: 700; color: var(--color-warning);">{{ $rcp->code }}</span>
                                         <h4 style="font-size: 1.05rem; font-weight: 800; color: var(--text-heading); margin-top: 2px;">{{ $rcp->name }}</h4>
                                     </div>
-                                    <span class="badge badge-amber font-mono">Yield: {{ number_format($rcp->yield_quantity, 0) }} {{ $rcp->yieldUnit?->code ?? 'units' }}</span>
+                                    <span class="badge badge-amber font-mono">Yield: {{ number_format($rcp->yield_quantity ?? 0, 0) }} {{ $rcp->yieldUnit?->code ?? 'units' }}</span>
                                 </div>
                                 <div style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.75rem;">
-                                    Labor / Overhead: <strong style="color: var(--text-heading); font-family: var(--font-mono);">{{ number_format($rcp->labor_cost, 0) }} / {{ number_format($rcp->overhead_cost, 0) }} ֏</strong>
+                                    Labor / Overhead: <strong style="color: var(--text-heading); font-family: var(--font-mono);">{{ number_format($rcp->labor_cost ?? 0, 0) }} / {{ number_format($rcp->overhead_cost ?? 0, 0) }} ֏</strong>
                                 </div>
                                 <div style="border-top: 1px solid var(--border-card); padding-top: 0.75rem;">
                                     <div style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem;">Raw Materials / BOM:</div>
@@ -1960,7 +1960,7 @@
                                         <tr>
                                             <td class="font-mono" style="font-weight: 700; color: var(--color-primary);">{{ $po->order_number }}</td>
                                             <td style="font-weight: 700; color: var(--text-heading);">{{ is_array($po->product?->name) ? ($po->product->name['hy'] ?? '') : $po->product?->name }}</td>
-                                            <td class="font-mono">{{ number_format($po->planned_quantity, 0) }} / {{ number_format($po->actual_quantity, 0) }} pcs</td>
+                                            <td class="font-mono">{{ number_format($po->planned_quantity ?? 0, 0) }} / {{ number_format($po->actual_quantity ?? 0, 0) }} pcs</td>
                                             <td class="font-mono" style="color: var(--color-success); font-weight: 700;">{{ $po->batch?->batch_number ?? 'In Progress' }}</td>
                                             <td>
                                                 <span class="badge {{ $po->status === 'completed' ? 'badge-emerald' : ($po->status === 'in_progress' ? 'badge-indigo' : 'badge-amber') }}">{{ strtoupper($po->status) }}</span>
@@ -2572,7 +2572,7 @@
                                 <select class="select" id="prod-category-id" onchange="ERP.catalog.onCategoryChange(this.value)">
                                     <option value="">-- Առանց կատեգորիայի --</option>
                                     @foreach($productCategories ?? $categories as $cat)
-                                        <option value="{{ $cat->id }}">{{ is_array($cat->name) ? ($cat->name['hy'] ?? reset($cat->name)) : $cat->name }}</option>
+                                        <option value="{{ $cat->id }}">{{ is_array($cat->name) ? ($cat->name['hy'] ?? \Illuminate\Support\Arr::first($cat->name)) : $cat->name }}</option>
                                     @endforeach
                                 </select>
                                 <div class="form-hint"><i class="fa-solid fa-circle-info"></i> Հիմնական ապրանքային խումբը (օր․ Հացաբուլկեղեն, Տաք ուտեստներ, Խմիչքներ):</div>
@@ -2582,7 +2582,7 @@
                                 <select class="select" id="prod-subcategory-id">
                                     <option value="">-- Առանց ենթախմբի --</option>
                                     @foreach($productCategories ?? $categories as $cat)
-                                        <option value="{{ $cat->id }}">{{ is_array($cat->name) ? ($cat->name['hy'] ?? reset($cat->name)) : $cat->name }}</option>
+                                        <option value="{{ $cat->id }}">{{ is_array($cat->name) ? ($cat->name['hy'] ?? \Illuminate\Support\Arr::first($cat->name)) : $cat->name }}</option>
                                     @endforeach
                                 </select>
                                 <div class="form-hint"><i class="fa-solid fa-circle-info"></i> Ենթախումբ ավելի նեղ դասակարգման և զտման համար:</div>
@@ -2594,7 +2594,7 @@
                                 <label class="form-label">Չափման Միավոր (Unit) *</label>
                                 <select class="select" id="prod-unit-id" required>
                                     @foreach($units as $u)
-                                        <option value="{{ $u->id }}">{{ is_array($u->name) ? ($u->name['hy'] ?? reset($u->name)) : $u->name }} ({{ $u->code }})</option>
+                                        <option value="{{ $u->id }}">{{ is_array($u->name) ? ($u->name['hy'] ?? \Illuminate\Support\Arr::first($u->name)) : $u->name }} ({{ $u->code }})</option>
                                     @endforeach
                                 </select>
                                 <div class="form-hint"><i class="fa-solid fa-circle-info"></i> Պահեստային հաշվառման հիմնական միավորը (հատ, կգ, գրամ, լիտր):</div>
@@ -3013,7 +3013,7 @@
                             <label class="form-label">Ելքի Միավոր *</label>
                             <select class="select" id="tc-yield-unit-id" required>
                                 @foreach($units as $u)
-                                    <option value="{{ $u->id }}">{{ is_array($u->name) ? ($u->name['hy'] ?? reset($u->name)) : $u->name }} ({{ $u->code }})</option>
+                                    <option value="{{ $u->id }}">{{ is_array($u->name) ? ($u->name['hy'] ?? \Illuminate\Support\Arr::first($u->name)) : $u->name }} ({{ $u->code }})</option>
                                 @endforeach
                             </select>
                         </div>
@@ -3235,7 +3235,7 @@
                                 <select class="select po-product-select" required style="width: 100%;">
                                     @foreach($products as $p)
                                         <option value="{{ $p->id }}">
-                                            {{ is_array($p->name) ? ($p->name['hy'] ?? reset($p->name)) : $p->name }} ({{ $p->sku }})
+                                            {{ is_array($p->name) ? ($p->name['hy'] ?? \Illuminate\Support\Arr::first($p->name)) : $p->name }} ({{ $p->sku }})
                                         </option>
                                     @endforeach
                                 </select>
@@ -3275,7 +3275,7 @@
                             <select class="select" id="rcp-product-id" required>
                                 @foreach($products as $p)
                                     <option value="{{ $p->id }}">
-                                        {{ is_array($p->name) ? ($p->name['hy'] ?? reset($p->name)) : $p->name }} ({{ $p->sku }})
+                                        {{ is_array($p->name) ? ($p->name['hy'] ?? \Illuminate\Support\Arr::first($p->name)) : $p->name }} ({{ $p->sku }})
                                     </option>
                                 @endforeach
                             </select>
@@ -3316,7 +3316,7 @@
                                 <select class="select rcp-product-select" required style="width: 100%;">
                                     @foreach($products as $p)
                                         <option value="{{ $p->id }}">
-                                            {{ is_array($p->name) ? ($p->name['hy'] ?? reset($p->name)) : $p->name }} ({{ $p->sku }})
+                                            {{ is_array($p->name) ? ($p->name['hy'] ?? \Illuminate\Support\Arr::first($p->name)) : $p->name }} ({{ $p->sku }})
                                         </option>
                                     @endforeach
                                 </select>
@@ -3423,7 +3423,7 @@
                         <select class="select" id="adj-product-id" required>
                             @foreach($products as $p)
                                 <option value="{{ $p->id }}">
-                                    {{ is_array($p->name) ? ($p->name['hy'] ?? reset($p->name)) : $p->name }} ({{ $p->sku }})
+                                    {{ is_array($p->name) ? ($p->name['hy'] ?? \Illuminate\Support\Arr::first($p->name)) : $p->name }} ({{ $p->sku }})
                                 </option>
                             @endforeach
                         </select>
@@ -3524,7 +3524,7 @@
                                 <option value="">-- Գլխավոր Կատեգորիա (Առանց ծնողի) --</option>
                                 @foreach($categories as $c)
                                     <option value="{{ $c->id }}" data-type="{{ $c->type ?? 'product' }}">
-                                        {{ is_array($c->name) ? ($c->name['hy'] ?? reset($c->name)) : $c->name }}
+                                        {{ is_array($c->name) ? ($c->name['hy'] ?? \Illuminate\Support\Arr::first($c->name)) : $c->name }}
                                         [{{ ($c->type ?? 'product') === 'ingredient' ? 'Բաղադրիչ' : 'Ապրանք' }}]
                                     </option>
                                 @endforeach
@@ -3720,7 +3720,7 @@
                             <select class="select" id="ing-category-id" onchange="ERP.directory.ingredients.updateSubcategories(this.value)">
                                 <option value="">-- Ընտրեք Բաղադրիչների Կատեգորիան --</option>
                                 @foreach($ingredientCategories ?? $categories as $cat)
-                                    <option value="{{ $cat->id }}">{{ is_array($cat->name) ? ($cat->name['hy'] ?? reset($cat->name)) : $cat->name }}</option>
+                                    <option value="{{ $cat->id }}">{{ is_array($cat->name) ? ($cat->name['hy'] ?? \Illuminate\Support\Arr::first($cat->name)) : $cat->name }}</option>
                                 @endforeach
                             </select>
                             <div class="form-hint"><i class="fa-solid fa-circle-info"></i> Բաղադրիչների և հումքի խումբ (օր․ Կաթնամթերք, Մսամթերք, Համեմունքներ):</div>
@@ -3808,7 +3808,7 @@
                             <label class="form-label">Չափման Միավոր *</label>
                             <select class="select" id="ing-unit-id" required>
                                 @foreach($units as $u)
-                                    <option value="{{ $u->id }}">{{ is_array($u->name) ? ($u->name['hy'] ?? reset($u->name)) : $u->name }} ({{ $u->code }})</option>
+                                    <option value="{{ $u->id }}">{{ is_array($u->name) ? ($u->name['hy'] ?? \Illuminate\Support\Arr::first($u->name)) : $u->name }} ({{ $u->code }})</option>
                                 @endforeach
                             </select>
                         </div>

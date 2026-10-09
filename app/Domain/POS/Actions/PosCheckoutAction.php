@@ -17,6 +17,7 @@ use App\Domain\Sales\Services\OrderNumberGenerator;
 use App\Domain\Warehouse\Actions\RecordStockMovementAction;
 use App\Domain\Warehouse\Models\StockLevel;
 use App\Infrastructure\MultiTenancy\TenantContext;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -186,7 +187,7 @@ class PosCheckoutAction
             // 6. Create Order Items & Deduct Inventory (Inventory Transaction Hook)
             foreach ($calculatedItems as $ci) {
                 $pName = is_array($ci['product']->name)
-                    ? ($ci['product']->name['hy'] ?? reset($ci['product']->name) ?? $ci['product']->sku)
+                    ? ($ci['product']->name['hy'] ?? Arr::first($ci['product']->name) ?? $ci['product']->sku)
                     : (string) $ci['product']->name;
 
                 OrderItem::create([
