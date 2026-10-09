@@ -327,10 +327,15 @@
             document.querySelectorAll('.view-panel').forEach(panel => {
                 if (panel.id === `view-${viewName}`) {
                     panel.style.display = 'block';
+                    panel.classList.add('active');
                 } else {
                     panel.style.display = 'none';
+                    panel.classList.remove('active');
                 }
             });
+
+            // Scroll to top of page
+            window.scrollTo({ top: 0, behavior: 'instant' });
 
             // Close mobile sidebar if open
             const sidebar = document.getElementById('app-sidebar');

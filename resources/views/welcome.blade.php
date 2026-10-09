@@ -312,7 +312,9 @@
 
                 <!-- ==============================================================
                      VIEW 1: DASHBOARD (Matching Image 1: SoftFire ERP)
-                     =======                    <!-- Welcome Greeting Header -->
+                     ============================================================== -->
+                <section class="view-panel" id="view-dashboard">
+                    <!-- Welcome Greeting Header -->
                     <div class="welcome-banner">
                         <div>
                             <h2 class="welcome-title">

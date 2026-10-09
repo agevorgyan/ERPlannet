@@ -530,6 +530,26 @@ button {
     margin: 0 auto;
 }
 
+.view-panel {
+    display: none;
+    animation: fadeInViewPanel 0.18s ease-in-out;
+}
+
+.view-panel.active {
+    display: block;
+}
+
+@keyframes fadeInViewPanel {
+    from {
+        opacity: 0;
+        transform: translateY(3px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 /* Modern White Card matching SoftFire Screenshots */
 .card, .glass-panel {
     background: var(--bg-surface);
