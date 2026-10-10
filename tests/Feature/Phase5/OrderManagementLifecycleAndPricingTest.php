@@ -449,4 +449,60 @@ class OrderManagementLifecycleAndPricingTest extends TestCase
             $this->assertTrue(in_array($response->status(), [403, 404]));
         }
     }
+
+    public function test_sales_orders_endpoint_supports_listing_filtering_and_show(): void
+    {
+        $order = Order::create([
+            'tenant_id' => $this->tenant->id,
+            'branch_id' => $this->branch->id,
+            'warehouse_id' => $this->warehouse->id,
+            'order_number' => 'ORD-SEARCH-TEST-99',
+            'customer_snapshot' => [
+                'name' => 'Արմեն Պետրոսյան',
+                'tax_id' => '02589631',
+            ],
+            'source' => 'xml_import',
+            'status' => 'confirmed',
+            'payment_status' => 'partially_paid',
+            'currency' => 'AMD',
+            'subtotal' => 25000,
+            'total' => 25000,
+            'placed_at' => now(),
+        ]);
+
+        // 1. Test GET /api/v1/sales/orders
+        $response = $this->actingAs($this->user)
+            ->withHeaders(['X-Tenant-Slug' => $this->tenant->slug])
+            ->json('GET', '/api/v1/sales/orders', [
+                'search' => 'Պետրոսյան',
+                'source' => 'xml_import',
+            ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true);
+
+        $items = $response->json('data');
+        $this->assertNotEmpty($items);
+        $this->assertEquals('ORD-SEARCH-TEST-99', $items[0]['order_number']);
+
+        // 2. Test GET /api/v1/sales/orders/{id}
+        $showResponse = $this->actingAs($this->user)
+            ->withHeaders(['X-Tenant-Slug' => $this->tenant->slug])
+            ->getJson("/api/v1/sales/orders/{$order->id}");
+
+        $showResponse->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.order_number', 'ORD-SEARCH-TEST-99');
+
+        // 3. Test PATCH /api/v1/sales/orders/{id}/status
+        $statusResponse = $this->actingAs($this->user)
+            ->withHeaders(['X-Tenant-Slug' => $this->tenant->slug])
+            ->patchJson("/api/v1/sales/orders/{$order->id}/status", [
+                'status' => 'processing',
+                'reason' => 'Kitchen started preparing',
+            ]);
+
+        $statusResponse->assertStatus(200);
+        $this->assertEquals('processing', $order->fresh()->status);
+    }
 }

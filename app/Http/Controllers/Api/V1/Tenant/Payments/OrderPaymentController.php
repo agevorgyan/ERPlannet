@@ -40,6 +40,7 @@ class OrderPaymentController extends Controller
             'amount' => ['required', 'numeric', 'min:0.01'],
             'payment_method' => ['required', 'string'],
             'transaction_id' => ['nullable', 'string'],
+            'transaction_reference' => ['nullable', 'string'],
         ]);
 
         $gateway = match (strtolower($validated['payment_method'])) {
@@ -48,12 +49,14 @@ class OrderPaymentController extends Controller
             default => strtolower($validated['payment_method']),
         };
 
+        $txnId = $validated['transaction_id'] ?? ($validated['transaction_reference'] ?? ('TXN-'.strtoupper(Str::random(10))));
+
         $payment = PaymentTransaction::create([
             'tenant_id' => $order->tenant_id,
             'order_id' => $order->id,
             'gateway' => $gateway,
             'payment_method' => $validated['payment_method'],
-            'transaction_id' => $validated['transaction_id'] ?? ('TXN-'.strtoupper(Str::random(10))),
+            'transaction_id' => $txnId,
             'amount' => $validated['amount'],
             'currency' => $order->currency ?? 'AMD',
             'status' => 'successful',

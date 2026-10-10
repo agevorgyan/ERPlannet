@@ -18,47 +18,65 @@ class OrderController extends Controller
         $query = Order::with(['branch', 'warehouse', 'customer', 'items.unit']);
 
         if ($request->filled('status')) {
-            $query->where('status', $request->query('status'));
+            $query->where('status', $request->input('status'));
         }
 
         if ($request->filled('payment_status')) {
-            $query->where('payment_status', $request->query('payment_status'));
+            $paymentStatus = $request->input('payment_status');
+            if (in_array($paymentStatus, ['partial', 'partially_paid'], true)) {
+                $query->whereIn('payment_status', ['partial', 'partially_paid']);
+            } elseif (in_array($paymentStatus, ['unpaid', 'pending'], true)) {
+                $query->whereIn('payment_status', ['unpaid', 'pending']);
+            } else {
+                $query->where('payment_status', $paymentStatus);
+            }
         }
 
         if ($request->filled('order_type')) {
-            $query->where('order_type', $request->query('order_type'));
+            $query->where('order_type', $request->input('order_type'));
         }
 
         if ($request->filled('source')) {
-            $query->where('source', $request->query('source'));
+            $source = $request->input('source');
+            if ($source === 'manual') {
+                $query->whereIn('source', ['manual', 'manual_backoffice']);
+            } elseif ($source === 'web') {
+                $query->whereIn('source', ['web', 'online_store', 'storefront']);
+            } else {
+                $query->where('source', $source);
+            }
         }
 
         if ($request->filled('branch_id')) {
-            $query->where('branch_id', $request->query('branch_id'));
+            $query->where('branch_id', $request->input('branch_id'));
         }
 
         if ($request->filled('warehouse_id')) {
-            $query->where('warehouse_id', $request->query('warehouse_id'));
+            $query->where('warehouse_id', $request->input('warehouse_id'));
         }
 
         if ($request->filled('customer_id')) {
-            $query->where('customer_id', $request->query('customer_id'));
+            $query->where('customer_id', $request->input('customer_id'));
         }
 
         if ($request->filled('date_from')) {
-            $query->whereDate('placed_at', '>=', $request->query('date_from'));
+            $query->whereDate('placed_at', '>=', $request->input('date_from'));
         }
 
         if ($request->filled('date_to')) {
-            $query->whereDate('placed_at', '<=', $request->query('date_to'));
+            $query->whereDate('placed_at', '<=', $request->input('date_to'));
         }
 
         if ($request->filled('search')) {
-            $term = trim($request->query('search'));
+            $term = trim((string) $request->input('search'));
             $query->where(function ($q) use ($term) {
                 $q->where('order_number', 'ilike', "%{$term}%")
                     ->orWhere('external_reference', 'ilike', "%{$term}%")
                     ->orWhere('customer_notes', 'ilike', "%{$term}%")
+                    ->orWhereRaw("customer_snapshot->>'name' ilike ?", ["%{$term}%"])
+                    ->orWhereRaw("customer_snapshot->>'tax_id' ilike ?", ["%{$term}%"])
+                    ->orWhereRaw("customer_snapshot->>'phone' ilike ?", ["%{$term}%"])
+                    ->orWhereRaw('customer_snapshot::text ilike ?', ["%{$term}%"])
                     ->orWhereHas('customer', function ($cq) use ($term) {
                         $cq->where('first_name', 'ilike', "%{$term}%")
                             ->orWhere('last_name', 'ilike', "%{$term}%")
@@ -87,7 +105,7 @@ class OrderController extends Controller
                 'summary' => [
                     'total_revenue' => (float) Order::sum('total'),
                     'total_count' => Order::count(),
-                    'pending_count' => Order::whereIn('status', ['new', 'confirmed'])->count(),
+                    'pending_count' => Order::whereIn('status', ['new', 'confirmed', 'processing', 'in_progress'])->count(),
                 ],
             ],
         ]);
@@ -104,11 +122,13 @@ class OrderController extends Controller
             'order_type' => ['nullable', 'string', 'max:50'],
             'external_reference' => ['nullable', 'string', 'max:100'],
             'delivery_type' => ['nullable', 'string', 'in:delivery,pickup,dine_in'],
+            'fulfillment_method' => ['nullable', 'string', 'in:delivery,pickup,dine_in'],
             'delivery_fee' => ['nullable', 'numeric', 'min:0'],
             'discount' => ['nullable', 'numeric', 'min:0'],
             'order_discount' => ['nullable', 'numeric', 'min:0'],
             'promo_code' => ['nullable', 'string', 'max:50'],
             'customer_notes' => ['nullable', 'string'],
+            'notes' => ['nullable', 'string'],
             'internal_notes' => ['nullable', 'string'],
             'scheduled_for' => ['nullable', 'date'],
             'status' => ['nullable', 'string', 'in:draft,new,confirmed'],
@@ -124,6 +144,14 @@ class OrderController extends Controller
             'items.*.tax_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'items.*.notes' => ['nullable', 'string', 'max:255'],
         ]);
+
+        if (empty($validated['delivery_type']) && ! empty($validated['fulfillment_method'])) {
+            $validated['delivery_type'] = $validated['fulfillment_method'];
+        }
+
+        if (empty($validated['customer_notes']) && ! empty($validated['notes'])) {
+            $validated['customer_notes'] = $validated['notes'];
+        }
 
         if (empty($validated['order_discount']) && $request->filled('order_discount_value')) {
             $validated['order_discount'] = (float) $request->input('order_discount_value');
@@ -149,8 +177,10 @@ class OrderController extends Controller
             'items.unit',
             'statusHistories.user',
             'paymentTransactions',
+            'payments',
             'deliveryNotes',
-            'printJobs',
+            'printJobs.printer',
+            'responsibleEmployee',
         ])->findOrFail($id);
 
         return response()->json([
@@ -214,13 +244,16 @@ class OrderController extends Controller
         $validated = $request->validate([
             'scheduled_for' => ['required', 'date'],
             'reason' => ['nullable', 'string', 'max:500'],
+            'note' => ['nullable', 'string', 'max:500'],
         ]);
+
+        $reason = $validated['reason'] ?? ($validated['note'] ?? null);
 
         $updatedOrder = $action->execute(
             order: $order,
             newScheduledFor: $validated['scheduled_for'],
             userId: $request->user()?->id,
-            reason: $validated['reason'] ?? null
+            reason: $reason
         );
 
         return response()->json([

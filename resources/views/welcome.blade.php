@@ -6241,7 +6241,7 @@
     <div class="toast-container" id="toast-container"></div>
 
     <!-- Pure Vanilla JS Engine -->
-    <script src="/js/app.js"></script>
+    <script src="/js/app.js?v={{ filemtime(public_path('js/app.js')) }}"></script>
 
 </body>
 </html>

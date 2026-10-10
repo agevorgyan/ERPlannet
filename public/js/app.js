@@ -191,8 +191,8 @@
     // =========================================================================
     window.ERP = {
         state: {
-            token: localStorage.getItem('erplannet_token') || '',
-            tenantSlug: localStorage.getItem('erplannet_tenant_slug') || 'gourmet',
+            token: window.SERVER_INITIAL_DATA?.token || localStorage.getItem('erplannet_token') || '',
+            tenantSlug: window.SERVER_INITIAL_DATA?.currentTenant?.slug || window.SERVER_INITIAL_DATA?.demoTenant?.slug || localStorage.getItem('erplannet_tenant_slug') || 'gourmet',
             locale: localStorage.getItem('erplannet_locale') || 'hy',
             currentUser: {
                 name: 'Aram Petrosyan',
@@ -209,7 +209,7 @@
             const url = endpoint.startsWith('http') ? endpoint : `/api/v1${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
             const headers = {
                 'Accept': 'application/json',
-                'Accept-Language': ERP.state.locale,
+                'Accept-Language': ERP.state.locale || 'hy',
                 ...(options.headers || {})
             };
 
@@ -217,12 +217,14 @@
                 headers['Content-Type'] = 'application/json';
             }
 
-            if (ERP.state.token) {
-                headers['Authorization'] = `Bearer ${ERP.state.token}`;
+            const token = ERP.state.token || window.SERVER_INITIAL_DATA?.token || localStorage.getItem('erplannet_token');
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
             }
 
-            if (ERP.state.tenantSlug) {
-                headers['X-Tenant-Slug'] = ERP.state.tenantSlug;
+            const tenantSlug = ERP.state.tenantSlug || window.SERVER_INITIAL_DATA?.currentTenant?.slug || window.SERVER_INITIAL_DATA?.demoTenant?.slug || localStorage.getItem('erplannet_tenant_slug') || 'gourmet';
+            if (tenantSlug) {
+                headers['X-Tenant-Slug'] = tenantSlug;
             }
 
             try {
@@ -4743,12 +4745,37 @@
             list: [],
             currentOrder: null,
             items: [],
+            filterTimeout: null,
+
+            handleFilterChange: function () {
+                clearTimeout(this.filterTimeout);
+                this.filterTimeout = setTimeout(() => {
+                    this.load();
+                }, 250);
+            },
+
+            resetFilters: function () {
+                const searchEl = document.getElementById('orders-search-input') || document.getElementById('orders-search');
+                if (searchEl) searchEl.value = '';
+                const statusEl = document.getElementById('orders-status-filter') || document.getElementById('orders-filter-status');
+                if (statusEl) statusEl.value = '';
+                const paymentEl = document.getElementById('orders-payment-filter') || document.getElementById('orders-filter-payment');
+                if (paymentEl) paymentEl.value = '';
+                const sourceEl = document.getElementById('orders-source-filter') || document.getElementById('orders-filter-source');
+                if (sourceEl) sourceEl.value = '';
+                const branchEl = document.getElementById('orders-filter-branch');
+                if (branchEl) branchEl.value = '';
+                const dateEl = document.getElementById('orders-filter-date');
+                if (dateEl) dateEl.value = '';
+                this.load();
+            },
 
             load: async function () {
-                const search = document.getElementById('orders-search')?.value || '';
+                const search = (document.getElementById('orders-search-input') || document.getElementById('orders-search'))?.value || '';
                 const branchId = document.getElementById('orders-filter-branch')?.value || '';
-                const status = document.getElementById('orders-filter-status')?.value || '';
-                const paymentStatus = document.getElementById('orders-filter-payment')?.value || '';
+                const status = (document.getElementById('orders-status-filter') || document.getElementById('orders-filter-status'))?.value || '';
+                const paymentStatus = (document.getElementById('orders-payment-filter') || document.getElementById('orders-filter-payment'))?.value || '';
+                const source = (document.getElementById('orders-source-filter') || document.getElementById('orders-filter-source'))?.value || '';
                 const date = document.getElementById('orders-filter-date')?.value || '';
 
                 const params = new URLSearchParams();
@@ -4756,6 +4783,7 @@
                 if (branchId) params.append('branch_id', branchId);
                 if (status) params.append('status', status);
                 if (paymentStatus) params.append('payment_status', paymentStatus);
+                if (source) params.append('source', source);
                 if (date) {
                     params.append('date_from', date);
                     params.append('date_to', date);
@@ -4765,6 +4793,7 @@
                     const res = await ERP.api(`/sales/orders?${params.toString()}`);
                     if (res && res.data) {
                         this.list = res.data;
+                        this.updateKpis(res.meta?.summary);
                         this.renderList(this.list);
                     }
                 } catch (e) {
@@ -4775,70 +4804,108 @@
                 }
             },
 
+            updateKpis: function (summary) {
+                const totalCount = summary?.total_count ?? this.list.length;
+                const totalRev = summary?.total_revenue ?? this.list.reduce((sum, o) => sum + Number(o.total || 0), 0);
+                const pendingCount = summary?.pending_count ?? this.list.filter(o => ['new', 'confirmed', 'processing', 'in_progress'].includes(o.status)).length;
+                const paidCount = this.list.filter(o => o.payment_status === 'paid').length;
+
+                const kpiTotal = document.getElementById('orders-kpi-total');
+                if (kpiTotal) kpiTotal.textContent = totalCount;
+                const kpiRev = document.getElementById('orders-kpi-revenue');
+                if (kpiRev) kpiRev.textContent = Number(totalRev).toLocaleString('hy-AM') + ' ֏';
+                const kpiPending = document.getElementById('orders-kpi-pending');
+                if (kpiPending) kpiPending.textContent = pendingCount;
+                const kpiPaid = document.getElementById('orders-kpi-paid');
+                if (kpiPaid) kpiPaid.textContent = paidCount;
+            },
+
             renderList: function (orders) {
-                const tbody = document.getElementById('orders-table-tbody');
+                const tbody = document.getElementById('orders-table-body') || document.getElementById('orders-table-tbody');
                 if (!tbody) return;
 
                 if (!orders || orders.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 2rem; color: var(--text-muted);"><i class="fa-solid fa-cart-arrow-down" style="font-size: 1.5rem; margin-bottom: 0.5rem; display: block;"></i> Պատվերներ չեն գտնվել</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; padding: 2.5rem; color: var(--text-muted);"><i class="fa-solid fa-cart-flatbed" style="font-size: 2rem; color: #cbd5e1; margin-bottom: 0.5rem; display: block;"></i> Պատվերներ չեն գտնվել:</td></tr>`;
                     return;
                 }
 
                 tbody.innerHTML = orders.map(o => {
-                    const statusClass = {
-                        draft: 'badge-gray',
-                        new: 'badge-blue',
-                        confirmed: 'badge-cyan',
-                        in_progress: 'badge-indigo',
-                        ready: 'badge-amber',
-                        completed: 'badge-green',
-                        cancelled: 'badge-red'
-                    }[o.status] || 'badge-gray';
+                    const statusBadgeMap = {
+                        new: '<span class="badge badge-amber">Նոր (New)</span>',
+                        confirmed: '<span class="badge badge-blue">Հաստատված</span>',
+                        processing: '<span class="badge badge-indigo">Պատրաստվում է</span>',
+                        in_progress: '<span class="badge badge-indigo">Ընթացքի մեջ</span>',
+                        packed: '<span class="badge badge-teal">Փաթեթավորված</span>',
+                        ready: '<span class="badge badge-teal">Պատրաստ է</span>',
+                        delivery: '<span class="badge badge-purple">Առաքվում է</span>',
+                        delivered: '<span class="badge badge-green">Առաքված</span>',
+                        completed: '<span class="badge badge-green">Ավարտված</span>',
+                        cancelled: '<span class="badge badge-slate" style="text-decoration: line-through;">Չեղարկված</span>'
+                    };
+                    const statusBadge = statusBadgeMap[o.status] || `<span class="badge badge-slate">${o.status}</span>`;
 
-                    const paymentClass = {
-                        paid: 'badge-green',
-                        partial: 'badge-amber',
-                        pending: 'badge-yellow',
-                        refunded: 'badge-purple',
-                        failed: 'badge-red'
-                    }[o.payment_status] || 'badge-gray';
+                    const paymentBadgeMap = {
+                        paid: '<span class="badge badge-green"><i class="fa-solid fa-check"></i> Վճարված</span>',
+                        partially_paid: '<span class="badge badge-amber"><i class="fa-solid fa-circle-half-stroke"></i> Մասնակի</span>',
+                        partial: '<span class="badge badge-amber"><i class="fa-solid fa-circle-half-stroke"></i> Մասնակի</span>',
+                        refunded: '<span class="badge badge-purple"><i class="fa-solid fa-rotate-left"></i> Վերադարձ</span>'
+                    };
+                    const paymentBadge = paymentBadgeMap[o.payment_status] || '<span class="badge badge-rose"><i class="fa-solid fa-xmark"></i> Չվճարված</span>';
 
                     const sourceLabels = {
-                        pos: '<span class="badge" style="background: #E0E7FF; color: #3730A3;"><i class="fa-solid fa-cash-register"></i> POS</span>',
-                        online_store: '<span class="badge" style="background: #ECFDF5; color: #065F46;"><i class="fa-solid fa-globe"></i> Online</span>',
-                        xml_import: '<span class="badge" style="background: #FEF3C7; color: #92400E;"><i class="fa-solid fa-file-code"></i> XML</span>',
-                        manual_backoffice: '<span class="badge" style="background: #F1F5F9; color: #475569;"><i class="fa-solid fa-user-gear"></i> Back-Office</span>',
-                        external_integration: '<span class="badge" style="background: #F3E8FF; color: #6B21A8;"><i class="fa-solid fa-plug"></i> API</span>'
+                        pos: '<span class="badge badge-slate font-mono" style="background: #E0E7FF; color: #3730A3;"><i class="fa-solid fa-cash-register"></i> POS</span>',
+                        online_store: '<span class="badge badge-slate font-mono" style="background: #ECFDF5; color: #065F46;"><i class="fa-solid fa-globe"></i> WEB</span>',
+                        web: '<span class="badge badge-slate font-mono" style="background: #ECFDF5; color: #065F46;"><i class="fa-solid fa-globe"></i> WEB</span>',
+                        xml_import: '<span class="badge badge-slate font-mono" style="background: #FEF3C7; color: #92400E;"><i class="fa-solid fa-file-code"></i> XML</span>',
+                        manual_backoffice: '<span class="badge badge-slate font-mono">MANUAL</span>',
+                        manual: '<span class="badge badge-slate font-mono">MANUAL</span>',
+                        external_integration: '<span class="badge badge-slate font-mono" style="background: #F3E8FF; color: #6B21A8;"><i class="fa-solid fa-plug"></i> API</span>'
                     };
+                    const sourceBadge = sourceLabels[o.source] || `<span class="badge badge-slate font-mono">${(o.source || 'DIRECT').toUpperCase()}</span>`;
 
-                    const sourceBadge = sourceLabels[o.source] || `<span class="badge badge-gray">${o.source}</span>`;
-                    const customerName = o.customer_snapshot?.name || o.customer?.name || (o.customer_id ? 'Հաճախորդ' : '<em style="color: var(--text-muted);">Անանուն</em>');
+                    const customerName = o.customer_snapshot?.name || (o.customer ? (o.customer.first_name + (o.customer.last_name ? ' ' + o.customer.last_name : '')) : (o.customer_id ? 'Հաճախորդ' : 'Retail Customer'));
+                    const customerTin = o.customer_snapshot?.tax_id || o.customer?.tax_id || '';
                     const total = Number(o.total || 0).toLocaleString('hy-AM');
-                    const placedAt = o.placed_at ? new Date(o.placed_at).toLocaleString('hy-AM', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-';
+                    const placedAt = o.placed_at ? new Date(o.placed_at).toLocaleString('hy-AM', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-';
+                    const scheduledFor = o.scheduled_for ? new Date(o.scheduled_for).toLocaleString('hy-AM', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : null;
+                    const itemsCount = `${(o.items || []).length} տող`;
 
                     return `
                         <tr>
-                            <td class="font-mono" style="font-weight: 700; color: var(--color-primary); cursor: pointer;" onclick="ERP.orders.openDetailsModal('${o.id}')">
+                            <td class="font-mono" style="font-weight: 800; color: var(--color-primary); cursor: pointer;" onclick="ERP.orders.viewDetails('${o.id}')">
                                 ${o.order_number}
                             </td>
+                            <td style="font-size: 0.8rem;">
+                                <div>${placedAt}</div>
+                                ${scheduledFor ? `<div style="color: #6366f1; font-size: 0.75rem;"><i class="fa-regular fa-calendar-check"></i> ${scheduledFor}</div>` : ''}
+                            </td>
+                            <td>
+                                <div style="font-weight: 700; color: var(--text-heading);">${customerName}</div>
+                                ${customerTin ? `<div style="font-size: 0.72rem; color: var(--text-muted); font-family: monospace;">ՀՎՀՀ: ${customerTin}</div>` : ''}
+                            </td>
+                            <td><span class="badge badge-slate">${o.branch?.name || 'Main Branch'}</span></td>
                             <td>${sourceBadge}</td>
-                            <td><strong>${customerName}</strong></td>
-                            <td>${o.branch?.name || '-'}</td>
-                            <td class="font-mono font-bold" style="text-align: right;">${total} ֏</td>
-                            <td><span class="badge ${statusClass}">${o.status}</span></td>
-                            <td><span class="badge ${paymentClass}">${o.payment_status}</span></td>
-                            <td style="font-size: 0.75rem; color: var(--text-muted);">${placedAt}</td>
+                            <td><span class="badge badge-slate font-mono">${itemsCount}</span></td>
+                            <td class="font-mono" style="font-weight: 800; color: var(--color-primary);">${total} ֏</td>
+                            <td>${paymentBadge}</td>
+                            <td>${statusBadge}</td>
                             <td style="text-align: right;">
-                                <button class="btn btn-xs btn-outline-primary" onclick="ERP.orders.openDetailsModal('${o.id}')" title="Դիտել Մանրամասները">
-                                    <i class="fa-solid fa-eye"></i>
-                                </button>
-                                <button class="btn btn-xs btn-outline-secondary" onclick="ERP.orders.printOrderReceipt('${o.id}')" title="Տպել Չեկ">
-                                    <i class="fa-solid fa-print"></i>
-                                </button>
+                                <div style="display: flex; gap: 0.35rem; justify-content: flex-end;">
+                                    <button class="btn btn-sm btn-secondary" onclick="ERP.orders.viewDetails('${o.id}')" title="Մանրամասն">
+                                        <i class="fa-solid fa-eye"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-secondary" onclick="ERP.orders.printOrder('${o.id}', 'pos_receipt')" title="Տպել Կտրոն">
+                                        <i class="fa-solid fa-print"></i>
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                     `;
                 }).join('');
+            },
+
+            viewDetails: function (orderId) {
+                return this.openDetailsModal(orderId);
             },
 
             openCreateModal: function () {
@@ -5028,9 +5095,11 @@
                     customer_id: customerId,
                     source: source,
                     fulfillment_method: fulfillmentMethod,
+                    delivery_type: fulfillmentMethod,
                     order_type: orderType,
                     scheduled_for: scheduledAt,
                     responsible_employee_id: employeeId,
+                    customer_notes: notes,
                     notes: notes,
                     items: items,
                     order_discount_type: orderDiscType,
@@ -5081,26 +5150,26 @@
                     }
 
                     const cust = o.customer_snapshot || o.customer || {};
-                    setTxt('od-cust-name', cust.name || 'Անանուն');
+                    setTxt('od-cust-name', cust.name || (cust.first_name ? cust.first_name + ' ' + (cust.last_name || '') : 'Անանուն'));
                     setTxt('od-cust-phone', cust.phone || cust.primary_phone || 'Չկա');
                     setTxt('od-cust-tax-id', cust.tax_id || 'Չկա');
                     setTxt('od-cust-address', cust.billing_address || cust.address || 'Չկա');
 
                     setTxt('od-branch-name', o.branch?.name || '-');
                     setTxt('od-warehouse-name', o.warehouse?.name || '-');
-                    setTxt('od-fulfillment-method', o.fulfillment_method || '-');
+                    setTxt('od-fulfillment-method', o.fulfillment_method || o.delivery_type || '-');
                     setTxt('od-employee-name', o.responsible_employee?.name || '-');
 
                     setTxt('od-fin-total', Number(o.total || 0).toLocaleString('hy-AM') + ' ֏');
                     setTxt('od-fin-paid', Number(o.paid_amount || 0).toLocaleString('hy-AM') + ' ֏');
-                    setTxt('od-fin-balance', Number(o.balance_due || 0).toLocaleString('hy-AM') + ' ֏');
+                    setTxt('od-fin-balance', Number(o.balance_due ?? Math.max(0, Number(o.total || 0) - Number(o.paid_amount || 0))).toLocaleString('hy-AM') + ' ֏');
                     setTxt('od-fin-discounts', Number(o.total_discounts || (Number(o.item_discounts_total || 0) + Number(o.order_discount || 0))).toLocaleString('hy-AM') + ' ֏');
 
                     const cancelBox = document.getElementById('od-cancellation-box');
                     if (cancelBox) {
-                        if (o.status === 'cancelled' && o.cancellation_reason) {
+                        if (o.status === 'cancelled' && (o.cancellation_reason || o.notes)) {
                             cancelBox.style.display = 'block';
-                            setTxt('od-cancellation-reason', o.cancellation_reason);
+                            setTxt('od-cancellation-reason', o.cancellation_reason || o.notes || 'Չեղարկված է');
                         } else {
                             cancelBox.style.display = 'none';
                         }
@@ -5110,17 +5179,34 @@
                     if (actionsDiv) {
                         actionsDiv.innerHTML = '';
                         const transitions = {
-                            draft: ['confirmed', 'cancelled'],
+                            draft: ['new', 'confirmed', 'cancelled'],
                             new: ['confirmed', 'cancelled'],
-                            confirmed: ['in_progress', 'ready', 'cancelled'],
+                            confirmed: ['processing', 'ready', 'cancelled'],
+                            processing: ['ready', 'completed', 'cancelled'],
                             in_progress: ['ready', 'completed', 'cancelled'],
-                            ready: ['completed', 'cancelled']
+                            packed: ['ready', 'delivery', 'completed', 'cancelled'],
+                            ready: ['delivery', 'completed', 'cancelled'],
+                            delivery: ['delivered', 'completed', 'cancelled'],
+                            delivered: ['completed']
                         }[o.status] || [];
+
+                        const statusLabelsHy = {
+                            new: 'Նոր',
+                            confirmed: 'Հաստատել',
+                            processing: 'Պատրաստել',
+                            in_progress: 'Ընթացքի մեջ',
+                            packed: 'Փաթեթավորված',
+                            ready: 'Պատրաստ է',
+                            delivery: 'Առաքման մեջ',
+                            delivered: 'Առաքված',
+                            completed: 'Ավարտել',
+                            cancelled: 'Չեղարկել'
+                        };
 
                         transitions.forEach(target => {
                             const btn = document.createElement('button');
                             btn.className = `btn btn-xs ${target === 'completed' ? 'btn-primary' : target === 'cancelled' ? 'btn-outline-danger' : 'btn-secondary'}`;
-                            btn.textContent = `-> ${target}`;
+                            btn.innerHTML = `${target === 'completed' ? '<i class="fa-solid fa-check"></i> ' : ''}${statusLabelsHy[target] || target}`;
                             btn.onclick = () => ERP.orders.transitionStatus(target);
                             actionsDiv.appendChild(btn);
                         });
@@ -5143,19 +5229,20 @@
 
                     const payList = document.getElementById('od-payments-list');
                     if (payList) {
-                        if (!o.payments || o.payments.length === 0) {
+                        const payments = o.payments || o.payment_transactions || o.paymentTransactions || [];
+                        if (payments.length === 0) {
                             payList.innerHTML = `<div style="color: var(--text-muted); font-size: 0.85rem; padding: 1rem; text-align: center;">Վճարումներ դեռ գրանցված չեն:</div>`;
                         } else {
-                            payList.innerHTML = o.payments.map(p => `
-                                <div class="card" style="padding: 0.75rem; display: flex; justify-content: space-between; align-items: center;">
+                            payList.innerHTML = payments.map(p => `
+                                <div class="card" style="padding: 0.75rem; display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                                     <div>
                                         <strong style="text-transform: uppercase; font-size: 0.8rem;">${p.payment_method}</strong>
-                                        <span class="badge ${p.status === 'completed' ? 'badge-green' : p.status === 'refunded' ? 'badge-purple' : 'badge-yellow'}" style="margin-left: 6px;">${p.status}</span>
-                                        <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">Ref: ${p.transaction_reference || p.id} | ${new Date(p.created_at).toLocaleString('hy-AM')}</div>
+                                        <span class="badge ${p.status === 'completed' || p.status === 'successful' ? 'badge-green' : p.status === 'refunded' ? 'badge-purple' : 'badge-yellow'}" style="margin-left: 6px;">${p.status}</span>
+                                        <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">Ref: ${p.transaction_reference || p.transaction_id || p.id} | ${new Date(p.created_at || p.paid_at).toLocaleString('hy-AM')}</div>
                                     </div>
                                     <div style="text-align: right;">
-                                        <div class="font-mono font-bold" style="font-size: 0.95rem; color: ${p.status === 'completed' ? '#059669' : '#DC2626'};">${Number(p.amount).toLocaleString('hy-AM')} ֏</div>
-                                        ${p.status === 'completed' ? `<button class="btn btn-xs btn-outline-danger" onclick="ERP.orders.refundPayment('${p.id}', ${p.amount})" style="font-size: 0.7rem; padding: 2px 6px; margin-top: 4px;">Վերադարձնել</button>` : ''}
+                                        <div class="font-mono font-bold" style="font-size: 0.95rem; color: ${p.status === 'completed' || p.status === 'successful' ? '#059669' : '#DC2626'};">${Number(p.amount).toLocaleString('hy-AM')} ֏</div>
+                                        ${p.status === 'completed' || p.status === 'successful' ? `<button class="btn btn-xs btn-outline-danger" onclick="ERP.orders.refundPayment('${p.id}', ${p.amount})" style="font-size: 0.7rem; padding: 2px 6px; margin-top: 4px;">Վերադարձնել</button>` : ''}
                                     </div>
                                 </div>
                             `).join('');
@@ -5164,10 +5251,11 @@
 
                     const dnContainer = document.getElementById('od-attached-delivery-notes');
                     if (dnContainer) {
-                        if (!o.delivery_notes || o.delivery_notes.length === 0) {
+                        const deliveryNotes = o.delivery_notes || o.deliveryNotes || [];
+                        if (deliveryNotes.length === 0) {
                             dnContainer.innerHTML = `<div style="color: var(--text-muted); font-size: 0.8rem;">Այս պատվերի համար B2B բեռնագիր դեռ չի ձևավորվել:</div>`;
                         } else {
-                            dnContainer.innerHTML = o.delivery_notes.map(dn => `
+                            dnContainer.innerHTML = deliveryNotes.map(dn => `
                                 <div class="card" style="padding: 0.75rem; display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                                     <div>
                                         <strong class="font-mono" style="color: #7C3AED;">${dn.document_number}</strong>
@@ -5183,10 +5271,11 @@
 
                     const pjContainer = document.getElementById('od-attached-print-jobs');
                     if (pjContainer) {
-                        if (!o.print_jobs || o.print_jobs.length === 0) {
+                        const printJobs = o.print_jobs || o.printJobs || [];
+                        if (printJobs.length === 0) {
                             pjContainer.innerHTML = `<div style="color: var(--text-muted); font-size: 0.8rem;">Տպագրության հերթում գրանցումներ չկան:</div>`;
                         } else {
-                            pjContainer.innerHTML = o.print_jobs.map(pj => `
+                            pjContainer.innerHTML = printJobs.map(pj => `
                                 <div class="card" style="padding: 0.65rem; display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                                     <div>
                                         <span class="badge ${pj.status === 'completed' ? 'badge-green' : pj.status === 'failed' ? 'badge-red' : 'badge-yellow'}">${pj.status}</span>
@@ -5201,14 +5290,14 @@
 
                     const auditTimeline = document.getElementById('od-audit-timeline');
                     if (auditTimeline) {
-                        const logs = o.status_history || [];
+                        const logs = o.status_histories || o.status_history || o.statusHistories || [];
                         if (logs.length === 0) {
                             auditTimeline.innerHTML = `<div style="color: var(--text-muted); font-size: 0.8rem;">Աուդիտի գրառումներ չեն գտնվել:</div>`;
                         } else {
                             auditTimeline.innerHTML = logs.map(l => `
                                 <div style="border-left: 2px solid var(--color-primary); padding-left: 12px; margin-bottom: 8px;">
                                     <div style="font-size: 0.8rem; font-weight: 700;">Կարգավիճակ՝ <span class="font-mono">${l.from_status || 'start'}</span> -> <span class="font-mono text-primary">${l.to_status}</span></div>
-                                    <div style="font-size: 0.72rem; color: var(--text-muted);">Պատճառ՝ ${l.reason || 'Ավտոմատ / Օգտատեր'} | ${new Date(l.created_at).toLocaleString('hy-AM')}</div>
+                                    <div style="font-size: 0.72rem; color: var(--text-muted);">Պատճառ՝ ${l.reason || l.comment || 'Ավտոմատ / Օգտատեր'} | ${new Date(l.created_at).toLocaleString('hy-AM')}</div>
                                 </div>
                             `).join('');
                         }
@@ -5245,7 +5334,7 @@
                 try {
                     await ERP.api(`/sales/orders/${this.currentOrder.id}/status`, {
                         method: 'PATCH',
-                        body: JSON.stringify({ status: targetStatus, reason: reason })
+                        body: JSON.stringify({ status: targetStatus, reason: reason, comment: reason })
                     });
                     ERP.toast(`Պատվերի կարգավիճակը փոխվեց (${targetStatus}):`, 'success');
                     await this.openDetailsModal(this.currentOrder.id);
@@ -5259,12 +5348,24 @@
                 this.transitionStatus('cancelled');
             },
 
+            cancelOrder: function (orderId) {
+                if (orderId && (!this.currentOrder || this.currentOrder.id !== orderId)) {
+                    this.openDetailsModal(orderId).then(() => this.promptCancelOrder());
+                    return;
+                }
+                this.promptCancelOrder();
+            },
+
             openRescheduleModal: function () {
                 if (!this.currentOrder) return;
                 const currentSched = this.currentOrder.scheduled_for ? this.currentOrder.scheduled_for.replace(' ', 'T').slice(0, 16) : '';
                 const input = document.getElementById('reschedule-target-date');
                 if (input) input.value = currentSched;
                 document.getElementById('reschedule-order-modal')?.classList.add('active');
+            },
+
+            closeRescheduleModal: function () {
+                document.getElementById('reschedule-order-modal')?.classList.remove('active');
             },
 
             submitReschedule: async function (e) {
@@ -5276,10 +5377,10 @@
                 try {
                     await ERP.api(`/sales/orders/${this.currentOrder.id}/reschedule`, {
                         method: 'PATCH',
-                        body: JSON.stringify({ scheduled_for: targetDate, note: note })
+                        body: JSON.stringify({ scheduled_for: targetDate, note: note, reason: note })
                     });
-                    ERP.toast('Պատվերը հաջողությամբ վերապլանավորվեց (placed_at պահպանված է):', 'success');
-                    document.getElementById('reschedule-order-modal')?.classList.remove('active');
+                    ERP.toast('Պատվերը հաջողությամբ վերապլանավորվեց:', 'success');
+                    this.closeRescheduleModal();
                     await this.openDetailsModal(this.currentOrder.id);
                     this.load();
                 } catch (err) {
@@ -5302,7 +5403,12 @@
                 try {
                     await ERP.api(`/sales/orders/${this.currentOrder.id}/payments`, {
                         method: 'POST',
-                        body: JSON.stringify({ payment_method: method, amount: amount, transaction_reference: ref })
+                        body: JSON.stringify({
+                            payment_method: method,
+                            amount: amount,
+                            transaction_id: ref || undefined,
+                            transaction_reference: ref || undefined
+                        })
                     });
                     ERP.toast('Վճարումը հաջողությամբ գրանցվեց:', 'success');
                     const amtInput = document.getElementById('od-pay-amount');
@@ -5333,22 +5439,18 @@
                 }
             },
 
-            printCurrentOrderReceipt: async function () {
-                if (!this.currentOrder) return;
-                this.printOrderReceipt(this.currentOrder.id);
-            },
-
-            printOrderReceipt: async function (orderId) {
+            printOrder: async function (orderId, docType = 'pos_receipt') {
                 try {
-                    const res = await ERP.api('/printing/jobs/print-order', {
-                        method: 'POST',
-                        body: JSON.stringify({ order_id: orderId, document_type: 'order_receipt' })
+                    const res = await ERP.api(`/sales/orders/${orderId}/print/${docType}`, {
+                        method: 'POST'
                     });
-                    ERP.toast(`Տպագրության աշխատանքը գրանցվեց (#${res.data?.id || ''}):`, 'success');
-                    if (res.data?.output_payload) {
-                        const w = window.open('', '_blank', 'width=380,height=600');
+                    ERP.toast(`Տպագրության փաստաթուղթը ձևավորվեց:`, 'success');
+                    const html = res.data?.html || res.data?.output_payload;
+                    if (html) {
+                        const isA4 = (docType || '').includes('a4') || (docType || '').includes('confirmation');
+                        const w = window.open('', '_blank', isA4 ? '' : 'width=380,height=600');
                         if (w) {
-                            w.document.write(res.data.output_payload);
+                            w.document.write(html);
                             w.document.close();
                             w.focus();
                             setTimeout(() => w.print(), 250);
@@ -5359,26 +5461,18 @@
                 }
             },
 
+            printOrderReceipt: function (orderId) {
+                return this.printOrder(orderId, 'order_receipt');
+            },
+
+            printCurrentOrderReceipt: async function () {
+                if (!this.currentOrder) return;
+                return this.printOrder(this.currentOrder.id, 'pos_receipt');
+            },
+
             printCurrentOrderA4: async function () {
                 if (!this.currentOrder) return;
-                try {
-                    const res = await ERP.api('/printing/jobs/print-order', {
-                        method: 'POST',
-                        body: JSON.stringify({ order_id: this.currentOrder.id, document_type: 'order_confirmation' })
-                    });
-                    ERP.toast('A4 փաստաթուղթը գրանցվեց տպագրության հերթում:', 'success');
-                    if (res.data?.output_payload) {
-                        const w = window.open('', '_blank');
-                        if (w) {
-                            w.document.write(res.data.output_payload);
-                            w.document.close();
-                            w.focus();
-                            setTimeout(() => w.print(), 250);
-                        }
-                    }
-                } catch (err) {
-                    ERP.toast('A4 տպագրությունը ձախողվեց: ' + err.message, 'error');
-                }
+                return this.printOrder(this.currentOrder.id, 'order_confirmation');
             },
 
             openGenerateDeliveryNoteForCurrent: function () {
@@ -6246,7 +6340,13 @@
         init: function () {
             // Hydrate token and tenant
             ERP.state.token = window.SERVER_INITIAL_DATA?.token || localStorage.getItem('erplannet_token') || '';
-            ERP.state.tenantSlug = window.SERVER_INITIAL_DATA?.currentTenant?.slug || window.SERVER_INITIAL_DATA?.demoTenant?.slug || 'gourmet';
+            if (ERP.state.token) {
+                localStorage.setItem('erplannet_token', ERP.state.token);
+            }
+            ERP.state.tenantSlug = window.SERVER_INITIAL_DATA?.currentTenant?.slug || window.SERVER_INITIAL_DATA?.demoTenant?.slug || localStorage.getItem('erplannet_tenant_slug') || 'gourmet';
+            if (ERP.state.tenantSlug) {
+                localStorage.setItem('erplannet_tenant_slug', ERP.state.tenantSlug);
+            }
 
             // Hydrate categories from bootstrap data if available
             if (window.SERVER_INITIAL_DATA?.categories && window.SERVER_INITIAL_DATA.categories.length > 0) {

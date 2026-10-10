@@ -201,11 +201,17 @@ Route::prefix('v1')->group(function () {
 
             // Sales & Orders
             Route::post('/orders/calculate-pricing', [OrderController::class, 'calculatePricing']);
+            Route::post('/sales/orders/calculate-pricing', [OrderController::class, 'calculatePricing']);
             Route::apiResource('orders', OrderController::class)->only(['index', 'store', 'show']);
+            Route::apiResource('sales/orders', OrderController::class)->only(['index', 'store', 'show']);
             Route::match(['post', 'patch'], '/orders/{id}/status', [OrderController::class, 'transitionStatus']);
+            Route::match(['post', 'patch'], '/sales/orders/{id}/status', [OrderController::class, 'transitionStatus']);
             Route::post('/orders/{id}/cancel', [OrderController::class, 'cancel']);
+            Route::post('/sales/orders/{id}/cancel', [OrderController::class, 'cancel']);
             Route::match(['post', 'patch'], '/orders/{id}/reschedule', [OrderController::class, 'reschedule']);
+            Route::match(['post', 'patch'], '/sales/orders/{id}/reschedule', [OrderController::class, 'reschedule']);
             Route::post('/orders/{id}/print/{documentType}', [PrintJobController::class, 'printOrder']);
+            Route::post('/sales/orders/{id}/print/{documentType}', [PrintJobController::class, 'printOrder']);
             Route::post('/orders/{id}/delivery-notes', [B2bDeliveryNoteController::class, 'generateFromOrder']);
 
             // XML Import Center
@@ -258,6 +264,8 @@ Route::prefix('v1')->group(function () {
             Route::post('/print-jobs', [PrintJobController::class, 'store']);
             Route::get('/print-jobs/{id}', [PrintJobController::class, 'show']);
             Route::post('/print-jobs/{id}/reprint', [PrintJobController::class, 'reprint']);
+            Route::post('/printing/jobs/print-order', [PrintJobController::class, 'printOrderDirect']);
+            Route::post('/printing/jobs/{id}/reprint', [PrintJobController::class, 'reprint']);
 
             // Subscription & Entitlements
             Route::get('/subscription', [SubscriptionController::class, 'show']);

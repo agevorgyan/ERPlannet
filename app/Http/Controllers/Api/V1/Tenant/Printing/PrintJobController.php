@@ -106,10 +106,22 @@ class PrintJobController extends Controller
             'message' => "Order document '{$documentType}' generated successfully.",
             'data' => [
                 'job_id' => $job->id,
+                'id' => $job->id,
                 'status' => $job->status,
                 'html' => $job->payload_rendered,
+                'output_payload' => $job->payload_rendered,
                 'reprint_count' => $job->reprint_count,
             ],
         ]);
+    }
+
+    public function printOrderDirect(Request $request, PrintJobManager $manager): JsonResponse
+    {
+        $validated = $request->validate([
+            'order_id' => ['required', 'uuid', 'exists:orders,id'],
+            'document_type' => ['required', 'string'],
+        ]);
+
+        return $this->printOrder($request, $validated['order_id'], $validated['document_type'], $manager);
     }
 }
