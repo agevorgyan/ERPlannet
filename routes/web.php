@@ -16,10 +16,15 @@ use App\Domain\Manufacturing\Models\Recipe;
 use App\Domain\Payments\Models\PaymentTransaction;
 use App\Domain\POS\Models\PosSession;
 use App\Domain\POS\Models\PosTerminal;
+use App\Domain\Printing\Models\DocumentTemplate;
+use App\Domain\Printing\Models\Printer;
+use App\Domain\Printing\Models\PrintJob;
 use App\Domain\Procurement\Models\PurchaseOrder;
 use App\Domain\Procurement\Models\Supplier;
 use App\Domain\Quality\Models\QualityInspection;
+use App\Domain\Sales\Models\B2bDeliveryNote;
 use App\Domain\Sales\Models\Order;
+use App\Domain\Sales\Models\XmlImport;
 use App\Domain\Tenant\Models\Tenant;
 use App\Domain\Warehouse\Models\StockBatch;
 use App\Domain\Warehouse\Models\Warehouse;
@@ -81,7 +86,7 @@ Route::get('/{view?}', function (Request $request, TenantResolver $resolver, ?st
     $products = $demoTenant ? Product::withoutGlobalScopes()->where('tenant_id', $demoTenant->id)->with(['category', 'subcategory', 'unit', 'variants', 'recipes.yieldUnit', 'recipes.items.product', 'recipes.items.unit'])->withSum('stockLevels as current_stock', 'quantity_on_hand')->get() : collect();
     $customerSources = $demoTenant ? CustomerSource::withoutGlobalScopes()->where('tenant_id', $demoTenant->id)->orderBy('sort_order')->get() : collect();
     $customers = $demoTenant ? Customer::withoutGlobalScopes()->where('tenant_id', $demoTenant->id)->with(['defaultAddress', 'lastUsedAddress', 'addresses', 'individual', 'company', 'contacts', 'loyaltyAccount', 'primaryBranch', 'acquisitionSource'])->latest()->get() : collect();
-    $orders = $demoTenant ? Order::withoutGlobalScopes()->where('tenant_id', $demoTenant->id)->with(['items', 'customer'])->latest()->get() : collect();
+    $orders = $demoTenant ? Order::withoutGlobalScopes()->where('tenant_id', $demoTenant->id)->with(['items.product', 'items.unit', 'customer', 'branch', 'warehouse', 'paymentTransactions'])->latest()->get() : collect();
     $batches = $demoTenant ? StockBatch::withoutGlobalScopes()->where('tenant_id', $demoTenant->id)->with(['product', 'warehouse'])->get() : collect();
     $purchaseOrders = $demoTenant ? PurchaseOrder::withoutGlobalScopes()->where('tenant_id', $demoTenant->id)->with(['supplier', 'warehouse', 'items.product'])->latest()->get() : collect();
     $recipes = $demoTenant ? Recipe::withoutGlobalScopes()->where('tenant_id', $demoTenant->id)->with(['product', 'items.product', 'yieldUnit'])->get() : collect();
@@ -92,6 +97,13 @@ Route::get('/{view?}', function (Request $request, TenantResolver $resolver, ?st
     $deliveryDrivers = $demoTenant ? DeliveryDriver::withoutGlobalScopes()->where('tenant_id', $demoTenant->id)->with('user')->get() : collect();
     $deliveryShipments = $demoTenant ? DeliveryShipment::withoutGlobalScopes()->where('tenant_id', $demoTenant->id)->with(['driver', 'order', 'proof'])->latest()->get() : collect();
     $paymentTransactions = $demoTenant ? PaymentTransaction::withoutGlobalScopes()->where('tenant_id', $demoTenant->id)->with('order')->latest()->get() : collect();
+
+    // Print Management & Document Designer & Delivery Notes
+    $printers = $demoTenant ? Printer::withoutGlobalScopes()->where('tenant_id', $demoTenant->id)->with(['branch', 'workstation'])->get() : collect();
+    $documentTemplates = $demoTenant ? DocumentTemplate::withoutGlobalScopes()->where('tenant_id', $demoTenant->id)->with(['latestVersion'])->get() : collect();
+    $deliveryNotes = $demoTenant ? B2bDeliveryNote::withoutGlobalScopes()->where('tenant_id', $demoTenant->id)->with(['order.customer', 'branch'])->latest()->get() : collect();
+    $printJobs = $demoTenant ? PrintJob::withoutGlobalScopes()->where('tenant_id', $demoTenant->id)->with(['printer', 'order'])->latest()->limit(25)->get() : collect();
+    $xmlImports = $demoTenant ? XmlImport::withoutGlobalScopes()->where('tenant_id', $demoTenant->id)->with(['branch', 'warehouse'])->latest()->limit(20)->get() : collect();
 
     // IAM Users and Roles
     $roles = Role::with('permissions')->get();
@@ -137,6 +149,11 @@ Route::get('/{view?}', function (Request $request, TenantResolver $resolver, ?st
         'deliveryDrivers',
         'deliveryShipments',
         'paymentTransactions',
+        'printers',
+        'documentTemplates',
+        'deliveryNotes',
+        'printJobs',
+        'xmlImports',
         'roles',
         'users',
         'currentUser',

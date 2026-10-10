@@ -4,6 +4,7 @@ namespace App\Infrastructure\Payments;
 
 use App\Infrastructure\Payments\Contracts\PaymentGatewayInterface;
 use App\Infrastructure\Payments\Gateways\AmeriaBankGateway;
+use App\Infrastructure\Payments\Gateways\ArCaGateway;
 use App\Infrastructure\Payments\Gateways\BankTransferGateway;
 use App\Infrastructure\Payments\Gateways\CashGateway;
 use App\Infrastructure\Payments\Gateways\IdramGateway;
@@ -26,6 +27,7 @@ class PaymentGatewayManager
         $this->register(new AmeriaBankGateway);
         $this->register(new IdramGateway);
         $this->register(new TelcellGateway);
+        $this->register(new ArCaGateway);
         $this->register(new StripeGateway);
         $this->register(new BankTransferGateway);
         $this->register(new CashGateway);

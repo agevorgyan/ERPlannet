@@ -14,6 +14,7 @@ use App\Infrastructure\Payments\PaymentGatewayManager;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class OrderPaymentController extends Controller
 {
@@ -21,6 +22,56 @@ class OrderPaymentController extends Controller
         protected TenantContext $tenantContext,
         protected PaymentGatewayManager $gatewayManager
     ) {}
+
+    public function recordOrInitiate(
+        Request $request,
+        string $orderId,
+        InitiateOrderPaymentAction $action
+    ): JsonResponse {
+        $order = Order::findOrFail($orderId);
+
+        // If online gateway initiation with return_url
+        if ($request->filled('return_url')) {
+            return $this->initiate($request, $orderId, $action);
+        }
+
+        // Direct payment recording (cash, card, terminal, etc.)
+        $validated = $request->validate([
+            'amount' => ['required', 'numeric', 'min:0.01'],
+            'payment_method' => ['required', 'string'],
+            'transaction_id' => ['nullable', 'string'],
+        ]);
+
+        $gateway = match (strtolower($validated['payment_method'])) {
+            'cash' => 'cash',
+            'card' => 'cash',
+            default => strtolower($validated['payment_method']),
+        };
+
+        $payment = PaymentTransaction::create([
+            'tenant_id' => $order->tenant_id,
+            'order_id' => $order->id,
+            'gateway' => $gateway,
+            'payment_method' => $validated['payment_method'],
+            'transaction_id' => $validated['transaction_id'] ?? ('TXN-'.strtoupper(Str::random(10))),
+            'amount' => $validated['amount'],
+            'currency' => $order->currency ?? 'AMD',
+            'status' => 'successful',
+            'paid_at' => now(),
+            'gateway_response' => [
+                'recorded_by' => $request->user()?->id,
+                'method' => $validated['payment_method'],
+            ],
+        ]);
+
+        $order->recalculateBalances();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Payment recorded successfully.',
+            'data' => $payment,
+        ], 201);
+    }
 
     public function initiate(
         Request $request,
@@ -71,9 +122,12 @@ class OrderPaymentController extends Controller
 
     public function refund(
         Request $request,
-        string $transactionId,
-        RefundPaymentAction $action
+        string $arg1,
+        ?string $arg2 = null
     ): JsonResponse {
+        $transactionId = $arg2 ?? $arg1;
+        $action = app(RefundPaymentAction::class);
+
         $validated = $request->validate([
             'amount' => ['required', 'numeric', 'min:0.01'],
             'reason' => ['nullable', 'string', 'max:255'],

@@ -35,7 +35,7 @@ class RefundPaymentAction
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            if ($transaction->status !== 'successful') {
+            if (! in_array($transaction->status, ['successful', 'completed'], true)) {
                 throw new InvalidArgumentException("Cannot refund transaction with status {$transaction->status}.");
             }
 
@@ -44,10 +44,12 @@ class RefundPaymentAction
                 throw new InvalidArgumentException('Refund amount exceeds remaining transaction balance.');
             }
 
-            $gateway = $this->gatewayManager->gateway($transaction->gateway);
+            $gatewayKey = $transaction->gateway ?: 'cash';
+            $gateway = $this->gatewayManager->gateway($gatewayKey);
             $dto = new RefundDTO(
                 transactionId: $transaction->transaction_id,
                 amount: $amount,
+                currency: $transaction->currency ?? 'AMD',
                 reason: $reason
             );
 
@@ -63,11 +65,9 @@ class RefundPaymentAction
             }
             $transaction->save();
 
-            // Update order payment status
+            // Update order payment status and recalculate balances
             if ($transaction->order) {
-                $order = $transaction->order;
-                $order->payment_status = ($newRefundedTotal >= (float) $transaction->amount) ? 'refunded' : 'partially_refunded';
-                $order->save();
+                $transaction->order->recalculateBalances();
             }
 
             // Create Audit Log

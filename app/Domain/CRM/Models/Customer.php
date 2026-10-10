@@ -207,6 +207,16 @@ class Customer extends Model
         return $this->full_name;
     }
 
+    public function getNameAttribute(): string
+    {
+        return $this->display_name;
+    }
+
+    public function setNameAttribute($value): void
+    {
+        $this->attributes['display_name'] = $value;
+    }
+
     public function getEffectiveDiscountPercent(): float
     {
         if ((float) $this->custom_discount_percent > 0) {

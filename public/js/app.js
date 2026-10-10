@@ -349,6 +349,11 @@
             if (viewName === 'directory-suppliers') ERP.directory.suppliers.load();
             if (viewName === 'directory-ingredients') ERP.directory.ingredients.load();
             if (viewName === 'directory-customers') ERP.directory.customers.load();
+            if (viewName === 'orders') ERP.orders.load();
+            if (viewName === 'delivery-notes') ERP.deliveryNotes.load();
+            if (viewName === 'xml-import') ERP.xmlImport.load();
+            if (viewName === 'print-management') ERP.printing.load();
+            if (viewName === 'document-designer') ERP.designer.load();
         },
 
         // =====================================================================
@@ -4732,6 +4737,1510 @@
         },
 
         // =====================================================================
+        // 9.1 Phase 5: Omnichannel Orders Subsystem
+        // =====================================================================
+        orders: {
+            list: [],
+            currentOrder: null,
+            items: [],
+
+            load: async function () {
+                const search = document.getElementById('orders-search')?.value || '';
+                const branchId = document.getElementById('orders-filter-branch')?.value || '';
+                const status = document.getElementById('orders-filter-status')?.value || '';
+                const paymentStatus = document.getElementById('orders-filter-payment')?.value || '';
+                const date = document.getElementById('orders-filter-date')?.value || '';
+
+                const params = new URLSearchParams();
+                if (search) params.append('search', search);
+                if (branchId) params.append('branch_id', branchId);
+                if (status) params.append('status', status);
+                if (paymentStatus) params.append('payment_status', paymentStatus);
+                if (date) {
+                    params.append('date_from', date);
+                    params.append('date_to', date);
+                }
+
+                try {
+                    const res = await ERP.api(`/sales/orders?${params.toString()}`);
+                    if (res && res.data) {
+                        this.list = res.data;
+                        this.renderList(this.list);
+                    }
+                } catch (e) {
+                    console.error('Failed to load orders', e);
+                    if (this.list.length > 0) {
+                        this.renderList(this.list);
+                    }
+                }
+            },
+
+            renderList: function (orders) {
+                const tbody = document.getElementById('orders-table-tbody');
+                if (!tbody) return;
+
+                if (!orders || orders.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 2rem; color: var(--text-muted);"><i class="fa-solid fa-cart-arrow-down" style="font-size: 1.5rem; margin-bottom: 0.5rem; display: block;"></i> Պատվերներ չեն գտնվել</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = orders.map(o => {
+                    const statusClass = {
+                        draft: 'badge-gray',
+                        new: 'badge-blue',
+                        confirmed: 'badge-cyan',
+                        in_progress: 'badge-indigo',
+                        ready: 'badge-amber',
+                        completed: 'badge-green',
+                        cancelled: 'badge-red'
+                    }[o.status] || 'badge-gray';
+
+                    const paymentClass = {
+                        paid: 'badge-green',
+                        partial: 'badge-amber',
+                        pending: 'badge-yellow',
+                        refunded: 'badge-purple',
+                        failed: 'badge-red'
+                    }[o.payment_status] || 'badge-gray';
+
+                    const sourceLabels = {
+                        pos: '<span class="badge" style="background: #E0E7FF; color: #3730A3;"><i class="fa-solid fa-cash-register"></i> POS</span>',
+                        online_store: '<span class="badge" style="background: #ECFDF5; color: #065F46;"><i class="fa-solid fa-globe"></i> Online</span>',
+                        xml_import: '<span class="badge" style="background: #FEF3C7; color: #92400E;"><i class="fa-solid fa-file-code"></i> XML</span>',
+                        manual_backoffice: '<span class="badge" style="background: #F1F5F9; color: #475569;"><i class="fa-solid fa-user-gear"></i> Back-Office</span>',
+                        external_integration: '<span class="badge" style="background: #F3E8FF; color: #6B21A8;"><i class="fa-solid fa-plug"></i> API</span>'
+                    };
+
+                    const sourceBadge = sourceLabels[o.source] || `<span class="badge badge-gray">${o.source}</span>`;
+                    const customerName = o.customer_snapshot?.name || o.customer?.name || (o.customer_id ? 'Հաճախորդ' : '<em style="color: var(--text-muted);">Անանուն</em>');
+                    const total = Number(o.total || 0).toLocaleString('hy-AM');
+                    const placedAt = o.placed_at ? new Date(o.placed_at).toLocaleString('hy-AM', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-';
+
+                    return `
+                        <tr>
+                            <td class="font-mono" style="font-weight: 700; color: var(--color-primary); cursor: pointer;" onclick="ERP.orders.openDetailsModal('${o.id}')">
+                                ${o.order_number}
+                            </td>
+                            <td>${sourceBadge}</td>
+                            <td><strong>${customerName}</strong></td>
+                            <td>${o.branch?.name || '-'}</td>
+                            <td class="font-mono font-bold" style="text-align: right;">${total} ֏</td>
+                            <td><span class="badge ${statusClass}">${o.status}</span></td>
+                            <td><span class="badge ${paymentClass}">${o.payment_status}</span></td>
+                            <td style="font-size: 0.75rem; color: var(--text-muted);">${placedAt}</td>
+                            <td style="text-align: right;">
+                                <button class="btn btn-xs btn-outline-primary" onclick="ERP.orders.openDetailsModal('${o.id}')" title="Դիտել Մանրամասները">
+                                    <i class="fa-solid fa-eye"></i>
+                                </button>
+                                <button class="btn btn-xs btn-outline-secondary" onclick="ERP.orders.printOrderReceipt('${o.id}')" title="Տպել Չեկ">
+                                    <i class="fa-solid fa-print"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            },
+
+            openCreateModal: function () {
+                const form = document.getElementById('create-order-form');
+                if (form) form.reset();
+                const tbody = document.getElementById('order-items-tbody');
+                if (tbody) tbody.innerHTML = '';
+                this.addItemRow();
+                this.recalculateLivePricing();
+                const modal = document.getElementById('create-order-modal');
+                if (modal) modal.classList.add('active');
+            },
+
+            closeCreateModal: function () {
+                const modal = document.getElementById('create-order-modal');
+                if (modal) modal.classList.remove('active');
+            },
+
+            addItemRow: function () {
+                const tbody = document.getElementById('order-items-tbody');
+                if (!tbody) return;
+
+                const products = window.SERVER_INITIAL_DATA?.products || [];
+                const options = products.map(p => {
+                    const name = typeof p.name === 'object' ? (p.name.hy || Object.values(p.name)[0]) : p.name;
+                    const price = p.retail_price || p.price || 0;
+                    return `<option value="${p.id}" data-price="${price}" data-unit="${p.unit?.name || 'հատ'}">${name} (${p.sku}) — ${price} ֏</option>`;
+                }).join('');
+
+                const row = document.createElement('tr');
+                row.className = 'order-item-row';
+                row.innerHTML = `
+                    <td>
+                        <select class="select item-product-select" style="width: 100%; font-size: 0.78rem;" onchange="ERP.orders.onProductSelect(this)">
+                            <option value="">Ընտրեք ապրանք...</option>
+                            ${options}
+                        </select>
+                    </td>
+                    <td>
+                        <input type="number" step="any" min="0.001" class="form-control font-mono item-qty-input" value="1" oninput="ERP.orders.recalculateLivePricing()" style="font-size: 0.78rem;">
+                    </td>
+                    <td>
+                        <input type="number" step="any" min="0" class="form-control font-mono item-price-input" value="0" oninput="ERP.orders.recalculateLivePricing()" style="font-size: 0.78rem;">
+                    </td>
+                    <td>
+                        <input type="number" step="any" min="0" max="100" class="form-control font-mono item-discount-input" value="0" oninput="ERP.orders.recalculateLivePricing()" style="font-size: 0.78rem;">
+                    </td>
+                    <td>
+                        <input type="number" step="any" min="0" class="form-control font-mono item-tax-input" value="20" oninput="ERP.orders.recalculateLivePricing()" style="font-size: 0.78rem;">
+                    </td>
+                    <td class="font-mono font-bold item-line-subtotal" style="text-align: right; font-size: 0.8rem; padding-top: 10px;">
+                        0.00 ֏
+                    </td>
+                    <td>
+                        <button type="button" class="btn btn-xs btn-outline-danger" onclick="ERP.orders.removeItemRow(this)" style="color: #EF4444; border: 1px solid #FECACA;">&times;</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            },
+
+            onProductSelect: function (sel) {
+                const row = sel.closest('.order-item-row');
+                if (!row) return;
+                const opt = sel.options[sel.selectedIndex];
+                const price = opt?.getAttribute('data-price') || 0;
+                const priceInput = row.querySelector('.item-price-input');
+                if (priceInput) priceInput.value = price;
+                this.recalculateLivePricing();
+            },
+
+            removeItemRow: function (btn) {
+                const row = btn.closest('.order-item-row');
+                if (row) row.remove();
+                this.recalculateLivePricing();
+            },
+
+            onCustomerChange: function () {
+                // Customer selection updated
+            },
+
+            applyPromoCode: function () {
+                const code = document.getElementById('order-promo-code')?.value.trim();
+                if (!code) {
+                    ERP.toast('Մուտքագրեք պրոմո կոդ:', 'warning');
+                    return;
+                }
+                ERP.toast(`Պրոմո կոդ «${code}» կիրառվեց:`, 'info');
+                this.recalculateLivePricing();
+            },
+
+            recalculateLivePricing: function () {
+                const rows = document.querySelectorAll('.order-item-row');
+                let subtotal = 0;
+                let itemDiscountsTotal = 0;
+
+                rows.forEach(r => {
+                    const qty = parseFloat(r.querySelector('.item-qty-input')?.value || 0);
+                    const price = parseFloat(r.querySelector('.item-price-input')?.value || 0);
+                    const discPct = parseFloat(r.querySelector('.item-discount-input')?.value || 0);
+
+                    const gross = qty * price;
+                    const discAmt = gross * (discPct / 100);
+                    const lineTotal = Math.max(0, gross - discAmt);
+
+                    subtotal += gross;
+                    itemDiscountsTotal += discAmt;
+
+                    const lineSubEl = r.querySelector('.item-line-subtotal');
+                    if (lineSubEl) lineSubEl.textContent = lineTotal.toFixed(2) + ' ֏';
+                });
+
+                const orderDiscVal = parseFloat(document.getElementById('order-discount-value')?.value || 0);
+                const orderDiscType = document.getElementById('order-discount-type')?.value || 'fixed';
+                let orderDiscount = 0;
+                const afterItemDisc = Math.max(0, subtotal - itemDiscountsTotal);
+                if (orderDiscType === 'percent') {
+                    orderDiscount = afterItemDisc * (orderDiscVal / 100);
+                } else {
+                    orderDiscount = Math.min(afterItemDisc, orderDiscVal);
+                }
+
+                const promoCode = document.getElementById('order-promo-code')?.value.trim().toUpperCase() || '';
+                let promoDiscount = 0;
+                if (promoCode === 'SAVE10') promoDiscount = Math.max(0, afterItemDisc - orderDiscount) * 0.10;
+                if (promoCode === 'MINUS1000') promoDiscount = Math.min(1000, Math.max(0, afterItemDisc - orderDiscount));
+
+                const deliveryFee = parseFloat(document.getElementById('order-delivery-fee')?.value || 0);
+                const taxableBase = Math.max(0, afterItemDisc - orderDiscount - promoDiscount);
+                const taxTotal = taxableBase * 0.20;
+                const grandTotal = Math.round((taxableBase + deliveryFee) * 100) / 100;
+
+                const setTxt = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+                setTxt('order-sum-subtotal', subtotal.toFixed(2) + ' ֏');
+                setTxt('order-sum-item-discounts', '-' + itemDiscountsTotal.toFixed(2) + ' ֏');
+                setTxt('order-sum-order-discount', '-' + orderDiscount.toFixed(2) + ' ֏');
+                setTxt('order-sum-promo-discount', '-' + promoDiscount.toFixed(2) + ' ֏');
+                setTxt('order-sum-delivery', deliveryFee.toFixed(2) + ' ֏');
+                setTxt('order-sum-tax', taxTotal.toFixed(2) + ' ֏');
+                setTxt('order-sum-grand-total', grandTotal.toLocaleString('hy-AM') + ' ֏');
+            },
+
+            submitCreate: async function (e) {
+                e.preventDefault();
+                const branchId = document.getElementById('order-branch-id')?.value;
+                const warehouseId = document.getElementById('order-warehouse-id')?.value;
+                const customerId = document.getElementById('order-customer-id')?.value || null;
+                const source = document.getElementById('order-source')?.value || 'manual_backoffice';
+                const fulfillmentMethod = document.getElementById('order-fulfillment-method')?.value || 'pickup';
+                const orderType = document.getElementById('order-type')?.value || 'standard';
+                const scheduledAt = document.getElementById('order-scheduled-at')?.value || null;
+                const employeeId = document.getElementById('order-employee-id')?.value || null;
+                const notes = document.getElementById('order-notes')?.value || '';
+                const orderDiscVal = parseFloat(document.getElementById('order-discount-value')?.value || 0);
+                const orderDiscType = document.getElementById('order-discount-type')?.value || 'fixed';
+                const deliveryFee = parseFloat(document.getElementById('order-delivery-fee')?.value || 0);
+                const promoCode = document.getElementById('order-promo-code')?.value.trim() || null;
+
+                const rows = document.querySelectorAll('.order-item-row');
+                const items = [];
+                rows.forEach(r => {
+                    const productId = r.querySelector('.item-product-select')?.value;
+                    const qty = parseFloat(r.querySelector('.item-qty-input')?.value || 0);
+                    const unitPrice = parseFloat(r.querySelector('.item-price-input')?.value || 0);
+                    const discPct = parseFloat(r.querySelector('.item-discount-input')?.value || 0);
+                    const taxPct = parseFloat(r.querySelector('.item-tax-input')?.value || 20);
+
+                    if (productId && qty > 0) {
+                        items.push({
+                            product_id: productId,
+                            quantity: qty,
+                            unit_price: unitPrice,
+                            discount_type: discPct > 0 ? 'percent' : 'none',
+                            discount_rate: discPct,
+                            tax_rate: taxPct
+                        });
+                    }
+                });
+
+                if (items.length === 0) {
+                    ERP.toast('Ավելացրեք առնվազն մեկ ապրանք:', 'warning');
+                    return;
+                }
+
+                const payload = {
+                    branch_id: branchId,
+                    warehouse_id: warehouseId,
+                    customer_id: customerId,
+                    source: source,
+                    fulfillment_method: fulfillmentMethod,
+                    order_type: orderType,
+                    scheduled_for: scheduledAt,
+                    responsible_employee_id: employeeId,
+                    notes: notes,
+                    items: items,
+                    order_discount_type: orderDiscType,
+                    order_discount_value: orderDiscVal,
+                    delivery_fee: deliveryFee,
+                    promo_code: promoCode
+                };
+
+                try {
+                    const res = await ERP.api('/sales/orders', {
+                        method: 'POST',
+                        body: JSON.stringify(payload)
+                    });
+                    ERP.toast(`Պատվերը հաջողությամբ ստեղծվեց (#${res.data?.order_number || ''}):`, 'success');
+                    this.closeCreateModal();
+                    this.load();
+                } catch (err) {
+                    ERP.toast(err.message || 'Պատվերի ստեղծումը ձախողվեց:', 'error');
+                }
+            },
+
+            openDetailsModal: async function (orderId) {
+                try {
+                    const res = await ERP.api(`/sales/orders/${orderId}`);
+                    const o = res.data;
+                    this.currentOrder = o;
+
+                    const setTxt = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+                    setTxt('od-order-number', o.order_number);
+                    setTxt('od-placed-at', o.placed_at ? new Date(o.placed_at).toLocaleString('hy-AM') : '-');
+                    setTxt('od-scheduled-at', o.scheduled_for ? new Date(o.scheduled_for).toLocaleString('hy-AM') : 'Անհապաղ');
+
+                    const statusBadge = document.getElementById('od-badge-status');
+                    if (statusBadge) {
+                        statusBadge.textContent = o.status;
+                        statusBadge.className = `badge badge-${o.status === 'completed' ? 'green' : o.status === 'cancelled' ? 'red' : 'blue'}`;
+                    }
+
+                    const paymentBadge = document.getElementById('od-badge-payment');
+                    if (paymentBadge) {
+                        paymentBadge.textContent = o.payment_status;
+                        paymentBadge.className = `badge badge-${o.payment_status === 'paid' ? 'green' : 'yellow'}`;
+                    }
+
+                    const sourceBadge = document.getElementById('od-badge-source');
+                    if (sourceBadge) {
+                        sourceBadge.textContent = o.source;
+                    }
+
+                    const cust = o.customer_snapshot || o.customer || {};
+                    setTxt('od-cust-name', cust.name || 'Անանուն');
+                    setTxt('od-cust-phone', cust.phone || cust.primary_phone || 'Չկա');
+                    setTxt('od-cust-tax-id', cust.tax_id || 'Չկա');
+                    setTxt('od-cust-address', cust.billing_address || cust.address || 'Չկա');
+
+                    setTxt('od-branch-name', o.branch?.name || '-');
+                    setTxt('od-warehouse-name', o.warehouse?.name || '-');
+                    setTxt('od-fulfillment-method', o.fulfillment_method || '-');
+                    setTxt('od-employee-name', o.responsible_employee?.name || '-');
+
+                    setTxt('od-fin-total', Number(o.total || 0).toLocaleString('hy-AM') + ' ֏');
+                    setTxt('od-fin-paid', Number(o.paid_amount || 0).toLocaleString('hy-AM') + ' ֏');
+                    setTxt('od-fin-balance', Number(o.balance_due || 0).toLocaleString('hy-AM') + ' ֏');
+                    setTxt('od-fin-discounts', Number(o.total_discounts || (Number(o.item_discounts_total || 0) + Number(o.order_discount || 0))).toLocaleString('hy-AM') + ' ֏');
+
+                    const cancelBox = document.getElementById('od-cancellation-box');
+                    if (cancelBox) {
+                        if (o.status === 'cancelled' && o.cancellation_reason) {
+                            cancelBox.style.display = 'block';
+                            setTxt('od-cancellation-reason', o.cancellation_reason);
+                        } else {
+                            cancelBox.style.display = 'none';
+                        }
+                    }
+
+                    const actionsDiv = document.getElementById('od-status-actions');
+                    if (actionsDiv) {
+                        actionsDiv.innerHTML = '';
+                        const transitions = {
+                            draft: ['confirmed', 'cancelled'],
+                            new: ['confirmed', 'cancelled'],
+                            confirmed: ['in_progress', 'ready', 'cancelled'],
+                            in_progress: ['ready', 'completed', 'cancelled'],
+                            ready: ['completed', 'cancelled']
+                        }[o.status] || [];
+
+                        transitions.forEach(target => {
+                            const btn = document.createElement('button');
+                            btn.className = `btn btn-xs ${target === 'completed' ? 'btn-primary' : target === 'cancelled' ? 'btn-outline-danger' : 'btn-secondary'}`;
+                            btn.textContent = `-> ${target}`;
+                            btn.onclick = () => ERP.orders.transitionStatus(target);
+                            actionsDiv.appendChild(btn);
+                        });
+                    }
+
+                    const itemsTbody = document.getElementById('od-items-tbody');
+                    if (itemsTbody) {
+                        itemsTbody.innerHTML = (o.items || []).map(it => `
+                            <tr>
+                                <td><strong>${it.product_name}</strong><br><span class="font-mono text-muted" style="font-size: 0.72rem;">${it.product_sku || ''}</span></td>
+                                <td class="font-mono">${it.quantity} ${it.unit_name || ''}</td>
+                                <td class="font-mono">${Number(it.unit_price).toLocaleString('hy-AM')} ֏</td>
+                                <td class="font-mono" style="color: #EF4444;">${it.discount_amount > 0 ? '-' + Number(it.discount_amount).toLocaleString('hy-AM') + ' ֏' : '0 ֏'}</td>
+                                <td class="font-mono">${Number(it.tax_amount || 0).toLocaleString('hy-AM')} ֏</td>
+                                <td class="font-mono font-bold">${Number(it.subtotal || it.total_price).toLocaleString('hy-AM')} ֏</td>
+                                <td class="font-mono text-muted">${it.unit_cost ? Number(it.unit_cost).toLocaleString('hy-AM') + ' ֏' : '-'}</td>
+                            </tr>
+                        `).join('');
+                    }
+
+                    const payList = document.getElementById('od-payments-list');
+                    if (payList) {
+                        if (!o.payments || o.payments.length === 0) {
+                            payList.innerHTML = `<div style="color: var(--text-muted); font-size: 0.85rem; padding: 1rem; text-align: center;">Վճարումներ դեռ գրանցված չեն:</div>`;
+                        } else {
+                            payList.innerHTML = o.payments.map(p => `
+                                <div class="card" style="padding: 0.75rem; display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <strong style="text-transform: uppercase; font-size: 0.8rem;">${p.payment_method}</strong>
+                                        <span class="badge ${p.status === 'completed' ? 'badge-green' : p.status === 'refunded' ? 'badge-purple' : 'badge-yellow'}" style="margin-left: 6px;">${p.status}</span>
+                                        <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">Ref: ${p.transaction_reference || p.id} | ${new Date(p.created_at).toLocaleString('hy-AM')}</div>
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <div class="font-mono font-bold" style="font-size: 0.95rem; color: ${p.status === 'completed' ? '#059669' : '#DC2626'};">${Number(p.amount).toLocaleString('hy-AM')} ֏</div>
+                                        ${p.status === 'completed' ? `<button class="btn btn-xs btn-outline-danger" onclick="ERP.orders.refundPayment('${p.id}', ${p.amount})" style="font-size: 0.7rem; padding: 2px 6px; margin-top: 4px;">Վերադարձնել</button>` : ''}
+                                    </div>
+                                </div>
+                            `).join('');
+                        }
+                    }
+
+                    const dnContainer = document.getElementById('od-attached-delivery-notes');
+                    if (dnContainer) {
+                        if (!o.delivery_notes || o.delivery_notes.length === 0) {
+                            dnContainer.innerHTML = `<div style="color: var(--text-muted); font-size: 0.8rem;">Այս պատվերի համար B2B բեռնագիր դեռ չի ձևավորվել:</div>`;
+                        } else {
+                            dnContainer.innerHTML = o.delivery_notes.map(dn => `
+                                <div class="card" style="padding: 0.75rem; display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                    <div>
+                                        <strong class="font-mono" style="color: #7C3AED;">${dn.document_number}</strong>
+                                        <span class="badge ${dn.status === 'issued' ? 'badge-green' : 'badge-red'}" style="margin-left: 6px;">${dn.status}</span>
+                                        ${dn.reprint_count > 0 ? `<span class="badge badge-amber">Կրկնօրինակ (${dn.reprint_count})</span>` : ''}
+                                        <div style="font-size: 0.72rem; color: var(--text-muted);">${dn.recipient_legal_name} | ${Number(dn.total_amount).toLocaleString('hy-AM')} ֏</div>
+                                    </div>
+                                    <button class="btn btn-xs btn-secondary" onclick="ERP.deliveryNotes.view('${dn.id}')"><i class="fa-solid fa-eye"></i> Դիտել</button>
+                                </div>
+                            `).join('');
+                        }
+                    }
+
+                    const pjContainer = document.getElementById('od-attached-print-jobs');
+                    if (pjContainer) {
+                        if (!o.print_jobs || o.print_jobs.length === 0) {
+                            pjContainer.innerHTML = `<div style="color: var(--text-muted); font-size: 0.8rem;">Տպագրության հերթում գրանցումներ չկան:</div>`;
+                        } else {
+                            pjContainer.innerHTML = o.print_jobs.map(pj => `
+                                <div class="card" style="padding: 0.65rem; display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                    <div>
+                                        <span class="badge ${pj.status === 'completed' ? 'badge-green' : pj.status === 'failed' ? 'badge-red' : 'badge-yellow'}">${pj.status}</span>
+                                        <strong style="margin-left: 6px; font-size: 0.8rem;">${pj.document_type}</strong>
+                                        <span class="font-mono text-muted" style="font-size: 0.72rem;">(${pj.printer?.name || 'Printer'})</span>
+                                    </div>
+                                    <button class="btn btn-xs btn-outline-secondary" onclick="ERP.printing.reprintJob('${pj.id}')"><i class="fa-solid fa-repeat"></i> Կրկնել</button>
+                                </div>
+                            `).join('');
+                        }
+                    }
+
+                    const auditTimeline = document.getElementById('od-audit-timeline');
+                    if (auditTimeline) {
+                        const logs = o.status_history || [];
+                        if (logs.length === 0) {
+                            auditTimeline.innerHTML = `<div style="color: var(--text-muted); font-size: 0.8rem;">Աուդիտի գրառումներ չեն գտնվել:</div>`;
+                        } else {
+                            auditTimeline.innerHTML = logs.map(l => `
+                                <div style="border-left: 2px solid var(--color-primary); padding-left: 12px; margin-bottom: 8px;">
+                                    <div style="font-size: 0.8rem; font-weight: 700;">Կարգավիճակ՝ <span class="font-mono">${l.from_status || 'start'}</span> -> <span class="font-mono text-primary">${l.to_status}</span></div>
+                                    <div style="font-size: 0.72rem; color: var(--text-muted);">Պատճառ՝ ${l.reason || 'Ավտոմատ / Օգտատեր'} | ${new Date(l.created_at).toLocaleString('hy-AM')}</div>
+                                </div>
+                            `).join('');
+                        }
+                    }
+
+                    this.switchDetailsTab('overview');
+                    document.getElementById('order-details-modal')?.classList.add('active');
+                } catch (err) {
+                    ERP.toast('Պատվերի բեռնումը ձախողվեց: ' + err.message, 'error');
+                }
+            },
+
+            closeDetailsModal: function () {
+                document.getElementById('order-details-modal')?.classList.remove('active');
+            },
+
+            switchDetailsTab: function (tab) {
+                ['overview', 'items', 'payments', 'docs', 'audit'].forEach(t => {
+                    const btn = document.getElementById(`od-tab-btn-${t}`);
+                    const pane = document.getElementById(`od-pane-${t}`);
+                    if (btn) btn.classList.toggle('active', t === tab);
+                    if (pane) pane.style.display = t === tab ? 'block' : 'none';
+                });
+            },
+
+            transitionStatus: async function (targetStatus) {
+                if (!this.currentOrder) return;
+                let reason = null;
+                if (targetStatus === 'cancelled') {
+                    reason = prompt('Նշեք պատվերի չեղարկման պատճառը:');
+                    if (reason === null) return;
+                }
+
+                try {
+                    await ERP.api(`/sales/orders/${this.currentOrder.id}/status`, {
+                        method: 'PATCH',
+                        body: JSON.stringify({ status: targetStatus, reason: reason })
+                    });
+                    ERP.toast(`Պատվերի կարգավիճակը փոխվեց (${targetStatus}):`, 'success');
+                    await this.openDetailsModal(this.currentOrder.id);
+                    this.load();
+                } catch (err) {
+                    ERP.toast('Կարգավիճակի փոփոխությունը ձախողվեց: ' + err.message, 'error');
+                }
+            },
+
+            promptCancelOrder: function () {
+                this.transitionStatus('cancelled');
+            },
+
+            openRescheduleModal: function () {
+                if (!this.currentOrder) return;
+                const currentSched = this.currentOrder.scheduled_for ? this.currentOrder.scheduled_for.replace(' ', 'T').slice(0, 16) : '';
+                const input = document.getElementById('reschedule-target-date');
+                if (input) input.value = currentSched;
+                document.getElementById('reschedule-order-modal')?.classList.add('active');
+            },
+
+            submitReschedule: async function (e) {
+                e.preventDefault();
+                if (!this.currentOrder) return;
+                const targetDate = document.getElementById('reschedule-target-date')?.value;
+                const note = document.getElementById('reschedule-note')?.value || '';
+
+                try {
+                    await ERP.api(`/sales/orders/${this.currentOrder.id}/reschedule`, {
+                        method: 'PATCH',
+                        body: JSON.stringify({ scheduled_for: targetDate, note: note })
+                    });
+                    ERP.toast('Պատվերը հաջողությամբ վերապլանավորվեց (placed_at պահպանված է):', 'success');
+                    document.getElementById('reschedule-order-modal')?.classList.remove('active');
+                    await this.openDetailsModal(this.currentOrder.id);
+                    this.load();
+                } catch (err) {
+                    ERP.toast('Վերապլանավորումը ձախողվեց: ' + err.message, 'error');
+                }
+            },
+
+            submitRecordPayment: async function (e) {
+                e.preventDefault();
+                if (!this.currentOrder) return;
+                const method = document.getElementById('od-pay-method')?.value || 'cash';
+                const amount = parseFloat(document.getElementById('od-pay-amount')?.value || 0);
+                const ref = document.getElementById('od-pay-ref')?.value || '';
+
+                if (amount <= 0) {
+                    ERP.toast('Մուտքագրեք դրական գումար:', 'warning');
+                    return;
+                }
+
+                try {
+                    await ERP.api(`/sales/orders/${this.currentOrder.id}/payments`, {
+                        method: 'POST',
+                        body: JSON.stringify({ payment_method: method, amount: amount, transaction_reference: ref })
+                    });
+                    ERP.toast('Վճարումը հաջողությամբ գրանցվեց:', 'success');
+                    const amtInput = document.getElementById('od-pay-amount');
+                    if (amtInput) amtInput.value = '';
+                    await this.openDetailsModal(this.currentOrder.id);
+                    this.load();
+                } catch (err) {
+                    ERP.toast('Վճարման գրանցումը ձախողվեց: ' + err.message, 'error');
+                }
+            },
+
+            refundPayment: async function (paymentId, originalAmount) {
+                const amtStr = prompt('Մուտքագրեք վերադարձվող գումարը (֏):', originalAmount);
+                if (!amtStr) return;
+                const amt = parseFloat(amtStr);
+                if (isNaN(amt) || amt <= 0) return;
+
+                try {
+                    await ERP.api(`/sales/orders/${this.currentOrder.id}/payments/${paymentId}/refund`, {
+                        method: 'POST',
+                        body: JSON.stringify({ amount: amt, reason: 'Customer requested refund' })
+                    });
+                    ERP.toast('Վերադարձը հաջողությամբ գրանցվեց:', 'success');
+                    await this.openDetailsModal(this.currentOrder.id);
+                    this.load();
+                } catch (err) {
+                    ERP.toast('Վերադարձը ձախողվեց: ' + err.message, 'error');
+                }
+            },
+
+            printCurrentOrderReceipt: async function () {
+                if (!this.currentOrder) return;
+                this.printOrderReceipt(this.currentOrder.id);
+            },
+
+            printOrderReceipt: async function (orderId) {
+                try {
+                    const res = await ERP.api('/printing/jobs/print-order', {
+                        method: 'POST',
+                        body: JSON.stringify({ order_id: orderId, document_type: 'order_receipt' })
+                    });
+                    ERP.toast(`Տպագրության աշխատանքը գրանցվեց (#${res.data?.id || ''}):`, 'success');
+                    if (res.data?.output_payload) {
+                        const w = window.open('', '_blank', 'width=380,height=600');
+                        if (w) {
+                            w.document.write(res.data.output_payload);
+                            w.document.close();
+                            w.focus();
+                            setTimeout(() => w.print(), 250);
+                        }
+                    }
+                } catch (err) {
+                    ERP.toast('Տպագրությունը ձախողվեց: ' + err.message, 'error');
+                }
+            },
+
+            printCurrentOrderA4: async function () {
+                if (!this.currentOrder) return;
+                try {
+                    const res = await ERP.api('/printing/jobs/print-order', {
+                        method: 'POST',
+                        body: JSON.stringify({ order_id: this.currentOrder.id, document_type: 'order_confirmation' })
+                    });
+                    ERP.toast('A4 փաստաթուղթը գրանցվեց տպագրության հերթում:', 'success');
+                    if (res.data?.output_payload) {
+                        const w = window.open('', '_blank');
+                        if (w) {
+                            w.document.write(res.data.output_payload);
+                            w.document.close();
+                            w.focus();
+                            setTimeout(() => w.print(), 250);
+                        }
+                    }
+                } catch (err) {
+                    ERP.toast('A4 տպագրությունը ձախողվեց: ' + err.message, 'error');
+                }
+            },
+
+            openGenerateDeliveryNoteForCurrent: function () {
+                if (!this.currentOrder) return;
+                ERP.deliveryNotes.openGenerateModal(this.currentOrder.id);
+            }
+        },
+
+        // =====================================================================
+        // 9.2 Phase 5: B2B Delivery Notes (Накладная) Subsystem
+        // =====================================================================
+        deliveryNotes: {
+            list: [],
+            currentNote: null,
+
+            load: async function () {
+                try {
+                    const res = await ERP.api('/sales/delivery-notes');
+                    if (res && res.data) {
+                        this.list = res.data;
+                        this.renderList(this.list);
+                    }
+                } catch (e) {
+                    console.error('Failed to load delivery notes', e);
+                    if (this.list.length > 0) this.renderList(this.list);
+                }
+            },
+
+            renderList: function (notes) {
+                const tbody = document.getElementById('delivery-notes-tbody');
+                if (!tbody) return;
+
+                if (!notes || notes.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 2rem; color: var(--text-muted);"><i class="fa-solid fa-file-invoice" style="font-size: 1.5rem; margin-bottom: 0.5rem; display: block;"></i> B2B Բեռնագրեր դեռ չեն գրանցվել</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = notes.map(dn => {
+                    const statusClass = dn.status === 'issued' ? 'badge-green' : dn.status === 'cancelled' ? 'badge-red' : 'badge-yellow';
+                    const isReprint = dn.reprint_count > 0;
+                    const docDate = dn.document_date ? new Date(dn.document_date).toLocaleDateString('hy-AM') : '-';
+                    const total = Number(dn.total_amount || 0).toLocaleString('hy-AM');
+
+                    return `
+                        <tr>
+                            <td class="font-mono font-bold" style="color: #7C3AED; cursor: pointer;" onclick="ERP.deliveryNotes.view('${dn.id}')">
+                                ${dn.document_number}
+                            </td>
+                            <td class="font-mono">${dn.order?.order_number || '-'}</td>
+                            <td>
+                                <strong>${dn.recipient_legal_name}</strong>
+                                ${dn.recipient_tax_id ? `<span class="font-mono text-muted" style="font-size: 0.72rem; display: block;">ՀՎՀՀ՝ ${dn.recipient_tax_id}</span>` : ''}
+                            </td>
+                            <td>${docDate}</td>
+                            <td class="font-mono font-bold" style="text-align: right;">${total} ֏</td>
+                            <td>
+                                <span class="badge ${statusClass}">${dn.status}</span>
+                                ${isReprint ? `<span class="badge badge-amber" style="margin-left: 4px;">Կրկնօրինակ (${dn.reprint_count})</span>` : ''}
+                            </td>
+                            <td>${dn.responsible_employee?.name || '-'}</td>
+                            <td style="text-align: right;">
+                                <button class="btn btn-xs btn-outline-primary" onclick="ERP.deliveryNotes.view('${dn.id}')" title="Դիտել & Տպել">
+                                    <i class="fa-solid fa-print"></i>
+                                </button>
+                                <button class="btn btn-xs btn-outline-secondary" onclick="ERP.deliveryNotes.triggerReprintJob('${dn.id}')" title="Ուղարկել Կրկնօրինակ">
+                                    <i class="fa-solid fa-repeat"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            },
+
+            openGenerateModal: function (orderId) {
+                const order = orderId ? ERP.orders.list.find(o => o.id === orderId) || ERP.orders.currentOrder : null;
+                const inputOrderId = document.getElementById('dn-gen-order-id');
+                if (inputOrderId) inputOrderId.value = orderId || '';
+
+                const cust = order?.customer_snapshot || order?.customer || {};
+                const nameInput = document.getElementById('dn-recipient-name');
+                if (nameInput) nameInput.value = cust.legal_name || cust.name || '';
+
+                const tinInput = document.getElementById('dn-recipient-tax-id');
+                if (tinInput) tinInput.value = cust.tax_id || '';
+
+                const addrInput = document.getElementById('dn-delivery-address');
+                if (addrInput) addrInput.value = cust.delivery_address || cust.billing_address || '';
+
+                document.getElementById('generate-delivery-note-modal')?.classList.add('active');
+            },
+
+            closeGenerateModal: function () {
+                document.getElementById('generate-delivery-note-modal')?.classList.remove('active');
+            },
+
+            submitGenerate: async function (e) {
+                e.preventDefault();
+                const orderId = document.getElementById('dn-gen-order-id')?.value;
+                if (!orderId) {
+                    ERP.toast('Ընտրեք պատվերը:', 'warning');
+                    return;
+                }
+
+                const payload = {
+                    recipient_legal_name: document.getElementById('dn-recipient-name')?.value,
+                    recipient_tax_id: document.getElementById('dn-recipient-tax-id')?.value || null,
+                    delivery_address: document.getElementById('dn-delivery-address')?.value || null,
+                    delivered_by: document.getElementById('dn-delivered-by')?.value || null,
+                    received_by: document.getElementById('dn-received-by')?.value || null,
+                    notes: document.getElementById('dn-notes')?.value || null
+                };
+
+                try {
+                    const res = await ERP.api(`/sales/orders/${orderId}/delivery-notes`, {
+                        method: 'POST',
+                        body: JSON.stringify(payload)
+                    });
+                    ERP.toast(`B2B Բեռնագիրը հաջողությամբ ստեղծվեց (#${res.data?.document_number}):`, 'success');
+                    this.closeGenerateModal();
+                    this.load();
+                    if (res.data?.id) {
+                        this.view(res.data.id);
+                    }
+                } catch (err) {
+                    ERP.toast('Բեռնագրի ստեղծումը ձախողվեց: ' + err.message, 'error');
+                }
+            },
+
+            view: async function (noteId) {
+                try {
+                    const res = await ERP.api(`/sales/delivery-notes/${noteId}`);
+                    const dn = res.data;
+                    this.currentNote = dn;
+
+                    const setTxt = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+                    setTxt('vdn-doc-number', dn.document_number);
+
+                    const previewSheet = document.getElementById('vdn-preview-sheet');
+                    if (previewSheet) {
+                        const itemsHtml = (dn.items || []).map((it, idx) => `
+                            <tr>
+                                <td style="border: 1px solid #CBD5E1; padding: 6px; text-align: center;">${idx + 1}</td>
+                                <td style="border: 1px solid #CBD5E1; padding: 6px;"><strong>${it.product_name}</strong><br><small style="color: #64748B;">${it.product_code || ''}</small></td>
+                                <td style="border: 1px solid #CBD5E1; padding: 6px; text-align: center;">${it.unit_name || 'հատ'}</td>
+                                <td style="border: 1px solid #CBD5E1; padding: 6px; text-align: right;" class="font-mono">${it.quantity}</td>
+                                <td style="border: 1px solid #CBD5E1; padding: 6px; text-align: right;" class="font-mono">${Number(it.unit_price).toLocaleString('hy-AM')} ֏</td>
+                                <td style="border: 1px solid #CBD5E1; padding: 6px; text-align: right;" class="font-mono">${Number(it.tax_amount || 0).toLocaleString('hy-AM')} ֏</td>
+                                <td style="border: 1px solid #CBD5E1; padding: 6px; text-align: right; font-weight: bold;" class="font-mono">${Number(it.total_amount).toLocaleString('hy-AM')} ֏</td>
+                            </tr>
+                        `).join('');
+
+                        const isReprint = dn.reprint_count > 0;
+                        const watermark = isReprint ? `
+                            <div style="position: absolute; top: 35%; left: 20%; transform: rotate(-30deg); font-size: 5rem; font-weight: 900; color: rgba(220, 38, 38, 0.12); pointer-events: none; border: 4px dashed rgba(220, 38, 38, 0.2); padding: 10px 40px; border-radius: 12px;">
+                                ԿՐԿՆՕՐԻՆԱԿ #${dn.reprint_count}
+                            </div>
+                        ` : '';
+
+                        previewSheet.innerHTML = `
+                            <div style="position: relative;">
+                                ${watermark}
+                                <div style="display: flex; justify-content: space-between; border-bottom: 2px solid #0F172A; padding-bottom: 12px; margin-bottom: 16px;">
+                                    <div>
+                                        <h2 style="margin: 0; font-size: 1.3rem; color: #0F172A; text-transform: uppercase; letter-spacing: 0.5px;">Ապրանքային Բեռնագիր (Накладная)</h2>
+                                        <div style="font-size: 0.95rem; font-weight: 800; color: #7C3AED; font-family: monospace; margin-top: 4px;">Համար՝ ${dn.document_number}</div>
+                                        <div style="font-size: 0.78rem; color: #64748B;">Ամսաթիվ՝ ${new Date(dn.document_date).toLocaleDateString('hy-AM')}</div>
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <div style="font-weight: 800; font-size: 0.95rem;">${dn.organization?.name || 'ERPlannet ERP'}</div>
+                                        <div style="font-size: 0.75rem; color: #64748B;">ՀՎՀՀ՝ ${dn.organization?.tax_id || '99824101'}</div>
+                                        <div style="font-size: 0.75rem; color: #64748B;">Մասնաճյուղ՝ ${dn.branch?.name || '-'}</div>
+                                    </div>
+                                </div>
+
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; background: #F8FAFC; padding: 12px; border-radius: 6px; border: 1px solid #E2E8F0; font-size: 0.8rem;">
+                                    <div>
+                                        <div style="font-weight: 800; color: #0F172A; margin-bottom: 4px;">ԱՌԱՔՈՂ (Supplier):</div>
+                                        <div>${dn.organization?.name || 'ERPlannet Enterprise'}</div>
+                                        <div>Հասցե՝ ${dn.branch?.address || 'Երևան, Հայաստան'}</div>
+                                    </div>
+                                    <div>
+                                        <div style="font-weight: 800; color: #0F172A; margin-bottom: 4px;">ՍՏԱՑՈՂ (Recipient):</div>
+                                        <div style="font-weight: 700; color: #1E293B;">${dn.recipient_legal_name}</div>
+                                        <div>ՀՎՀՀ՝ <span class="font-mono">${dn.recipient_tax_id || 'Չկա'}</span></div>
+                                        <div>Առաքման Հասցե՝ ${dn.delivery_address || '-'}</div>
+                                    </div>
+                                </div>
+
+                                <table style="width: 100%; border-collapse: collapse; font-size: 0.78rem; margin-bottom: 16px;">
+                                    <thead>
+                                        <tr style="background: #F1F5F9; color: #0F172A;">
+                                            <th style="border: 1px solid #CBD5E1; padding: 6px; width: 30px;">#</th>
+                                            <th style="border: 1px solid #CBD5E1; padding: 6px; text-align: left;">Ապրանքի Անվանում</th>
+                                            <th style="border: 1px solid #CBD5E1; padding: 6px; width: 60px;">Միավ․</th>
+                                            <th style="border: 1px solid #CBD5E1; padding: 6px; width: 70px;">Քանակ</th>
+                                            <th style="border: 1px solid #CBD5E1; padding: 6px; width: 90px;">Գին (֏)</th>
+                                            <th style="border: 1px solid #CBD5E1; padding: 6px; width: 80px;">ԱԱՀ (֏)</th>
+                                            <th style="border: 1px solid #CBD5E1; padding: 6px; width: 100px;">Ընդամենը (֏)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${itemsHtml}
+                                    </tbody>
+                                    <tfoot>
+                                        <tr style="background: #F8FAFC; font-weight: 800;">
+                                            <td colspan="6" style="border: 1px solid #CBD5E1; padding: 8px; text-align: right;">Ընդհանուր Գումար (Վճարման ենթակա)՝</td>
+                                            <td style="border: 1px solid #CBD5E1; padding: 8px; text-align: right;" class="font-mono font-bold">${Number(dn.total_amount).toLocaleString('hy-AM')} ֏</td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 40px; font-size: 0.8rem;">
+                                    <div style="border-top: 1px solid #94A3B8; padding-top: 8px;">
+                                        <div><strong>Հանձնեց՝</strong> ${dn.delivered_by || dn.responsible_employee?.name || '______________________'}</div>
+                                        <div style="font-size: 0.7rem; color: #94A3B8; margin-top: 4px;">Ստորագրություն և Կ․Տ․</div>
+                                    </div>
+                                    <div style="border-top: 1px solid #94A3B8; padding-top: 8px;">
+                                        <div><strong>Ստացավ՝</strong> ${dn.received_by || '______________________'}</div>
+                                        <div style="font-size: 0.7rem; color: #94A3B8; margin-top: 4px;">Ստորագրություն և Կ․Տ․</div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    document.getElementById('view-delivery-note-modal')?.classList.add('active');
+                } catch (err) {
+                    ERP.toast('Բեռնագրի բացումը ձախողվեց: ' + err.message, 'error');
+                }
+            },
+
+            printWindow: function () {
+                const content = document.getElementById('vdn-preview-sheet')?.innerHTML;
+                if (!content) return;
+                const w = window.open('', '_blank');
+                if (w) {
+                    w.document.write(`
+                        <html>
+                        <head>
+                            <title>B2B Delivery Note</title>
+                            <style>
+                                body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px; }
+                                table { width: 100%; border-collapse: collapse; }
+                                th, td { border: 1px solid #cbd5e1; padding: 6px; }
+                                @media print {
+                                    body { padding: 0; }
+                                    button { display: none; }
+                                }
+                            </style>
+                        </head>
+                        <body>
+                            ${content}
+                        </body>
+                        </html>
+                    `);
+                    w.document.close();
+                    w.focus();
+                    setTimeout(() => w.print(), 250);
+                }
+            },
+
+            triggerReprintJob: async function (noteId) {
+                const id = noteId || this.currentNote?.id;
+                if (!id) return;
+                try {
+                    const res = await ERP.api(`/sales/delivery-notes/${id}/reprint`, { method: 'POST' });
+                    ERP.toast(`Կրկնօրինակումը գրանցվեց (Reprint #${res.data?.reprint_count || 1}):`, 'success');
+                    this.load();
+                    this.view(id);
+                } catch (err) {
+                    ERP.toast('Կրկնօրինակումը ձախողվեց: ' + err.message, 'error');
+                }
+            }
+        },
+
+        // =====================================================================
+        // 9.3 Phase 5: XML Import Center Subsystem
+        // =====================================================================
+        xmlImport: {
+            selectedFile: null,
+            history: [],
+
+            load: async function () {
+                this.loadHistory();
+            },
+
+            onFileSelected: function (input) {
+                if (input.files && input.files[0]) {
+                    this.selectedFile = input.files[0];
+                    const nameEl = document.getElementById('xml-file-name-display');
+                    if (nameEl) nameEl.textContent = `${this.selectedFile.name} (${(this.selectedFile.size / 1024).toFixed(1)} KB)`;
+                    document.getElementById('xml-preview-card').style.display = 'none';
+                }
+            },
+
+            previewFile: async function () {
+                if (!this.selectedFile) {
+                    ERP.toast('Ընտրեք XML ֆայլ:', 'warning');
+                    return;
+                }
+
+                const branchSelect = document.getElementById('xml-branch-select') || document.getElementById('xml-import-branch');
+                const warehouseSelect = document.getElementById('xml-warehouse-select') || document.getElementById('xml-import-warehouse');
+                const branchId = branchSelect?.value;
+                const warehouseId = warehouseSelect?.value;
+
+                const formData = new FormData();
+                formData.append('xml_file', this.selectedFile);
+                if (branchId) formData.append('branch_id', branchId);
+                if (warehouseId) formData.append('warehouse_id', warehouseId);
+
+                try {
+                    const res = await ERP.api('/sales/xml-imports/preview', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const preview = res.data;
+                    const card = document.getElementById('xml-preview-card');
+                    if (card) {
+                        card.style.display = 'block';
+                        const placeholder = document.getElementById('xml-preview-placeholder');
+                        const content = document.getElementById('xml-preview-content');
+                        if (placeholder) placeholder.style.display = 'none';
+                        if (content) content.style.display = 'block';
+
+                        const setTxt = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+                        setTxt('xml-pv-format', preview.format || 'Detected Schema');
+                        setTxt('xml-format-badge', (preview.format || 'ERPLANNET XML').toUpperCase());
+
+                        const docTypeEl = document.getElementById('xml-doctype-badge');
+                        if (docTypeEl) {
+                            const isTaxInv = preview.document_type === 'tax_invoice';
+                            const isAccDoc = preview.document_type === 'accounting_document';
+                            docTypeEl.textContent = isTaxInv ? 'ՀԱՐԿԱՅԻՆ ՀԱՇԻՎ (ԱԱՀ)' : (isAccDoc ? 'ՀԱՇՎԱՐԿԱՅԻՆ ՀԱՇԻՎ' : (preview.document_type || 'Customer Order').toUpperCase());
+                            docTypeEl.className = isTaxInv ? 'badge badge-green' : (isAccDoc ? 'badge badge-blue' : 'badge badge-slate');
+                        }
+
+                        setTxt('xml-pv-count', `${preview.orders_count || 1} Պատվեր`);
+                        setTxt('xml-pv-amount', `${Number(preview.total_amount || 0).toLocaleString('hy-AM')} ֏`);
+                        setTxt('xml-preview-total', `${Number(preview.total_amount || 0).toLocaleString('hy-AM')} ֏`);
+                        setTxt('xml-pv-checksum', preview.checksum || '-');
+                        if (preview.checksum) {
+                            setTxt('xml-checksum-preview', `SHA256: ${preview.checksum.substring(0, 16)}...`);
+                        }
+
+                        const errBox = document.getElementById('xml-errors-container') || document.getElementById('xml-pv-errors');
+                        if (errBox) {
+                            if (preview.validation_errors && preview.validation_errors.length > 0) {
+                                errBox.style.display = 'block';
+                                errBox.className = 'alert alert-warning';
+                                errBox.innerHTML = `<strong>Սխալներ / Զգուշացումներ՝</strong><br>` + preview.validation_errors.map(e => `• ${e}`).join('<br>');
+                            } else {
+                                errBox.style.display = 'none';
+                            }
+                        }
+
+                        // Render items table
+                        const itemsTbody = document.getElementById('xml-preview-items-body');
+                        if (itemsTbody) {
+                            const items = preview.items || preview.orders?.[0]?.items || [];
+                            if (items.length > 0) {
+                                itemsTbody.innerHTML = items.map((it, idx) => `
+                                    <tr>
+                                        <td>${idx + 1}</td>
+                                        <td><strong>${it.product_name || it.name || it.sku}</strong></td>
+                                        <td>${it.quantity} ${it.unit || it.unit_name || 'հատ'}</td>
+                                        <td>${Number(it.unit_price || 0).toLocaleString('hy-AM')} ֏</td>
+                                        <td style="font-weight: 700;">${Number(it.total || it.total_price || (it.quantity * it.unit_price) || 0).toLocaleString('hy-AM')} ֏</td>
+                                    </tr>
+                                `).join('');
+                            } else {
+                                itemsTbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 1rem;">Ապրանքներ չեն գտնվել</td></tr>`;
+                            }
+                        }
+                    }
+                    ERP.toast('XML ֆայլը հաջողությամբ ստուգվեց (Dry-Run Preview):', 'success');
+                } catch (err) {
+                    ERP.toast('XML նախադիտումը ձախողվեց: ' + err.message, 'error');
+                }
+            },
+
+            confirmImport: async function () {
+                if (!this.selectedFile) {
+                    ERP.toast('Ընտրեք XML ֆայլ:', 'warning');
+                    return;
+                }
+
+                const branchSelect = document.getElementById('xml-branch-select') || document.getElementById('xml-import-branch');
+                const warehouseSelect = document.getElementById('xml-warehouse-select') || document.getElementById('xml-import-warehouse');
+                const branchId = branchSelect?.value;
+                const warehouseId = warehouseSelect?.value;
+
+                const formData = new FormData();
+                formData.append('xml_file', this.selectedFile);
+                if (branchId) formData.append('branch_id', branchId);
+                if (warehouseId) formData.append('warehouse_id', warehouseId);
+
+                try {
+                    const res = await ERP.api('/sales/xml-imports/confirm', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    ERP.toast(`XML իմպորտը հաջողությամբ ավարտվեց (${res.data?.imported_orders_count || 1} պատվեր):`, 'success');
+                    document.getElementById('xml-preview-card').style.display = 'none';
+                    this.selectedFile = null;
+                    const fileInput = document.getElementById('xml-file-input');
+                    if (fileInput) fileInput.value = '';
+                    const nameEl = document.getElementById('xml-file-name-display');
+                    if (nameEl) nameEl.textContent = 'Ֆայլ ընտրված չէ';
+
+                    this.loadHistory();
+                    ERP.orders.load();
+                } catch (err) {
+                    ERP.toast('XML իմպորտը ձախողվեց: ' + err.message, 'error');
+                }
+            },
+
+            loadHistory: async function () {
+                try {
+                    const res = await ERP.api('/sales/xml-imports');
+                    if (res && res.data) {
+                        this.history = res.data;
+                        const tbody = document.getElementById('xml-history-tbody');
+                        if (!tbody) return;
+
+                        if (this.history.length === 0) {
+                            tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">Իմպորտի պատմություն դեռ չկա</td></tr>`;
+                            return;
+                        }
+
+                        tbody.innerHTML = this.history.map(h => `
+                            <tr>
+                                <td class="font-mono font-bold">${h.original_filename}</td>
+                                <td><span class="badge badge-indigo">${h.format}</span></td>
+                                <td class="font-mono">${h.total_orders}</td>
+                                <td class="font-mono font-bold" style="color: #059669;">${h.successful_orders}</td>
+                                <td class="font-mono" style="color: ${h.failed_orders > 0 ? '#DC2626' : '#64748B'};">${h.failed_orders}</td>
+                                <td><span class="badge ${h.status === 'completed' ? 'badge-green' : h.status === 'failed' ? 'badge-red' : 'badge-amber'}">${h.status}</span></td>
+                                <td style="font-size: 0.75rem; color: var(--text-muted);">${new Date(h.created_at).toLocaleString('hy-AM')}</td>
+                            </tr>
+                        `).join('');
+                    }
+                } catch (e) {
+                    console.error('Failed to load XML import history', e);
+                }
+            }
+        },
+
+        // =====================================================================
+        // 9.4 Phase 5: Print Management Subsystem
+        // =====================================================================
+        printing: {
+            printers: [],
+            jobs: [],
+
+            load: async function () {
+                await Promise.all([this.loadPrinters(), this.loadJobs()]);
+            },
+
+            loadPrinters: async function () {
+                try {
+                    const res = await ERP.api('/printing/printers');
+                    if (res && res.data) {
+                        this.printers = res.data;
+                        this.renderPrinters(this.printers);
+                    }
+                } catch (e) {
+                    console.error('Failed to load printers', e);
+                    if (this.printers.length > 0) this.renderPrinters(this.printers);
+                }
+            },
+
+            loadJobs: async function () {
+                try {
+                    const res = await ERP.api('/printing/jobs');
+                    if (res && res.data) {
+                        this.jobs = res.data;
+                        this.renderJobs(this.jobs);
+                    }
+                } catch (e) {
+                    console.error('Failed to load print jobs', e);
+                    if (this.jobs.length > 0) this.renderJobs(this.jobs);
+                }
+            },
+
+            renderPrinters: function (printers) {
+                const grid = document.getElementById('printers-grid');
+                if (!grid) return;
+
+                if (!printers || printers.length === 0) {
+                    grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; padding: 2rem; color: var(--text-muted); background: white; border-radius: 8px;"><i class="fa-solid fa-print" style="font-size: 2rem; margin-bottom: 0.5rem; display: block;"></i> Գրանցված տպիչներ չկան: Սեղմեք «Ավելացնել Տպիչ»:</div>`;
+                    return;
+                }
+
+                grid.innerHTML = printers.map(p => {
+                    const icon = p.paper_width === '80mm' || p.paper_width === '58mm' ? 'fa-receipt' : 'fa-print';
+                    return `
+                        <div class="card" style="padding: 1rem; position: relative;">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+                                <div style="display: flex; gap: 8px; align-items: center;">
+                                    <div style="width: 36px; height: 36px; border-radius: 8px; background: #EFF6FF; color: var(--color-primary); display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
+                                        <i class="fa-solid ${icon}"></i>
+                                    </div>
+                                    <div>
+                                        <h4 style="margin: 0; font-size: 0.95rem; font-weight: 800;">${p.name}</h4>
+                                        <div style="font-size: 0.72rem; color: var(--text-muted);">${p.branch?.name || 'Բոլոր Մասնաճյուղերը'}</div>
+                                    </div>
+                                </div>
+                                <span class="badge ${p.status === 'online' ? 'badge-green' : 'badge-gray'}">${p.status}</span>
+                            </div>
+
+                            <div style="font-size: 0.78rem; line-height: 1.6; margin-bottom: 0.75rem;">
+                                <div><strong>Ինտերֆեյս՝</strong> <span class="font-mono">${p.interface_type}</span></div>
+                                <div><strong>Թուղթ / Չափս՝</strong> <span class="badge badge-cyan">${p.paper_width}</span></div>
+                                <div><strong>Հասցե՝</strong> <span class="font-mono text-muted">${p.ip_address ? p.ip_address + ':' + (p.port || 9100) : (p.device_path || 'Native')}</span></div>
+                                <div><strong>Պրոտոկոլ՝</strong> ${p.protocol}</div>
+                            </div>
+
+                            <div style="display: flex; gap: 6px; justify-content: flex-end; border-top: 1px solid #E2E8F0; padding-top: 8px;">
+                                <button class="btn btn-xs btn-outline-primary" onclick="ERP.printing.testPrint('${p.id}')">
+                                    <i class="fa-solid fa-play"></i> Test Print
+                                </button>
+                                <button class="btn btn-xs btn-outline-danger" onclick="ERP.printing.deletePrinter('${p.id}')" style="color: #EF4444; border-color: #FECACA;">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            },
+
+            renderJobs: function (jobs) {
+                const tbody = document.getElementById('print-jobs-tbody');
+                if (!tbody) return;
+
+                if (!jobs || jobs.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 1.5rem; color: var(--text-muted);">Տպագրության հերթը դատարկ է</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = jobs.map(j => `
+                    <tr>
+                        <td class="font-mono" style="font-size: 0.75rem;">${j.id.slice(0, 8)}...</td>
+                        <td><strong>${j.document_type}</strong></td>
+                        <td class="font-mono">${j.order?.order_number || '-'}</td>
+                        <td>${j.printer?.name || 'Default'}</td>
+                        <td class="font-mono">${j.copies}</td>
+                        <td>
+                            <span class="badge ${j.status === 'completed' ? 'badge-green' : j.status === 'failed' ? 'badge-red' : 'badge-yellow'}">${j.status}</span>
+                            ${j.is_reprint ? `<span class="badge badge-amber" style="margin-left: 4px;">Reprint</span>` : ''}
+                        </td>
+                        <td style="font-size: 0.72rem; color: var(--text-muted);">${new Date(j.created_at).toLocaleString('hy-AM')}</td>
+                        <td style="text-align: right;">
+                            <button class="btn btn-xs btn-outline-secondary" onclick="ERP.printing.reprintJob('${j.id}')" title="Reprint">
+                                <i class="fa-solid fa-repeat"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            },
+
+            openAddPrinterModal: function () {
+                document.getElementById('add-printer-modal')?.classList.add('active');
+            },
+
+            closeAddPrinterModal: function () {
+                document.getElementById('add-printer-modal')?.classList.remove('active');
+            },
+
+            onInterfaceChange: function () {
+                const iface = document.getElementById('ptr-interface')?.value;
+                const ipInput = document.getElementById('ptr-ip');
+                const portInput = document.getElementById('ptr-port');
+                if (ipInput) ipInput.disabled = iface === 'browser';
+                if (portInput) portInput.disabled = iface === 'browser';
+            },
+
+            submitPrinter: async function (e) {
+                e.preventDefault();
+                const payload = {
+                    name: document.getElementById('ptr-name')?.value,
+                    branch_id: document.getElementById('ptr-branch-id')?.value,
+                    interface_type: document.getElementById('ptr-interface')?.value,
+                    paper_width: document.getElementById('ptr-paper-width')?.value,
+                    ip_address: document.getElementById('ptr-ip')?.value || null,
+                    port: parseInt(document.getElementById('ptr-port')?.value || 9100),
+                    protocol: document.getElementById('ptr-protocol')?.value || 'esc_pos',
+                    supports_cut: document.getElementById('ptr-cut-paper')?.checked ?? true,
+                    supports_drawer: document.getElementById('ptr-cash-drawer')?.checked ?? true,
+                    is_default: document.getElementById('ptr-is-default')?.checked ?? false
+                };
+
+                try {
+                    await ERP.api('/printing/printers', {
+                        method: 'POST',
+                        body: JSON.stringify(payload)
+                    });
+                    ERP.toast('Տպիչը հաջողությամբ գրանցվեց:', 'success');
+                    this.closeAddPrinterModal();
+                    this.loadPrinters();
+                } catch (err) {
+                    ERP.toast('Տպիչի գրանցումը ձախողվեց: ' + err.message, 'error');
+                }
+            },
+
+            testPrint: async function (printerId) {
+                try {
+                    const res = await ERP.api(`/printing/printers/${printerId}/test-print`, { method: 'POST' });
+                    ERP.toast(res.message || 'Թեստային տպագրության հրամանը ուղարկվեց տպիչին:', 'success');
+                    this.loadJobs();
+                } catch (err) {
+                    ERP.toast('Թեստային տպագրությունը ձախողվեց: ' + err.message, 'error');
+                }
+            },
+
+            reprintJob: async function (jobId) {
+                try {
+                    await ERP.api(`/printing/jobs/${jobId}/reprint`, { method: 'POST' });
+                    ERP.toast('Կրկնակի տպագրության աշխատանքը հերթագրվեց:', 'success');
+                    this.loadJobs();
+                } catch (err) {
+                    ERP.toast('Կրկնակի տպագրությունը ձախողվեց: ' + err.message, 'error');
+                }
+            },
+
+            deletePrinter: async function (printerId) {
+                if (!confirm('Հեռացնե՞լ տպիչը համակարգից:')) return;
+                try {
+                    await ERP.api(`/printing/printers/${printerId}`, { method: 'DELETE' });
+                    ERP.toast('Տպիչը հեռացվեց:', 'info');
+                    this.loadPrinters();
+                } catch (err) {
+                    ERP.toast('Հեռացումը ձախողվեց: ' + err.message, 'error');
+                }
+            }
+        },
+
+        // =====================================================================
+        // 9.5 Phase 5: Visual Document Designer Subsystem
+        // =====================================================================
+        designer: {
+            templates: [],
+            activeTemplate: null,
+            placeholders: [],
+
+            load: async function () {
+                await this.loadTemplates();
+                await this.loadPlaceholders();
+            },
+
+            loadTemplates: async function () {
+                try {
+                    const res = await ERP.api('/printing/templates');
+                    if (res && res.data) {
+                        this.templates = res.data;
+                        const sel = document.getElementById('designer-template-select');
+                        if (sel) {
+                            sel.innerHTML = this.templates.map(t => `<option value="${t.id}">${t.name} (${t.paper_width} v${t.active_version || 1})</option>`).join('');
+                        }
+                        if (this.templates.length > 0) {
+                            this.selectTemplate(this.templates[0].id);
+                        }
+                    }
+                } catch (e) {
+                    console.error('Failed to load document templates', e);
+                }
+            },
+
+            loadPlaceholders: async function () {
+                try {
+                    const res = await ERP.api('/printing/templates/placeholders');
+                    if (res && res.data) {
+                        this.placeholders = res.data;
+                        const tbody = document.getElementById('designer-placeholders-tbody');
+                        if (tbody) {
+                            tbody.innerHTML = this.placeholders.map(p => `
+                                <tr>
+                                    <td><code class="font-mono text-primary">${p.tag}</code></td>
+                                    <td>${p.description}</td>
+                                    <td>
+                                        <button class="btn btn-xs btn-outline-secondary" onclick="ERP.designer.copyPlaceholder('${p.tag}')">Copy</button>
+                                    </td>
+                                </tr>
+                            `).join('');
+                        }
+                    }
+                } catch (e) {
+                    console.error('Failed to load placeholders', e);
+                }
+            },
+
+            selectTemplate: function (templateId) {
+                const t = this.templates.find(x => x.id === templateId);
+                if (!t) return;
+                this.activeTemplate = t;
+
+                const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+                setVal('tmpl-name', t.name);
+                setVal('tmpl-doc-type', t.document_type);
+                setVal('tmpl-paper-width', t.paper_width);
+                setVal('tmpl-font-family', t.config?.font_family || 'sans-serif');
+                setVal('tmpl-font-size', t.config?.font_size || '12px');
+                setVal('tmpl-margin', t.config?.margin || '5mm');
+                setVal('tmpl-header-text', t.config?.header_text || '');
+                setVal('tmpl-footer-text', t.config?.footer_text || '');
+
+                const setChk = (id, val) => { const el = document.getElementById(id); if (el) el.checked = Boolean(val); };
+                setChk('tmpl-show-logo', t.config?.show_logo ?? true);
+                setChk('tmpl-show-qr', t.config?.show_qr ?? true);
+                setChk('tmpl-show-tax', t.config?.show_tax_summary ?? true);
+                setChk('tmpl-show-employee', t.config?.show_responsible_employee ?? true);
+                setChk('tmpl-show-notes', t.config?.show_order_notes ?? true);
+
+                const editor = document.getElementById('tmpl-content-editor');
+                if (editor) editor.value = t.content || '';
+
+                this.changePaperSize(t.paper_width);
+                this.updateLivePreview();
+            },
+
+            changePaperSize: function (size) {
+                ['80mm', '58mm', 'A4', 'A5'].forEach(s => {
+                    const btn = document.getElementById(`btn-size-${s}`);
+                    if (btn) btn.classList.toggle('active', s === size);
+                });
+                const sel = document.getElementById('tmpl-paper-width');
+                if (sel) sel.value = size;
+
+                const frame = document.getElementById('designer-preview-frame');
+                if (frame) {
+                    const widths = { '58mm': '260px', '80mm': '340px', 'A4': '680px', 'A5': '480px' };
+                    frame.style.width = widths[size] || '340px';
+                }
+                this.updateLivePreview();
+            },
+
+            onConfigChange: function () {
+                this.updateLivePreview();
+            },
+
+            updateLivePreview: async function () {
+                if (!this.activeTemplate) return;
+                const content = document.getElementById('tmpl-content-editor')?.value || '';
+                const paperWidth = document.getElementById('tmpl-paper-width')?.value || '80mm';
+                const config = {
+                    font_family: document.getElementById('tmpl-font-family')?.value || 'sans-serif',
+                    font_size: document.getElementById('tmpl-font-size')?.value || '12px',
+                    margin: document.getElementById('tmpl-margin')?.value || '5mm',
+                    header_text: document.getElementById('tmpl-header-text')?.value || '',
+                    footer_text: document.getElementById('tmpl-footer-text')?.value || '',
+                    show_logo: document.getElementById('tmpl-show-logo')?.checked ?? true,
+                    show_qr: document.getElementById('tmpl-show-qr')?.checked ?? true,
+                    show_tax_summary: document.getElementById('tmpl-show-tax')?.checked ?? true,
+                    show_responsible_employee: document.getElementById('tmpl-show-employee')?.checked ?? true,
+                    show_order_notes: document.getElementById('tmpl-show-notes')?.checked ?? true
+                };
+
+                try {
+                    const res = await ERP.api('/printing/templates/preview', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            template_id: this.activeTemplate.id,
+                            content: content,
+                            config: config,
+                            paper_width: paperWidth
+                        })
+                    });
+
+                    const frame = document.getElementById('designer-preview-frame');
+                    if (frame && res.data?.rendered_html) {
+                        frame.srcdoc = res.data.rendered_html;
+                    }
+                } catch (e) {
+                    console.error('Preview error', e);
+                }
+            },
+
+            saveDraft: async function () {
+                if (!this.activeTemplate) return;
+                const payload = {
+                    name: document.getElementById('tmpl-name')?.value,
+                    content: document.getElementById('tmpl-content-editor')?.value,
+                    paper_width: document.getElementById('tmpl-paper-width')?.value,
+                    config: {
+                        font_family: document.getElementById('tmpl-font-family')?.value,
+                        font_size: document.getElementById('tmpl-font-size')?.value,
+                        margin: document.getElementById('tmpl-margin')?.value,
+                        header_text: document.getElementById('tmpl-header-text')?.value,
+                        footer_text: document.getElementById('tmpl-footer-text')?.value,
+                        show_logo: document.getElementById('tmpl-show-logo')?.checked,
+                        show_qr: document.getElementById('tmpl-show-qr')?.checked,
+                        show_tax_summary: document.getElementById('tmpl-show-tax')?.checked,
+                        show_responsible_employee: document.getElementById('tmpl-show-employee')?.checked,
+                        show_order_notes: document.getElementById('tmpl-show-notes')?.checked
+                    }
+                };
+
+                try {
+                    await ERP.api(`/printing/templates/${this.activeTemplate.id}`, {
+                        method: 'PUT',
+                        body: JSON.stringify(payload)
+                    });
+                    ERP.toast('Շաբլոնի սևագիրը պահպանվեց:', 'success');
+                    this.loadTemplates();
+                } catch (err) {
+                    ERP.toast('Պահպանումը ձախողվեց: ' + err.message, 'error');
+                }
+            },
+
+            publishVersion: async function () {
+                if (!this.activeTemplate) return;
+                await this.saveDraft();
+                try {
+                    const res = await ERP.api(`/printing/templates/${this.activeTemplate.id}/publish`, {
+                        method: 'POST',
+                        body: JSON.stringify({ notes: 'Published from Visual Template Designer' })
+                    });
+                    ERP.toast(`Շաբլոնը հրապարակվեց (Տարբերակ v${res.data?.active_version || '2'}):`, 'success');
+                    this.loadTemplates();
+                } catch (err) {
+                    ERP.toast('Հրապարակումը ձախողվեց: ' + err.message, 'error');
+                }
+            },
+
+            duplicateTemplate: async function () {
+                if (!this.activeTemplate) return;
+                try {
+                    const res = await ERP.api(`/printing/templates/${this.activeTemplate.id}/duplicate`, { method: 'POST' });
+                    ERP.toast('Շաբլոնը հաջողությամբ կրկնօրինակվեց:', 'success');
+                    await this.loadTemplates();
+                    if (res.data?.id) this.selectTemplate(res.data.id);
+                } catch (err) {
+                    ERP.toast('Կրկնօրինակումը ձախողվեց: ' + err.message, 'error');
+                }
+            },
+
+            openPlaceholdersModal: function () {
+                document.getElementById('designer-placeholders-modal')?.classList.add('active');
+            },
+
+            closePlaceholdersModal: function () {
+                document.getElementById('designer-placeholders-modal')?.classList.remove('active');
+            },
+
+            copyPlaceholder: function (tag) {
+                navigator.clipboard?.writeText(tag);
+                const editor = document.getElementById('tmpl-content-editor');
+                if (editor) {
+                    const start = editor.selectionStart;
+                    const end = editor.selectionEnd;
+                    editor.value = editor.value.substring(0, start) + tag + editor.value.substring(end);
+                    editor.focus();
+                    editor.selectionStart = editor.selectionEnd = start + tag.length;
+                    this.updateLivePreview();
+                }
+                ERP.toast(`Փոխարինիչը պատճենվեց՝ ${tag}`, 'info');
+            }
+        },
+
+        // =====================================================================
         // 10. Initialization
         // =====================================================================
         init: function () {
@@ -4753,9 +6262,29 @@
                 ERP.directory.customers.sources = window.SERVER_INITIAL_DATA.customerSources;
             }
 
+            // Hydrate Phase 5 collections
+            if (window.SERVER_INITIAL_DATA?.orders && window.SERVER_INITIAL_DATA.orders.length > 0) {
+                ERP.orders.list = window.SERVER_INITIAL_DATA.orders;
+            }
+            if (window.SERVER_INITIAL_DATA?.deliveryNotes && window.SERVER_INITIAL_DATA.deliveryNotes.length > 0) {
+                ERP.deliveryNotes.list = window.SERVER_INITIAL_DATA.deliveryNotes;
+            }
+            if (window.SERVER_INITIAL_DATA?.printers && window.SERVER_INITIAL_DATA.printers.length > 0) {
+                ERP.printing.printers = window.SERVER_INITIAL_DATA.printers;
+            }
+            if (window.SERVER_INITIAL_DATA?.printJobs && window.SERVER_INITIAL_DATA.printJobs.length > 0) {
+                ERP.printing.jobs = window.SERVER_INITIAL_DATA.printJobs;
+            }
+            if (window.SERVER_INITIAL_DATA?.documentTemplates && window.SERVER_INITIAL_DATA.documentTemplates.length > 0) {
+                ERP.designer.templates = window.SERVER_INITIAL_DATA.documentTemplates;
+            }
+            if (window.SERVER_INITIAL_DATA?.xmlImports && window.SERVER_INITIAL_DATA.xmlImports.length > 0) {
+                ERP.xmlImport.history = window.SERVER_INITIAL_DATA.xmlImports;
+            }
+
             // Check hash in URL or default to dashboard
             const hash = window.location.hash.replace('#', '') || 'dashboard';
-            const validViews = ['dashboard', 'catalog', 'directory-categories', 'directory-suppliers', 'directory-ingredients', 'directory-customers', 'procurement', 'pos', 'inventory', 'manufacturing', 'quality', 'delivery', 'users', 'roles', 'billing', 'settings', 'api-console'];
+            const validViews = ['dashboard', 'catalog', 'directory-categories', 'directory-suppliers', 'directory-ingredients', 'directory-customers', 'procurement', 'pos', 'inventory', 'manufacturing', 'quality', 'delivery', 'users', 'roles', 'billing', 'settings', 'api-console', 'orders', 'delivery-notes', 'xml-import', 'print-management', 'document-designer'];
             const targetView = validViews.includes(hash) ? hash : 'dashboard';
 
             ERP.navigateTo(targetView);

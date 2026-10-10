@@ -20,7 +20,8 @@ class InitiateOrderPaymentAction
         string $gatewayIdentifier,
         string $returnUrl,
         string $cancelUrl,
-        ?string $paymentMethod = null
+        ?string $paymentMethod = null,
+        ?float $amount = null
     ): array {
         $tenant = $this->tenantContext->getTenant();
         if (! $tenant) {
@@ -30,10 +31,13 @@ class InitiateOrderPaymentAction
         $order = Order::findOrFail($orderId);
         $gateway = $this->gatewayManager->gateway($gatewayIdentifier);
 
+        // Allow partial or split payment amount, default to remaining balance or total
+        $payableAmount = $amount !== null ? max(0.01, round($amount, 2)) : ((float) ($order->balance_due > 0 ? $order->balance_due : $order->total));
+
         $intent = new PaymentIntentDTO(
             tenantId: $tenant->id,
             invoiceId: null,
-            amount: (float) $order->total,
+            amount: $payableAmount,
             currency: $order->currency,
             description: "Payment for Order #{$order->order_number} ({$tenant->name})",
             returnUrl: $returnUrl,
@@ -54,7 +58,7 @@ class InitiateOrderPaymentAction
             'gateway' => $gateway->getIdentifier(),
             'payment_method' => $determinedMethod,
             'transaction_id' => $result->transactionId,
-            'amount' => (float) $order->total,
+            'amount' => $payableAmount,
             'currency' => $order->currency,
             'status' => $result->status === 'successful' ? 'successful' : 'pending',
             'gateway_response' => $result->gatewayResponse,
@@ -62,8 +66,7 @@ class InitiateOrderPaymentAction
         ]);
 
         if ($result->status === 'successful') {
-            $order->payment_status = 'paid';
-            $order->save();
+            $order->recalculateBalances();
         }
 
         return [

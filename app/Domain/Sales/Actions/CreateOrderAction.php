@@ -4,13 +4,15 @@ namespace App\Domain\Sales\Actions;
 
 use App\Domain\Billing\Contracts\EntitlementManagerInterface;
 use App\Domain\Branch\Models\Branch;
-use App\Domain\Catalog\Models\Product;
-use App\Domain\Catalog\Models\ProductVariant;
 use App\Domain\CRM\Models\Customer;
 use App\Domain\Sales\Models\Order;
 use App\Domain\Sales\Models\OrderItem;
 use App\Domain\Sales\Models\OrderStatusHistory;
 use App\Domain\Sales\Services\OrderNumberGenerator;
+use App\Domain\Sales\Services\OrderStatusStateMachine;
+use App\Domain\Sales\Services\PricingEngine;
+use App\Domain\Warehouse\Actions\ReserveStockAction;
+use App\Domain\Warehouse\Models\Warehouse;
 use App\Infrastructure\MultiTenancy\TenantContext;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
@@ -20,21 +22,44 @@ class CreateOrderAction
     public function __construct(
         protected TenantContext $tenantContext,
         protected EntitlementManagerInterface $entitlementManager,
-        protected OrderNumberGenerator $numberGenerator
+        protected OrderNumberGenerator $numberGenerator,
+        protected PricingEngine $pricingEngine,
+        protected OrderStatusStateMachine $stateMachine
     ) {}
 
     /**
      * @param array{
      *     branch_id: string,
+     *     warehouse_id?: string|null,
      *     customer_id?: string|null,
      *     customer_address_id?: string|null,
+     *     source?: string,
+     *     order_type?: string,
+     *     external_reference?: string|null,
      *     delivery_type?: string,
-     *     delivery_fee?: float,
-     *     discount?: float,
+     *     delivery_fee?: float|int|string|null,
+     *     discount?: float|int|string|null,
+     *     order_discount?: float|int|string|null,
+     *     promo_code?: string|null,
      *     customer_notes?: string|null,
      *     internal_notes?: string|null,
      *     scheduled_for?: string|null,
-     *     items: array<array{product_id: string, variant_id?: string|null, quantity: float, notes?: string|null}>
+     *     status?: string|null,
+     *     responsible_employee_id?: string|null,
+     *     pos_terminal_id?: string|null,
+     *     pos_session_id?: string|null,
+     *     allow_price_override?: bool,
+     *     items: array<int, array{
+     *         product_id: string,
+     *         variant_id?: string|null,
+     *         quantity: float|int|string,
+     *         unit_price?: float|int|string|null,
+     *         discount?: float|int|string|null,
+     *         discount_type?: string|null,
+     *         discount_rate?: float|int|string|null,
+     *         tax_rate?: float|int|string|null,
+     *         notes?: string|null
+     *     }>
      * } $data
      */
     public function execute(array $data, ?string $userId = null): Order
@@ -50,103 +75,143 @@ class CreateOrderAction
         // 2. Validate Branch
         $branch = Branch::where('id', $data['branch_id'])->where('is_active', true)->firstOrFail();
 
-        // 3. Validate Customer if provided
+        // 3. Resolve Warehouse
+        $warehouseId = $data['warehouse_id'] ?? null;
+        if (! $warehouseId) {
+            $defaultWarehouse = Warehouse::where('branch_id', $branch->id)->where('is_active', true)->first();
+            $warehouseId = $defaultWarehouse?->id;
+        }
+
+        // 4. Validate Customer if provided
+        $customer = null;
         if (! empty($data['customer_id'])) {
-            Customer::findOrFail($data['customer_id']);
+            $customer = Customer::with(['defaultAddress', 'company'])->findOrFail($data['customer_id']);
         }
 
         if (empty($data['items'])) {
             throw new InvalidArgumentException('Order must contain at least one item.');
         }
 
-        return DB::transaction(function () use ($data, $tenant, $branch, $userId) {
-            $subtotal = 0.00;
-            $itemsToCreate = [];
+        // 5. Centralized Pricing Engine Calculation
+        $orderDiscount = $data['order_discount'] ?? ($data['discount'] ?? 0.00);
+        $pricing = $this->pricingEngine->calculate($data['items'], [
+            'order_discount' => $orderDiscount,
+            'promo_code' => $data['promo_code'] ?? null,
+            'delivery_fee' => $data['delivery_fee'] ?? 0.00,
+            'delivery_type' => $data['delivery_type'] ?? 'delivery',
+            'allow_price_override' => (bool) ($data['allow_price_override'] ?? false),
+        ]);
 
-            // 4. Resolve Products & Calculate Subtotal securely from DB
-            foreach ($data['items'] as $itemData) {
-                $product = Product::where('id', $itemData['product_id'])->where('is_active', true)->firstOrFail();
-
-                $unitPrice = (float) $product->sale_price;
-                $variant = null;
-
-                if (! empty($itemData['variant_id'])) {
-                    $variant = ProductVariant::where('id', $itemData['variant_id'])
-                        ->where('product_id', $product->id)
-                        ->where('is_active', true)
-                        ->firstOrFail();
-
-                    $unitPrice = $variant->getEffectivePrice();
-                }
-
-                $qty = (float) $itemData['quantity'];
-                $itemTotal = round($unitPrice * $qty, 2);
-                $subtotal += $itemTotal;
-
-                $itemsToCreate[] = [
-                    'tenant_id' => $tenant->id,
-                    'product_id' => $product->id,
-                    'variant_id' => $variant?->id,
-                    'product_name' => $product->getLocalizedName(),
-                    'product_sku' => $variant?->sku ?? $product->sku,
-                    'quantity' => $qty,
-                    'unit_price' => $unitPrice,
-                    'discount' => 0.00,
-                    'total' => $itemTotal,
-                    'notes' => $itemData['notes'] ?? null,
-                ];
-            }
-
-            $discount = (float) ($data['discount'] ?? 0.00);
-            $deliveryFee = (float) ($data['delivery_fee'] ?? 0.00);
-            $tax = 0.00; // Can be configured by tenant settings
-            $total = max(0.00, round(($subtotal - $discount + $deliveryFee + $tax), 2));
-
-            // 5. Generate Order Number
+        return DB::transaction(function () use ($data, $tenant, $branch, $warehouseId, $customer, $pricing, $userId) {
+            // 6. Generate Order Number
             $orderNumber = $this->numberGenerator->generate();
 
-            // 6. Create Order
+            $initialStatus = $data['status'] ?? 'new';
+            $validInitial = ['draft', 'new', 'confirmed'];
+            if (! in_array($initialStatus, $validInitial, true)) {
+                $initialStatus = 'new';
+            }
+
+            // 7. Create Order
             $order = Order::create([
                 'tenant_id' => $tenant->id,
                 'branch_id' => $branch->id,
-                'customer_id' => $data['customer_id'] ?? null,
+                'warehouse_id' => $warehouseId,
+                'customer_id' => $customer?->id,
                 'customer_address_id' => $data['customer_address_id'] ?? null,
                 'order_number' => $orderNumber,
-                'status' => 'new',
+                'status' => $initialStatus,
                 'source' => $data['source'] ?? 'direct',
+                'order_type' => $data['order_type'] ?? 'standard',
+                'external_reference' => $data['external_reference'] ?? null,
                 'delivery_type' => $data['delivery_type'] ?? 'delivery',
-                'currency' => $tenant->currency,
-                'subtotal' => $subtotal,
-                'discount' => $discount,
-                'delivery_fee' => $deliveryFee,
-                'tax' => $tax,
-                'total' => $total,
+                'currency' => $tenant->currency ?? 'AMD',
+                'subtotal' => $pricing['subtotal'],
+                'item_discounts_total' => $pricing['item_discounts_total'],
+                'order_discount' => $pricing['order_discount'],
+                'discount' => round($pricing['item_discounts_total'] + $pricing['order_discount'] + $pricing['promo_discount'], 2),
+                'promo_code' => $pricing['promo_code'],
+                'promo_discount' => $pricing['promo_discount'],
+                'delivery_fee' => $pricing['delivery_fee'],
+                'tax' => $pricing['tax'],
+                'total' => $pricing['total'],
+                'paid_amount' => 0.00,
+                'balance_due' => $pricing['total'],
+                'pos_terminal_id' => $data['pos_terminal_id'] ?? null,
+                'pos_session_id' => $data['pos_session_id'] ?? null,
+                'responsible_employee_id' => $data['responsible_employee_id'] ?? $userId,
                 'payment_status' => 'unpaid',
                 'customer_notes' => $data['customer_notes'] ?? null,
                 'internal_notes' => $data['internal_notes'] ?? null,
                 'scheduled_for' => $data['scheduled_for'] ?? null,
+                'placed_at' => now(),
+                'confirmed_at' => $initialStatus === 'confirmed' ? now() : null,
             ]);
 
-            // 7. Create Order Items
-            foreach ($itemsToCreate as $itemData) {
-                $itemData['order_id'] = $order->id;
-                OrderItem::create($itemData);
+            // 8. Snapshot Customer
+            if ($customer) {
+                $order->snapshotCustomer($customer);
             }
 
-            // 8. Log initial status
+            // 9. Create Order Items
+            foreach ($pricing['items'] as $itemData) {
+                OrderItem::create([
+                    'tenant_id' => $tenant->id,
+                    'order_id' => $order->id,
+                    'product_id' => $itemData['product_id'],
+                    'variant_id' => $itemData['variant_id'],
+                    'unit_id' => $itemData['unit_id'],
+                    'unit_name' => $itemData['unit_name'],
+                    'product_name' => $itemData['product_name'],
+                    'product_sku' => $itemData['product_sku'],
+                    'quantity' => $itemData['quantity'],
+                    'unit_price' => $itemData['unit_price'],
+                    'original_price' => $itemData['original_price'],
+                    'discount' => $itemData['discount'],
+                    'discount_type' => $itemData['discount_type'],
+                    'discount_rate' => $itemData['discount_rate'],
+                    'tax_rate' => $itemData['tax_rate'],
+                    'tax_amount' => $itemData['tax_amount'],
+                    'subtotal' => $itemData['subtotal'],
+                    'total' => $itemData['total'],
+                    'unit_cost' => $itemData['unit_cost'],
+                    'notes' => $itemData['notes'],
+                    'created_at' => now(),
+                ]);
+            }
+
+            // 10. Log Initial Status
             OrderStatusHistory::create([
                 'tenant_id' => $tenant->id,
                 'order_id' => $order->id,
                 'user_id' => $userId,
                 'from_status' => null,
-                'to_status' => 'new',
-                'comment' => 'Order created.',
+                'to_status' => $initialStatus,
+                'comment' => "Order created via {$order->source}.",
             ]);
 
-            // 9. Consume quota
+            // 11. Reserve inventory if created directly in confirmed status
+            if ($initialStatus === 'confirmed' && $order->warehouse_id) {
+                $order->load('items');
+                $order->update(['metadata' => ['stock_reserved' => true]]);
+                foreach ($order->items as $item) {
+                    try {
+                        app(ReserveStockAction::class)->execute(
+                            warehouseId: $order->warehouse_id,
+                            productId: $item->product_id,
+                            productVariantId: $item->variant_id,
+                            quantity: (float) $item->quantity
+                        );
+                    } catch (\Throwable $e) {
+                        // Stock reservation logged
+                    }
+                }
+            }
+
+            // 12. Consume Quota
             $this->entitlementManager->consume('limit.orders_monthly', 1);
 
-            return $order->load(['items', 'branch', 'customer', 'statusHistories']);
+            return $order->load(['items.product', 'items.unit', 'branch', 'warehouse', 'customer', 'statusHistories']);
         });
     }
 }

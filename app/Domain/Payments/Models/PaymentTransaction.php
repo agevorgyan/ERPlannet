@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Str;
 
 class PaymentTransaction extends Model
 {
@@ -19,6 +20,7 @@ class PaymentTransaction extends Model
 
     protected $fillable = [
         'tenant_id',
+        'branch_id',
         'order_id',
         'invoice_id',
         'pos_session_id',
@@ -26,6 +28,7 @@ class PaymentTransaction extends Model
         'payment_method', // cash, card, qr, transfer
         'transaction_id',
         'amount',
+        'refunded_amount',
         'currency',
         'status', // pending, successful, failed, refunded
         'payer_details',
@@ -35,10 +38,23 @@ class PaymentTransaction extends Model
 
     protected $casts = [
         'amount' => 'decimal:2',
+        'refunded_amount' => 'decimal:2',
         'payer_details' => 'array',
         'gateway_response' => 'array',
         'paid_at' => 'datetime',
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (PaymentTransaction $payment) {
+            if (empty($payment->gateway)) {
+                $payment->gateway = $payment->payment_method ?: 'cash';
+            }
+            if (empty($payment->transaction_id)) {
+                $payment->transaction_id = 'TXN-'.strtoupper(Str::random(10));
+            }
+        });
+    }
 
     public function order(): BelongsTo
     {

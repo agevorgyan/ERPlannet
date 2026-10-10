@@ -21,6 +21,22 @@ class PermissionsSeeder extends Seeder
             ['code' => 'sales.orders.create', 'module' => 'sales', 'name' => 'Create Orders'],
             ['code' => 'sales.orders.edit', 'module' => 'sales', 'name' => 'Edit Orders'],
             ['code' => 'sales.orders.cancel', 'module' => 'sales', 'name' => 'Cancel Orders'],
+            ['code' => 'sales.orders.reschedule', 'module' => 'sales', 'name' => 'Reschedule Preliminary Orders'],
+            ['code' => 'sales.orders.override_price', 'module' => 'sales', 'name' => 'Override Order Item Prices'],
+            ['code' => 'sales.orders.discount', 'module' => 'sales', 'name' => 'Apply Order Discounts'],
+            ['code' => 'sales.orders.xml_import', 'module' => 'sales', 'name' => 'Import Orders from XML'],
+
+            // Print & Template Management
+            ['code' => 'printing.printers.manage', 'module' => 'printing', 'name' => 'Manage Printers and Workstations'],
+            ['code' => 'printing.templates.manage', 'module' => 'printing', 'name' => 'Design & Edit Document Templates'],
+            ['code' => 'printing.templates.publish', 'module' => 'printing', 'name' => 'Publish Template Versions'],
+            ['code' => 'printing.jobs.create', 'module' => 'printing', 'name' => 'Send Print Jobs'],
+            ['code' => 'printing.reprint', 'module' => 'printing', 'name' => 'Reprint Issued Documents'],
+
+            // B2B Delivery Notes
+            ['code' => 'delivery_notes.view', 'module' => 'sales', 'name' => 'View B2B Delivery Notes'],
+            ['code' => 'delivery_notes.create', 'module' => 'sales', 'name' => 'Create B2B Delivery Notes'],
+            ['code' => 'delivery_notes.reprint', 'module' => 'sales', 'name' => 'Reprint B2B Delivery Notes'],
 
             // Catalog & Products
             ['code' => 'catalog.products.view', 'module' => 'catalog', 'name' => 'View Products'],

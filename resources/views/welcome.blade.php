@@ -49,6 +49,11 @@
             deliveryShipments: @json($deliveryShipments),
             users: @json($users),
             roles: @json($roles),
+            printers: @json($printers ?? []),
+            documentTemplates: @json($documentTemplates ?? []),
+            deliveryNotes: @json($deliveryNotes ?? []),
+            printJobs: @json($printJobs ?? []),
+            xmlImports: @json($xmlImports ?? []),
             currentUser: @json($currentUser),
             activeView: @json($activeView)
         };
@@ -132,6 +137,49 @@
                             <span class="nav-icon"><i class="fa-solid fa-file-invoice"></i></span>
                             <span>Procurement</span>
                             <span class="nav-pill">{{ count($purchaseOrders) }}</span>
+                        </a>
+                    </li>
+                    <!-- Sales & Orders Section -->
+                    <li style="margin-top: 0.5rem; padding: 0.35rem 0.85rem 0.15rem; font-size: 0.68rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-subtle);">
+                        <i class="fa-solid fa-cart-shopping" style="margin-right: 4px; color: var(--color-primary);"></i> Վաճառք & Պատվերներ
+                    </li>
+                    <li>
+                        <a href="#orders" class="nav-item-link" data-view="orders" onclick="ERP.navigateTo('orders')">
+                            <span class="nav-icon"><i class="fa-solid fa-cart-flatbed"></i></span>
+                            <span>Պատվերներ</span>
+                            <span class="nav-pill" id="sidebar-orders-count">{{ count($orders) }}</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#delivery-notes" class="nav-item-link" data-view="delivery-notes" onclick="ERP.navigateTo('delivery-notes')">
+                            <span class="nav-icon"><i class="fa-solid fa-file-signature"></i></span>
+                            <span>Բեռնագրեր (B2B)</span>
+                            <span class="nav-pill">{{ count($deliveryNotes) }}</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#xml-import" class="nav-item-link" data-view="xml-import" onclick="ERP.navigateTo('xml-import')">
+                            <span class="nav-icon"><i class="fa-solid fa-file-code"></i></span>
+                            <span>XML Ներմուծում</span>
+                            <span class="nav-pill">Center</span>
+                        </a>
+                    </li>
+                    <!-- Printing & Hardware Section -->
+                    <li style="margin-top: 0.5rem; padding: 0.35rem 0.85rem 0.15rem; font-size: 0.68rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-subtle);">
+                        <i class="fa-solid fa-print" style="margin-right: 4px; color: var(--color-primary);"></i> Տպում & Դիզայներ
+                    </li>
+                    <li>
+                        <a href="#print-management" class="nav-item-link" data-view="print-management" onclick="ERP.navigateTo('print-management')">
+                            <span class="nav-icon"><i class="fa-solid fa-print"></i></span>
+                            <span>Տպիչներ & Հերթ</span>
+                            <span class="nav-pill">{{ count($printers) }}</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#document-designer" class="nav-item-link" data-view="document-designer" onclick="ERP.navigateTo('document-designer')">
+                            <span class="nav-icon"><i class="fa-solid fa-palette"></i></span>
+                            <span>Կտրոնի Դիզայներ</span>
+                            <span class="nav-pill">Visual</span>
                         </a>
                     </li>
                     <li>
@@ -1909,6 +1957,728 @@
                                     @endforelse
                                 </tbody>
                             </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ==============================================================
+                     VIEW: ORDERS MANAGEMENT (ՊԱՏՎԵՐՆԵՐ)
+                     ============================================================== -->
+                <section class="view-panel" id="view-orders" style="display: none;">
+                    <div class="view-header">
+                        <div>
+                            <h2 style="font-size: 1.4rem; font-weight: 800; color: var(--text-heading); display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="fa-solid fa-cart-flatbed" style="color: var(--color-primary);"></i>
+                                <span>Պատվերների Կառավարում</span>
+                            </h2>
+                            <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.2rem;">
+                                Բոլոր ալիքների պատվերներ՝ POS, Առցանց, Մանրածախ, B2B, XML ներմուծում
+                            </p>
+                        </div>
+                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                            <button class="btn btn-secondary" onclick="ERP.orders.load()">
+                                <i class="fa-solid fa-rotate"></i> <span>Թարմացնել</span>
+                            </button>
+                            <button class="btn btn-primary" onclick="ERP.orders.openCreateModal()">
+                                <i class="fa-solid fa-plus"></i> <span>Նոր Պատվեր</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Metrics Summary Grid -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1.25rem;">
+                        <div class="card" style="padding: 1rem; border-left: 4px solid var(--color-primary);">
+                            <div style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted);">Ընդհանուր Պատվերներ</div>
+                            <div style="font-size: 1.6rem; font-weight: 800; color: var(--text-heading); margin-top: 0.25rem;" id="orders-kpi-total">{{ count($orders) }}</div>
+                            <div style="font-size: 0.75rem; color: #16a34a; margin-top: 0.2rem;"><i class="fa-solid fa-arrow-trend-up"></i> Ակտիվ համակարգում</div>
+                        </div>
+                        <div class="card" style="padding: 1rem; border-left: 4px solid #16a34a;">
+                            <div style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted);">Ընդհանուր Հասույթ</div>
+                            <div style="font-size: 1.6rem; font-weight: 800; color: #16a34a; margin-top: 0.25rem;" id="orders-kpi-revenue">{{ number_format($orders->sum('total'), 0) }} ֏</div>
+                            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.2rem;">Հաշվարկված գումար</div>
+                        </div>
+                        <div class="card" style="padding: 1rem; border-left: 4px solid #f59e0b;">
+                            <div style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted);">Ընթացքի Մեջ / Սպասող</div>
+                            <div style="font-size: 1.6rem; font-weight: 800; color: #f59e0b; margin-top: 0.25rem;" id="orders-kpi-pending">{{ $orders->whereIn('status', ['new', 'confirmed', 'processing'])->count() }}</div>
+                            <div style="font-size: 0.75rem; color: #f59e0b; margin-top: 0.2rem;">Պահանջում է գործողություն</div>
+                        </div>
+                        <div class="card" style="padding: 1rem; border-left: 4px solid #6366f1;">
+                            <div style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted);">Վճարված Պատվերներ</div>
+                            <div style="font-size: 1.6rem; font-weight: 800; color: #6366f1; margin-top: 0.25rem;" id="orders-kpi-paid">{{ $orders->where('payment_status', 'paid')->count() }}</div>
+                            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.2rem;">Լրիվ մարված հաշիվներ</div>
+                        </div>
+                    </div>
+
+                    <!-- Filter Toolbar -->
+                    <div class="card" style="padding: 1rem; margin-bottom: 1.25rem;">
+                        <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; gap: 0.75rem; align-items: center;">
+                            <div style="position: relative;">
+                                <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 0.85rem; top: 50%; transform: translateY(-50%); color: var(--text-muted);"></i>
+                                <input type="text" class="input" id="orders-search-input" placeholder="Որոնել պատվերի #, հաճախորդ, հեռախոս, ՀՎՀՀ..." style="padding-left: 2.2rem;" onkeyup="ERP.orders.handleFilterChange()">
+                            </div>
+                            <select class="input" id="orders-status-filter" onchange="ERP.orders.handleFilterChange()">
+                                <option value="">Բոլոր Կարգավիճակները</option>
+                                <option value="new">Նոր (New)</option>
+                                <option value="confirmed">Հաստատված (Confirmed)</option>
+                                <option value="processing">Պատրաստվում է (Processing)</option>
+                                <option value="ready">Պատրաստ է (Ready)</option>
+                                <option value="delivery">Առաքման մեջ (Delivery)</option>
+                                <option value="delivered">Առաքված (Delivered)</option>
+                                <option value="completed">Ավարտված (Completed)</option>
+                                <option value="cancelled">Չեղարկված (Cancelled)</option>
+                            </select>
+                            <select class="input" id="orders-payment-filter" onchange="ERP.orders.handleFilterChange()">
+                                <option value="">Բոլոր Վճարումները</option>
+                                <option value="paid">Վճարված (Paid)</option>
+                                <option value="partially_paid">Մասնակի (Partially Paid)</option>
+                                <option value="unpaid">Չվճարված (Unpaid)</option>
+                                <option value="refunded">Վերադարձված (Refunded)</option>
+                            </select>
+                            <select class="input" id="orders-source-filter" onchange="ERP.orders.handleFilterChange()">
+                                <option value="">Բոլոր Աղբյուրները</option>
+                                <option value="direct">Direct</option>
+                                <option value="pos">POS Terminal</option>
+                                <option value="web">Storefront / Web</option>
+                                <option value="xml_import">XML Import</option>
+                                <option value="manual">Manual Back-office</option>
+                            </select>
+                            <button class="btn btn-secondary" onclick="ERP.orders.resetFilters()" title="Մաքրել ֆիլտրերը">
+                                <i class="fa-solid fa-filter-circle-xmark"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Orders Table Card -->
+                    <div class="card" style="overflow: hidden;">
+                        <div class="table-responsive">
+                            <table class="table" id="orders-table">
+                                <thead>
+                                    <tr>
+                                        <th>Պատվերի #</th>
+                                        <th>Ամսաթիվ / Ժամ</th>
+                                        <th>Հաճախորդ</th>
+                                        <th>Մասնաճյուղ</th>
+                                        <th>Աղբյուր</th>
+                                        <th>Տողեր</th>
+                                        <th>Գումար (AMD)</th>
+                                        <th>Վճարում</th>
+                                        <th>Կարգավիճակ</th>
+                                        <th style="text-align: right;">Գործողություններ</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="orders-table-body">
+                                    @forelse($orders as $ord)
+                                        <tr>
+                                            <td class="font-mono" style="font-weight: 800; color: var(--color-primary); cursor: pointer;" onclick="ERP.orders.viewDetails('{{ $ord->id }}')">
+                                                {{ $ord->order_number }}
+                                            </td>
+                                            <td style="font-size: 0.8rem;">
+                                                <div>{{ $ord->placed_at ? $ord->placed_at->format('d.m.Y H:i') : '' }}</div>
+                                                @if($ord->scheduled_for)
+                                                    <div style="color: #6366f1; font-size: 0.75rem;"><i class="fa-regular fa-calendar-check"></i> {{ $ord->scheduled_for->format('d.m.Y H:i') }}</div>
+                                                @endif
+                                            </td>
+                                            <td>
+                                                <div style="font-weight: 700; color: var(--text-heading);">
+                                                    {{ $ord->customer_snapshot['name'] ?? ($ord->customer ? ($ord->customer->first_name . ' ' . $ord->customer->last_name) : 'Retail Customer') }}
+                                                </div>
+                                                @if(!empty($ord->customer_snapshot['tax_id']) || !empty($ord->customer?->tax_id))
+                                                    <div style="font-size: 0.72rem; color: var(--text-muted); font-family: monospace;">ՀՎՀՀ: {{ $ord->customer_snapshot['tax_id'] ?? $ord->customer?->tax_id }}</div>
+                                                @endif
+                                            </td>
+                                            <td>
+                                                <span class="badge badge-slate">{{ $ord->branch?->name ?? 'Main Branch' }}</span>
+                                            </td>
+                                            <td>
+                                                <span class="badge badge-slate font-mono">{{ strtoupper($ord->source) }}</span>
+                                            </td>
+                                            <td>
+                                                <span class="badge badge-slate font-mono">{{ count($ord->items) }} տող</span>
+                                            </td>
+                                            <td class="font-mono" style="font-weight: 800; color: var(--color-primary);">
+                                                {{ number_format($ord->total, 0) }} ֏
+                                            </td>
+                                            <td>
+                                                @if($ord->payment_status === 'paid')
+                                                    <span class="badge badge-green"><i class="fa-solid fa-check"></i> Վճարված</span>
+                                                @elseif($ord->payment_status === 'partially_paid')
+                                                    <span class="badge badge-amber"><i class="fa-solid fa-circle-half-stroke"></i> Մասնակի</span>
+                                                @elseif($ord->payment_status === 'refunded')
+                                                    <span class="badge badge-purple"><i class="fa-solid fa-rotate-left"></i> Վերադարձ</span>
+                                                @else
+                                                    <span class="badge badge-rose"><i class="fa-solid fa-xmark"></i> Չվճարված</span>
+                                                @endif
+                                            </td>
+                                            <td>
+                                                @if($ord->status === 'new')
+                                                    <span class="badge badge-amber">Նոր (New)</span>
+                                                @elseif($ord->status === 'confirmed')
+                                                    <span class="badge badge-blue">Հաստատված</span>
+                                                @elseif($ord->status === 'processing')
+                                                    <span class="badge badge-indigo">Պատրաստվում է</span>
+                                                @elseif($ord->status === 'ready')
+                                                    <span class="badge badge-teal">Պատրաստ է</span>
+                                                @elseif($ord->status === 'delivery')
+                                                    <span class="badge badge-purple">Առաքվում է</span>
+                                                @elseif($ord->status === 'completed' || $ord->status === 'delivered')
+                                                    <span class="badge badge-green">Ավարտված</span>
+                                                @elseif($ord->status === 'cancelled')
+                                                    <span class="badge badge-slate" style="text-decoration: line-through;">Չեղարկված</span>
+                                                @else
+                                                    <span class="badge badge-slate">{{ $ord->status }}</span>
+                                                @endif
+                                            </td>
+                                            <td style="text-align: right;">
+                                                <div style="display: flex; gap: 0.35rem; justify-content: flex-end;">
+                                                    <button class="btn btn-sm btn-secondary" onclick="ERP.orders.viewDetails('{{ $ord->id }}')" title="Մանրամասն">
+                                                        <i class="fa-solid fa-eye"></i>
+                                                    </button>
+                                                    <button class="btn btn-sm btn-secondary" onclick="ERP.orders.printOrder('{{ $ord->id }}', 'pos_receipt')" title="Տպել Կտրոն">
+                                                        <i class="fa-solid fa-print"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="10" style="text-align: center; padding: 2.5rem; color: var(--text-muted);">
+                                                <i class="fa-solid fa-cart-flatbed" style="font-size: 2rem; color: #cbd5e1; margin-bottom: 0.5rem; display: block;"></i>
+                                                Պատվերներ չեն գտնվել:
+                                            </td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ==============================================================
+                     VIEW: B2B DELIVERY NOTES (ԲԵՌՆԱԳՐԵՐ)
+                     ============================================================== -->
+                <section class="view-panel" id="view-delivery-notes" style="display: none;">
+                    <div class="view-header">
+                        <div>
+                            <h2 style="font-size: 1.4rem; font-weight: 800; color: var(--text-heading); display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="fa-solid fa-file-signature" style="color: var(--color-primary);"></i>
+                                <span>Բեռնագրեր / B2B Накладная</span>
+                            </h2>
+                            <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.2rem;">
+                                Պաշտոնական առաքման և հանձնման-ընդունման փաստաթղթեր (A4 ձևաչափ, վերատպման աուդիտ)
+                            </p>
+                        </div>
+                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                            <button class="btn btn-secondary" onclick="ERP.deliveryNotes.load()">
+                                <i class="fa-solid fa-rotate"></i> <span>Թարմացնել</span>
+                            </button>
+                            <button class="btn btn-primary" onclick="ERP.deliveryNotes.openGenerateModal()">
+                                <i class="fa-solid fa-file-circle-plus"></i> <span>Ստեղծել Բեռնագիր</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="card" style="overflow: hidden;">
+                        <div class="table-responsive">
+                            <table class="table" id="delivery-notes-table">
+                                <thead>
+                                    <tr>
+                                        <th>Բեռնագրի #</th>
+                                        <th>Ամսաթիվ</th>
+                                        <th>Գնորդ / Հաճախորդ</th>
+                                        <th>ՀՎՀՀ / TIN</th>
+                                        <th>Պատվերի #</th>
+                                        <th>Ընդհանուր Գումար</th>
+                                        <th>Վերատպումներ</th>
+                                        <th>Կարգավիճակ</th>
+                                        <th style="text-align: right;">Գործողություններ</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="delivery-notes-table-body">
+                                    @forelse($deliveryNotes as $dn)
+                                        <tr>
+                                            <td class="font-mono" style="font-weight: 800; color: var(--color-primary); cursor: pointer;" onclick="ERP.deliveryNotes.viewAndPrint('{{ $dn->id }}')">
+                                                {{ $dn->document_number }}
+                                            </td>
+                                            <td class="font-mono">{{ $dn->document_date ? $dn->document_date->format('d.m.Y') : '' }}</td>
+                                            <td style="font-weight: 700;">{{ $dn->customer_name }}</td>
+                                            <td class="font-mono">{{ $dn->customer_tax_id ?? 'N/A' }}</td>
+                                            <td class="font-mono" style="color: #6366f1;">{{ $dn->order?->order_number ?? 'Manual' }}</td>
+                                            <td class="font-mono" style="font-weight: 800; color: var(--color-primary);">{{ number_format($dn->total_amount, 0) }} ֏</td>
+                                            <td>
+                                                @if($dn->reprint_count > 0)
+                                                    <span class="badge badge-amber"><i class="fa-solid fa-copy"></i> {{ $dn->reprint_count }} անգամ</span>
+                                                @else
+                                                    <span class="badge badge-slate">Բնօրինակ</span>
+                                                @endif
+                                            </td>
+                                            <td>
+                                                @if($dn->status === 'issued')
+                                                    <span class="badge badge-green">Գործող</span>
+                                                @else
+                                                    <span class="badge badge-slate" style="text-decoration: line-through;">Չեղարկված</span>
+                                                @endif
+                                            </td>
+                                            <td style="text-align: right;">
+                                                <div style="display: flex; gap: 0.35rem; justify-content: flex-end;">
+                                                    <button class="btn btn-sm btn-primary" onclick="ERP.deliveryNotes.viewAndPrint('{{ $dn->id }}')" title="Տպել / Նախադիտել A4">
+                                                        <i class="fa-solid fa-print"></i>
+                                                    </button>
+                                                    <button class="btn btn-sm btn-secondary" onclick="ERP.deliveryNotes.reprintNote('{{ $dn->id }}')" title="Գրանցել Վերատպում">
+                                                        <i class="fa-solid fa-arrows-rotate"></i>
+                                                    </button>
+                                                    @if($dn->status === 'issued')
+                                                        <button class="btn btn-sm btn-danger" onclick="ERP.deliveryNotes.cancelNote('{{ $dn->id }}')" title="Չեղարկել">
+                                                            <i class="fa-solid fa-ban"></i>
+                                                        </button>
+                                                    @endif
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="9" style="text-align: center; padding: 2.5rem; color: var(--text-muted);">
+                                                <i class="fa-solid fa-file-signature" style="font-size: 2rem; color: #cbd5e1; margin-bottom: 0.5rem; display: block;"></i>
+                                                Բեռնագրեր չեն գտնվել: Ընտրեք պատվեր և ստեղծեք նոր բեռնագիր:
+                                            </td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ==============================================================
+                     VIEW: XML IMPORT CENTER (XML ՆԵՐՄՈՒԾՈՒՄ)
+                     ============================================================== -->
+                <section class="view-panel" id="view-xml-import" style="display: none;">
+                    <div class="view-header">
+                        <div>
+                            <h2 style="font-size: 1.4rem; font-weight: 800; color: var(--text-heading); display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="fa-solid fa-file-code" style="color: var(--color-primary);"></i>
+                                <span>XML Ներմուծման Կենտրոն</span>
+                            </h2>
+                            <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.2rem;">
+                                Պատվերների և էլեկտրոնային հաշիվների ապահով ներմուծում (XXE պաշտպանություն, չոր փորձարկում և աուդիտ)
+                            </p>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+                        <!-- Upload Card -->
+                        <div class="card" style="padding: 1.5rem;">
+                            <h3 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 1rem; color: var(--text-heading);">
+                                <i class="fa-solid fa-cloud-arrow-up" style="color: var(--color-primary); margin-right: 0.5rem;"></i>
+                                Բեռնել XML Ֆայլ
+                            </h3>
+
+                            <div style="border: 2px dashed #cbd5e1; border-radius: 8px; padding: 1.75rem; text-align: center; background: #f8fafc; margin-bottom: 1rem; cursor: pointer;" onclick="document.getElementById('xml-file-input').click()">
+                                <i class="fa-solid fa-file-code" style="font-size: 2.2rem; color: var(--color-primary); margin-bottom: 0.5rem;"></i>
+                                <div style="font-weight: 700; color: var(--text-heading);" id="xml-file-label">Ընտրեք կամ քաշեք XML ֆայլը այստեղ</div>
+                                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">Աջակցվող ձևաչափեր՝ ERPlannet XML, e-Invoicing (Հարկային), Ընդհանուր XML (մինչև 10MB)</div>
+                                <input type="file" id="xml-file-input" accept=".xml,text/xml" style="display: none;" onchange="ERP.xmlImport.onFileSelected(this)">
+                            </div>
+
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem;">
+                                <div>
+                                    <label class="label">Մասնաճյուղ</label>
+                                    <select class="input" id="xml-branch-select">
+                                        @foreach($branches as $br)
+                                            <option value="{{ $br->id }}">{{ $br->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="label">Պահեստ</label>
+                                    <select class="input" id="xml-warehouse-select">
+                                        <option value="">Համակարգային լռելյայն</option>
+                                        @foreach($warehouses as $wh)
+                                            <option value="{{ $wh->id }}">{{ $wh->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+
+                            <button class="btn btn-primary" style="width: 100%;" id="xml-preview-btn" onclick="ERP.xmlImport.previewFile()">
+                                <i class="fa-solid fa-magnifying-glass-chart"></i> <span>Նախադիտել &amp; Ստուգել (Dry Run)</span>
+                            </button>
+                        </div>
+
+                        <!-- Live Validation & Preview Container -->
+                        <div class="card" style="padding: 1.5rem;" id="xml-preview-card">
+                            <h3 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 1rem; color: var(--text-heading);">
+                                <i class="fa-solid fa-shield-halved" style="color: #16a34a; margin-right: 0.5rem;"></i>
+                                Ստուգման Արդյունքներ
+                            </h3>
+
+                            <div id="xml-preview-placeholder" style="text-align: center; padding: 2.5rem 1rem; color: var(--text-muted);">
+                                <i class="fa-solid fa-clipboard-check" style="font-size: 2.2rem; color: #cbd5e1; margin-bottom: 0.5rem; display: block;"></i>
+                                Բեռնեք XML ֆայլը և սեղմեք «Նախադիտել»՝ ստուգման և արտապատկերման համար:
+                            </div>
+
+                            <div id="xml-preview-content" style="display: none;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; padding-bottom: 0.75rem; border-bottom: 1px solid #e2e8f0;">
+                                    <div>
+                                        <span class="badge badge-blue" id="xml-format-badge">ERPLANNET XML</span>
+                                        <span class="badge badge-slate" id="xml-doctype-badge">Customer Order</span>
+                                    </div>
+                                    <div class="font-mono" style="font-size: 0.75rem; color: var(--text-muted);" id="xml-checksum-preview"></div>
+                                </div>
+
+                                <div id="xml-errors-container" style="margin-bottom: 1rem; display: none;"></div>
+
+                                <div style="max-height: 220px; overflow-y: auto; margin-bottom: 1rem; border: 1px solid #e2e8f0; border-radius: 6px;">
+                                    <table class="table" style="font-size: 0.8rem;">
+                                        <thead>
+                                            <tr>
+                                                <th>#</th>
+                                                <th>Ապրանք</th>
+                                                <th>Քանակ</th>
+                                                <th>Գին</th>
+                                                <th>Ընդամենը</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="xml-preview-items-body"></tbody>
+                                    </table>
+                                </div>
+
+                                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: #f8fafc; border-radius: 6px; margin-bottom: 1rem;">
+                                    <span style="font-weight: 700;">Հաշվարկված Ընդհանուր Գումար:</span>
+                                    <span class="font-mono" style="font-size: 1.2rem; font-weight: 800; color: var(--color-primary);" id="xml-preview-total">0 ֏</span>
+                                </div>
+
+                                <button class="btn btn-primary" style="width: 100%; background: #16a34a;" id="xml-confirm-btn" onclick="ERP.xmlImport.confirmImport()">
+                                    <i class="fa-solid fa-check"></i> <span>Հաստատել &amp; Գրանցել Պատվերը</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Import History Card -->
+                    <div class="card" style="padding: 1.25rem;">
+                        <h3 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 1rem; color: var(--text-heading);">
+                            <i class="fa-solid fa-clock-rotate-left" style="color: var(--color-primary); margin-right: 0.5rem;"></i>
+                            Ներմուծումների Պատմություն
+                        </h3>
+                        <div class="table-responsive">
+                            <table class="table" id="xml-history-table">
+                                <thead>
+                                    <tr>
+                                        <th>Ամսաթիվ</th>
+                                        <th>Ֆայլի Անուն</th>
+                                        <th>Ձևաչափ</th>
+                                        <th>Մասնաճյուղ</th>
+                                        <th>Տողեր</th>
+                                        <th>Կարգավիճակ</th>
+                                        <th>Արդյունք</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @forelse($xmlImports as $xi)
+                                        <tr>
+                                            <td class="font-mono" style="font-size: 0.8rem;">{{ $xi->created_at ? $xi->created_at->format('d.m.Y H:i') : '' }}</td>
+                                            <td style="font-weight: 700;">{{ $xi->file_name }}</td>
+                                            <td><span class="badge badge-slate font-mono">{{ $xi->format_detected }}</span></td>
+                                            <td>{{ $xi->branch?->name ?? 'Branch' }}</td>
+                                            <td class="font-mono">{{ $xi->successful_records }} / {{ $xi->total_records }}</td>
+                                            <td>
+                                                @if($xi->status === 'imported')
+                                                    <span class="badge badge-green"><i class="fa-solid fa-check"></i> Ներմուծված</span>
+                                                @elseif($xi->status === 'failed')
+                                                    <span class="badge badge-rose"><i class="fa-solid fa-triangle-exclamation"></i> Սխալ</span>
+                                                @else
+                                                    <span class="badge badge-amber">{{ $xi->status }}</span>
+                                                @endif
+                                            </td>
+                                            <td>
+                                                @if(!empty($xi->created_orders_ids))
+                                                    <span class="badge badge-blue font-mono">{{ count($xi->created_orders_ids) }} պատվեր</span>
+                                                @else
+                                                    <span style="color: var(--text-muted); font-size: 0.8rem;">—</span>
+                                                @endif
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                                                Ներմուծումների պատմությունը դատարկ է:
+                                            </td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ==============================================================
+                     VIEW: PRINT MANAGEMENT (ՏՊՄԱՆ ԿԱՌԱՎԱՐՈՒՄ)
+                     ============================================================== -->
+                <section class="view-panel" id="view-print-management" style="display: none;">
+                    <div class="view-header">
+                        <div>
+                            <h2 style="font-size: 1.4rem; font-weight: 800; color: var(--text-heading); display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="fa-solid fa-print" style="color: var(--color-primary);"></i>
+                                <span>Տպման Կառավարում &amp; Տպիչներ</span>
+                            </h2>
+                            <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.2rem;">
+                                Ջերմային POS կտրոնների (58mm, 80mm ESC/POS), գրասենյակային տպիչների և տպման հերթի կառավարում
+                            </p>
+                        </div>
+                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                            <button class="btn btn-secondary" onclick="ERP.printing.load()">
+                                <i class="fa-solid fa-rotate"></i> <span>Թարմացնել</span>
+                            </button>
+                            <button class="btn btn-primary" onclick="ERP.printing.openAddPrinterModal()">
+                                <i class="fa-solid fa-plus"></i> <span>Ավելացնել Տպիչ</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Printer Cards Grid -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.25rem; margin-bottom: 1.75rem;" id="printers-grid">
+                        @forelse($printers as $prn)
+                            <div class="card" style="padding: 1.25rem; border-top: 4px solid var(--color-primary);">
+                                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem;">
+                                    <div>
+                                        <h4 style="font-weight: 800; color: var(--text-heading); font-size: 1.05rem;">{{ $prn->name }}</h4>
+                                        <div style="font-size: 0.75rem; color: var(--text-muted);">{{ $prn->branch?->name ?? 'Default Branch' }}</div>
+                                    </div>
+                                    <div>
+                                        @if($prn->is_default)
+                                            <span class="badge badge-green"><i class="fa-solid fa-star"></i> Լռելյայն</span>
+                                        @endif
+                                        <span class="badge badge-slate font-mono">{{ $prn->paper_width }}</span>
+                                    </div>
+                                </div>
+
+                                <div style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 1rem;">
+                                    <div><strong>Տեսակ:</strong> {{ ucfirst($prn->printer_type) }}</div>
+                                    <div><strong>Միացում:</strong> {{ str_replace('_', ' ', strtoupper($prn->connection_type)) }}</div>
+                                    @if($prn->ip_address)
+                                        <div class="font-mono"><strong>IP/Port:</strong> {{ $prn->ip_address }}:{{ $prn->port }}</div>
+                                    @endif
+                                </div>
+
+                                <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #e2e8f0; padding-top: 0.75rem;">
+                                    <span class="badge badge-teal"><i class="fa-solid fa-circle" style="font-size: 0.5rem; margin-right: 3px;"></i> Online</span>
+                                    <div style="display: flex; gap: 0.35rem;">
+                                        <button class="btn btn-sm btn-secondary" onclick="ERP.printing.testPrint('{{ $prn->id }}')">
+                                            <i class="fa-solid fa-vial"></i> Փորձարկել
+                                        </button>
+                                        <button class="btn btn-sm btn-outline" onclick="ERP.printing.deletePrinter('{{ $prn->id }}')" title="Հեռացնել">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        @empty
+                            <div class="card" style="padding: 2.5rem; text-align: center; grid-column: 1 / -1; color: var(--text-muted);">
+                                <i class="fa-solid fa-print" style="font-size: 2.5rem; color: #cbd5e1; margin-bottom: 0.5rem; display: block;"></i>
+                                Գրանցված տպիչներ չկան: Սեղմեք «Ավելացնել Տպիչ»՝ POS կամ ցանցային տպիչ կցելու համար:
+                            </div>
+                        @endforelse
+                    </div>
+
+                    <!-- Print Jobs Queue Monitor -->
+                    <div class="card" style="padding: 1.25rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                            <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--text-heading);">
+                                <i class="fa-solid fa-list-check" style="color: var(--color-primary); margin-right: 0.5rem;"></i>
+                                Տպման Առաջադրանքների Հերթ (Print Jobs Monitor)
+                            </h3>
+                            <span class="badge badge-slate" id="print-jobs-count-badge">{{ count($printJobs) }} առաջադրանք</span>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table" id="print-jobs-table">
+                                <thead>
+                                    <tr>
+                                        <th>Job ID</th>
+                                        <th>Ժամանակ</th>
+                                        <th>Փաստաթուղթ</th>
+                                        <th>Տպիչ</th>
+                                        <th>Պատվերի #</th>
+                                        <th>Կրկնօրինակ</th>
+                                        <th>Կարգավիճակ</th>
+                                        <th style="text-align: right;">Գործողություն</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @forelse($printJobs as $pj)
+                                        <tr>
+                                            <td class="font-mono" style="font-size: 0.75rem;">{{ substr($pj->id, 0, 8) }}...</td>
+                                            <td style="font-size: 0.8rem;">{{ $pj->created_at ? $pj->created_at->format('d.m.Y H:i') : '' }}</td>
+                                            <td><span class="badge badge-slate">{{ str_replace('_', ' ', strtoupper($pj->document_type)) }}</span></td>
+                                            <td>{{ $pj->printer?->name ?? 'Browser Print' }}</td>
+                                            <td class="font-mono" style="color: var(--color-primary);">{{ $pj->order?->order_number ?? '—' }}</td>
+                                            <td>
+                                                @if($pj->is_reprint)
+                                                    <span class="badge badge-amber"><i class="fa-solid fa-rotate"></i> Reprint #{{ $pj->reprint_count }}</span>
+                                                @else
+                                                    <span class="badge badge-slate">{{ $pj->copies }} օրինակ</span>
+                                                @endif
+                                            </td>
+                                            <td>
+                                                @if($pj->status === 'completed')
+                                                    <span class="badge badge-green"><i class="fa-solid fa-check"></i> Completed</span>
+                                                @elseif($pj->status === 'failed')
+                                                    <span class="badge badge-rose"><i class="fa-solid fa-triangle-exclamation"></i> Failed</span>
+                                                @else
+                                                    <span class="badge badge-blue">{{ $pj->status }}</span>
+                                                @endif
+                                            </td>
+                                            <td style="text-align: right;">
+                                                <button class="btn btn-sm btn-secondary" onclick="ERP.printing.reprintJob('{{ $pj->id }}')">
+                                                    <i class="fa-solid fa-arrows-rotate"></i> Վերատպել
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="8" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                                                Տպման առաջադրանքների հերթը դատարկ է:
+                                            </td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ==============================================================
+                     VIEW: VISUAL RECEIPT & DOCUMENT DESIGNER (ԴԻԶԱՅՆԵՐ)
+                     ============================================================== -->
+                <section class="view-panel" id="view-document-designer" style="display: none;">
+                    <div class="view-header">
+                        <div>
+                            <h2 style="font-size: 1.4rem; font-weight: 800; color: var(--text-heading); display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="fa-solid fa-palette" style="color: var(--color-primary);"></i>
+                                <span>Կտրոնների &amp; Փաստաթղթերի Դիզայներ</span>
+                            </h2>
+                            <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.2rem;">
+                                Ձևանմուշների վիզուալ խմբագրիչ՝ իրական նախադիտմամբ (58mm, 80mm, A4, A5, հայերեն յունիկոդ)
+                            </p>
+                        </div>
+                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                            <button class="btn btn-secondary" onclick="ERP.designer.duplicateTemplate()">
+                                <i class="fa-solid fa-copy"></i> <span>Կրկնօրինակել</span>
+                            </button>
+                            <button class="btn btn-secondary" onclick="ERP.designer.saveDraft()">
+                                <i class="fa-solid fa-floppy-disk"></i> <span>Պահպանել</span>
+                            </button>
+                            <button class="btn btn-primary" onclick="ERP.designer.publishVersion()">
+                                <i class="fa-solid fa-upload"></i> <span>Հրապարակել</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Designer Top Toolbar -->
+                    <div class="card" style="padding: 0.85rem 1.25rem; margin-bottom: 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+                        <div style="display: flex; gap: 0.75rem; align-items: center;">
+                            <label style="font-size: 0.85rem; font-weight: 700; color: var(--text-heading);">Ձևանմուշ:</label>
+                            <select class="input" id="designer-template-select" style="min-width: 240px;" onchange="ERP.designer.selectTemplate(this.value)">
+                                @foreach($documentTemplates as $tpl)
+                                    <option value="{{ $tpl->id }}">{{ $tpl->name }} ({{ $tpl->paper_size }})</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <!-- Paper Size Selector -->
+                        <div style="display: flex; gap: 0.35rem; align-items: center;">
+                            <span style="font-size: 0.85rem; font-weight: 700; color: var(--text-heading); margin-right: 0.35rem;">Թղթի չափ:</span>
+                            <button class="btn btn-sm btn-secondary active" id="btn-size-80mm" onclick="ERP.designer.changePaperSize('80mm')">80mm</button>
+                            <button class="btn btn-sm btn-secondary" id="btn-size-58mm" onclick="ERP.designer.changePaperSize('58mm')">58mm</button>
+                            <button class="btn btn-sm btn-secondary" id="btn-size-a4" onclick="ERP.designer.changePaperSize('a4')">A4</button>
+                            <button class="btn btn-sm btn-secondary" id="btn-size-a5" onclick="ERP.designer.changePaperSize('a5')">A5</button>
+                        </div>
+
+                        <div>
+                            <button class="btn btn-sm btn-outline" onclick="ERP.designer.openPlaceholdersModal()">
+                                <i class="fa-solid fa-code"></i> Փոխարինիչներ (Placeholders)
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 2-Column Visual Designer Workspace -->
+                    <div style="display: grid; grid-template-columns: 380px 1fr; gap: 1.5rem; align-items: flex-start;">
+                        <!-- Controls Sidebar -->
+                        <div class="card" style="padding: 1.25rem; max-height: 750px; overflow-y: auto;">
+                            <h4 style="font-weight: 800; font-size: 0.95rem; margin-bottom: 1rem; color: var(--text-heading);">
+                                <i class="fa-solid fa-sliders" style="color: var(--color-primary); margin-right: 0.35rem;"></i>
+                                Փաստաթղթի Պարամետրեր
+                            </h4>
+
+                            <!-- Header Section -->
+                            <div style="margin-bottom: 1.25rem; padding-bottom: 1rem; border-bottom: 1px solid #e2e8f0;">
+                                <label class="label">Վերնագիր / Title</label>
+                                <input type="text" class="input" id="designer-title-input" value="ՎԱՃԱՌՔԻ ԿՏՐՈՆ / RECEIPT" oninput="ERP.designer.onConfigChange()">
+
+                                <label class="label" style="margin-top: 0.5rem;">Ենթավերնագիր</label>
+                                <input type="text" class="input" id="designer-subtitle-input" value="@{{ organization.name }}" oninput="ERP.designer.onConfigChange()">
+
+                                <div style="margin-top: 0.5rem;">
+                                    <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; cursor: pointer;">
+                                        <input type="checkbox" id="designer-show-logo" onchange="ERP.designer.onConfigChange()">
+                                        <span>Ցուցադրել Ընկերության Լոգոն</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Sections Toggles -->
+                            <div style="margin-bottom: 1.25rem; padding-bottom: 1rem; border-bottom: 1px solid #e2e8f0;">
+                                <div style="font-size: 0.82rem; font-weight: 700; color: var(--text-heading); margin-bottom: 0.5rem;">Բաժինների Տեսանելիություն</div>
+                                <div style="display: flex; flex-direction: column; gap: 0.4rem; font-size: 0.82rem;">
+                                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                                        <input type="checkbox" id="designer-sec-branch" checked onchange="ERP.designer.onConfigChange()">
+                                        <span>Մասնաճյուղի տվյալներ (Branch info)</span>
+                                    </label>
+                                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                                        <input type="checkbox" id="designer-sec-customer" checked onchange="ERP.designer.onConfigChange()">
+                                        <span>Հաճախորդի տվյալներ &amp; ՀՎՀՀ</span>
+                                    </label>
+                                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                                        <input type="checkbox" id="designer-sec-items" checked onchange="ERP.designer.onConfigChange()">
+                                        <span>Ապրանքների ցանկ (Items table)</span>
+                                    </label>
+                                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                                        <input type="checkbox" id="designer-sec-totals" checked onchange="ERP.designer.onConfigChange()">
+                                        <span>Հանրագումար &amp; Զեղչեր (Totals)</span>
+                                    </label>
+                                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                                        <input type="checkbox" id="designer-sec-payments" checked onchange="ERP.designer.onConfigChange()">
+                                        <span>Վճարման եղանակ (Payments)</span>
+                                    </label>
+                                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                                        <input type="checkbox" id="designer-sec-signatures" onchange="ERP.designer.onConfigChange()">
+                                        <span>Ստորագրությունների դաշտ (Signatures)</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Typography & Footer -->
+                            <div>
+                                <label class="label">Տառատեսակի չափ</label>
+                                <select class="input" id="designer-font-size" onchange="ERP.designer.onConfigChange()">
+                                    <option value="11px">Կոմպակտ (11px)</option>
+                                    <option value="12px" selected>Սովորական (12px)</option>
+                                    <option value="14px">Խոշոր (14px)</option>
+                                </select>
+
+                                <label class="label" style="margin-top: 0.5rem;">Ստորոտի տեքստ (Footer)</label>
+                                <textarea class="input" id="designer-footer-text" rows="2" oninput="ERP.designer.onConfigChange()">Շնորհակալություն գնումների համար: Ապրանքները ենթակա են վերադարձի 14 օրում:</textarea>
+                            </div>
+                        </div>
+
+                        <!-- Live WYSIWYG Preview Paper -->
+                        <div class="card" style="padding: 1.5rem; min-height: 600px; display: flex; flex-direction: column; align-items: center; background: #e2e8f0;">
+                            <div style="font-size: 0.8rem; font-weight: 700; color: #475569; margin-bottom: 0.75rem;">
+                                <i class="fa-solid fa-eye" style="margin-right: 0.35rem;"></i> Իրական Տպման Նախադիտում
+                            </div>
+
+                            <div id="designer-preview-wrapper" style="background: #ffffff; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.15); border-radius: 4px; overflow: hidden; width: 80mm; min-height: 480px; transition: width 0.2s ease;">
+                                <iframe id="designer-preview-frame" style="width: 100%; height: 580px; border: none; display: block;" src="about:blank"></iframe>
+                            </div>
                         </div>
                     </div>
                 </section>
@@ -4816,6 +5586,653 @@
                 <button type="button" class="btn btn-primary" onclick="ERP.directory.customers.submitLoyaltyAdjustment()">
                     <i class="fa-solid fa-check"></i> Կատարել Գործարքը
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==============================================================
+         PHASE 5 MODAL: CREATE ORDER MODAL
+         ============================================================== -->
+    <div class="modal-backdrop" id="create-order-modal">
+        <div class="modal-container" style="max-width: 950px; max-height: 90vh; display: flex; flex-direction: column;">
+            <div class="modal-header">
+                <div>
+                    <h3><i class="fa-solid fa-cart-shopping" style="color: var(--color-primary); margin-right: 6px;"></i> Նոր Պատվեր (New Order)</h3>
+                    <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">Բոլոր աղբյուրների (POS, Storefront, Back-Office) միասնական պատվերի ստեղծում:</p>
+                </div>
+                <button type="button" onclick="ERP.orders.closeCreateModal()" style="font-size: 1.25rem; color: var(--text-muted); cursor: pointer; background: none; border: none;">&times;</button>
+            </div>
+            <form id="create-order-form" onsubmit="ERP.orders.submitCreate(event)" style="display: flex; flex-direction: column; flex: 1; overflow: hidden;">
+                <div class="modal-body" style="overflow-y: auto; padding: 1.25rem 1.5rem; flex: 1;">
+                    <!-- Order Header Meta -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem; background: #F8FAFC; padding: 0.85rem; border-radius: 8px; border: 1px solid #E2E8F0;">
+                        <div class="form-group">
+                            <label class="form-label">Մասնաճյուղ *</label>
+                            <select class="select" id="order-branch-id" required>
+                                @foreach($branches as $b)
+                                    <option value="{{ $b->id }}">{{ $b->name }} ({{ $b->code }})</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Ելքագրման Պահեստ *</label>
+                            <select class="select" id="order-warehouse-id" required>
+                                @foreach($warehouses as $wh)
+                                    <option value="{{ $wh->id }}">{{ $wh->name }} ({{ $wh->code }})</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Հաճախորդ</label>
+                            <select class="select" id="order-customer-id" onchange="ERP.orders.onCustomerChange()">
+                                <option value="">Անանուն Հաճախորդ (Anonymous)</option>
+                                @foreach($customers as $c)
+                                    <option value="{{ $c->id }}">{{ $c->name }} ({{ $c->phone ?? 'Հեռ․ չկա' }})</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Պատվերի Աղբյուր *</label>
+                            <select class="select" id="order-source" required>
+                                <option value="manual_backoffice">Manual Back-Office</option>
+                                <option value="pos">POS Terminal</option>
+                                <option value="online_store">Online Storefront</option>
+                                <option value="xml_import">XML Import</option>
+                                <option value="external_integration">External Integration</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1.2fr 1fr 1.2fr 1.5fr; gap: 0.75rem; margin-bottom: 1rem;">
+                        <div class="form-group">
+                            <label class="form-label">Առաքման / Տրամադրման Տեսակ *</label>
+                            <select class="select" id="order-fulfillment-method" required>
+                                <option value="pickup">Ինքնարտահանում (Pickup)</option>
+                                <option value="delivery">Առաքում (Delivery)</option>
+                                <option value="dine_in">Տեղում / Սրահում (Dine In)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Պատվերի Տիպ *</label>
+                            <select class="select" id="order-type" required>
+                                <option value="standard">Ստանդարտ (Standard)</option>
+                                <option value="preliminary">Նախնական / Ապառիկ (Preliminary)</option>
+                                <option value="b2b_wholesale">B2B Մեծածախ (B2B Wholesale)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Պլանավորված Ժամկետ (Scheduled)</label>
+                            <input type="datetime-local" class="form-control" id="order-scheduled-at">
+                            <div class="form-hint">Նախնական պատվերների կատարման ժամ:</div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Պատասխանատու Աշխատակից</label>
+                            <select class="select" id="order-employee-id">
+                                <option value="">Ավտոմատ (Ընթացիկ օգտատեր)</option>
+                                @foreach($users as $u)
+                                    <option value="{{ $u->id }}">{{ $u->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Order Line Items -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                        <h4 style="font-size: 0.92rem; font-weight: 800; color: var(--text-heading); margin: 0;">
+                            <i class="fa-solid fa-boxes-stacked" style="color: var(--color-primary); margin-right: 6px;"></i> Պատվերի Տողեր (Order Items)
+                        </h4>
+                        <button type="button" class="btn btn-secondary btn-xs" onclick="ERP.orders.addItemRow()">
+                            <i class="fa-solid fa-plus"></i> Ավելացնել Տող
+                        </button>
+                    </div>
+
+                    <div class="table-responsive" style="margin-bottom: 1rem; border: 1px solid #E2E8F0; border-radius: 6px;">
+                        <table class="table" style="font-size: 0.78rem; margin: 0;">
+                            <thead>
+                                <tr style="background: #F1F5F9;">
+                                    <th style="min-width: 220px;">Ապրանք</th>
+                                    <th style="width: 100px;">Քանակ</th>
+                                    <th style="width: 120px;">Գին (֏)</th>
+                                    <th style="width: 90px;">Զեղչ %</th>
+                                    <th style="width: 80px;">ԱԱՀ %</th>
+                                    <th style="width: 120px;">Տողի Գումար (֏)</th>
+                                    <th style="width: 32px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="order-items-tbody">
+                                <!-- Dynamic rows -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Discount, Promo, Delivery & Totals -->
+                    <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 1rem; align-items: start;">
+                        <div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
+                                <div class="form-group">
+                                    <label class="form-label">Պատվերի Զեղչ (Ընդհանուր)</label>
+                                    <div style="display: flex; gap: 4px;">
+                                        <input type="number" step="any" class="form-control font-mono" id="order-discount-value" value="0" placeholder="0" oninput="ERP.orders.recalculateLivePricing()">
+                                        <select class="select" id="order-discount-type" style="width: 75px;" onchange="ERP.orders.recalculateLivePricing()">
+                                            <option value="fixed">֏</option>
+                                            <option value="percent">%</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Առաքման Վճար (֏)</label>
+                                    <input type="number" step="any" class="form-control font-mono" id="order-delivery-fee" value="0" placeholder="0" oninput="ERP.orders.recalculateLivePricing()">
+                                </div>
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1.5fr auto; gap: 0.5rem; align-items: flex-end; margin-bottom: 0.75rem;">
+                                <div class="form-group">
+                                    <label class="form-label">Պրոմո Կոդ (Promo Code)</label>
+                                    <input type="text" class="form-control font-mono" id="order-promo-code" placeholder="Օր. SAVE10 կամ PROMO500">
+                                </div>
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="ERP.orders.applyPromoCode()" style="margin-bottom: 2px;">Կիրառել</button>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Նշումներ Պատվերի Վերաբերյալ</label>
+                                <textarea class="form-control" id="order-notes" rows="2" placeholder="Հաճախորդի կամ ներքին ծառայողական նշումներ..."></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Live Calculation Summary Box -->
+                        <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 1rem;">
+                            <div style="font-size: 0.82rem; font-weight: 800; color: var(--text-heading); margin-bottom: 0.75rem; border-bottom: 1px solid #E2E8F0; padding-bottom: 0.35rem;">
+                                Հաշվարկված Գումարներ (Exact Precision)
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 6px;">
+                                <span style="color: var(--text-muted);">Ապրանքների Ենթագումար՝</span>
+                                <span class="font-mono" id="order-sum-subtotal">0.00 ֏</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 6px;">
+                                <span style="color: var(--text-muted);">Տողային Զեղչեր՝</span>
+                                <span class="font-mono" style="color: #EF4444;" id="order-sum-item-discounts">-0.00 ֏</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 6px;">
+                                <span style="color: var(--text-muted);">Պատվերի Զեղչ՝</span>
+                                <span class="font-mono" style="color: #EF4444;" id="order-sum-order-discount">-0.00 ֏</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 6px;">
+                                <span style="color: var(--text-muted);">Պրոմո Զեղչ՝</span>
+                                <span class="font-mono" style="color: #EF4444;" id="order-sum-promo-discount">-0.00 ֏</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 6px;">
+                                <span style="color: var(--text-muted);">Առաքման Վճար՝</span>
+                                <span class="font-mono" id="order-sum-delivery">0.00 ֏</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 8px;">
+                                <span style="color: var(--text-muted);">Հաշվարկված ԱԱՀ (Tax)՝</span>
+                                <span class="font-mono" id="order-sum-tax">0.00 ֏</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 1.05rem; font-weight: 800; border-top: 2px solid #CBD5E1; padding-top: 8px; color: var(--text-heading);">
+                                <span>Վերջնական Վճարման՝</span>
+                                <span class="font-mono" style="color: var(--color-primary);" id="order-sum-grand-total">0.00 ֏</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer" style="padding: 0.85rem 1.5rem; background: #F8FAFC; border-top: 1px solid #E2E8F0; display: flex; justify-content: space-between; align-items: center;">
+                    <button type="button" class="btn btn-secondary" onclick="ERP.orders.closeCreateModal()">Չեղարկել</button>
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Ստեղծել Պատվերը</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==============================================================
+         PHASE 5 MODAL: ORDER DETAILS & LIFECYCLE MODAL
+         ============================================================== -->
+    <div class="modal-backdrop" id="order-details-modal">
+        <div class="modal-container" style="max-width: 950px; max-height: 92vh; display: flex; flex-direction: column;">
+            <div class="modal-header">
+                <div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <h3 id="od-title" style="margin: 0;">Պատվեր #<span id="od-order-number">-</span></h3>
+                        <span class="badge" id="od-badge-status">Draft</span>
+                        <span class="badge" id="od-badge-payment">Pending</span>
+                        <span class="badge" id="od-badge-source">Manual</span>
+                    </div>
+                    <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">
+                        Ստեղծվել է՝ <span id="od-placed-at" class="font-mono">-</span> | Կատարման ժամկետ՝ <span id="od-scheduled-at" class="font-mono">-</span>
+                    </p>
+                </div>
+                <button type="button" onclick="ERP.orders.closeDetailsModal()" style="font-size: 1.25rem; color: var(--text-muted); cursor: pointer; background: none; border: none;">&times;</button>
+            </div>
+
+            <!-- Tabs Nav -->
+            <div style="display: flex; gap: 4px; padding: 0.5rem 1.5rem 0; border-bottom: 1px solid #E2E8F0; background: #F8FAFC;">
+                <button type="button" class="btn btn-sm btn-outline tab-btn active" id="od-tab-btn-overview" onclick="ERP.orders.switchDetailsTab('overview')"><i class="fa-solid fa-circle-info"></i> Ընդհանուր</button>
+                <button type="button" class="btn btn-sm btn-outline tab-btn" id="od-tab-btn-items" onclick="ERP.orders.switchDetailsTab('items')"><i class="fa-solid fa-boxes-stacked"></i> Ապրանքներ</button>
+                <button type="button" class="btn btn-sm btn-outline tab-btn" id="od-tab-btn-payments" onclick="ERP.orders.switchDetailsTab('payments')"><i class="fa-solid fa-credit-card"></i> Վճարումներ & Split</button>
+                <button type="button" class="btn btn-sm btn-outline tab-btn" id="od-tab-btn-docs" onclick="ERP.orders.switchDetailsTab('docs')"><i class="fa-solid fa-file-invoice"></i> Փաստաթղթեր & Տպագրություն</button>
+                <button type="button" class="btn btn-sm btn-outline tab-btn" id="od-tab-btn-audit" onclick="ERP.orders.switchDetailsTab('audit')"><i class="fa-solid fa-clock-rotate-left"></i> Աուդիտ</button>
+            </div>
+
+            <div class="modal-body" style="overflow-y: auto; padding: 1.25rem 1.5rem; flex: 1;">
+                <!-- Tab 1: Overview & Lifecycle -->
+                <div id="od-pane-overview">
+                    <!-- Lifecycle Actions Bar -->
+                    <div style="background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 8px; padding: 0.85rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                        <div>
+                            <div style="font-size: 0.75rem; color: #1E40AF; font-weight: 700; text-transform: uppercase;">Կարգավիճակի Փոփոխություն</div>
+                            <div style="font-size: 0.85rem; color: #1E3A8A;">Անցումները ավտոմատ վերահսկում են պահեստի ռեզերվացումն ու դուրսգրումը:</div>
+                        </div>
+                        <div id="od-status-actions" style="display: flex; gap: 6px; flex-wrap: wrap;">
+                            <!-- Populated dynamically based on allowed transitions -->
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                        <!-- Customer Snapshot Card -->
+                        <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 1rem;">
+                            <div style="font-size: 0.8rem; font-weight: 800; color: var(--text-heading); margin-bottom: 0.5rem;">
+                                <i class="fa-solid fa-user" style="color: var(--color-primary); margin-right: 6px;"></i> Հաճախորդի Պատմական Snapshot
+                            </div>
+                            <div style="font-size: 0.85rem; line-height: 1.6;">
+                                <div><strong>Անուն՝</strong> <span id="od-cust-name">-</span></div>
+                                <div><strong>Հեռախոս՝</strong> <span id="od-cust-phone" class="font-mono">-</span></div>
+                                <div><strong>ՀՎՀՀ (TIN)՝</strong> <span id="od-cust-tax-id" class="font-mono">-</span></div>
+                                <div><strong>Հասցե՝</strong> <span id="od-cust-address">-</span></div>
+                            </div>
+                        </div>
+
+                        <!-- Logistics & Branch Card -->
+                        <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 1rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                                <div style="font-size: 0.8rem; font-weight: 800; color: var(--text-heading);">
+                                    <i class="fa-solid fa-truck" style="color: #059669; margin-right: 6px;"></i> Լոգիստիկա & Մասնաճյուղ
+                                </div>
+                                <button type="button" class="btn btn-xs btn-outline-primary" onclick="ERP.orders.openRescheduleModal()" id="btn-open-reschedule">
+                                    <i class="fa-solid fa-calendar-days"></i> Փոխել Ժամկետը
+                                </button>
+                            </div>
+                            <div style="font-size: 0.85rem; line-height: 1.6;">
+                                <div><strong>Մասնաճյուղ՝</strong> <span id="od-branch-name">-</span></div>
+                                <div><strong>Պահեստ՝</strong> <span id="od-warehouse-name">-</span></div>
+                                <div><strong>Ֆուլֆիլմենթ՝</strong> <span id="od-fulfillment-method">-</span></div>
+                                <div><strong>Պատասխանատու՝</strong> <span id="od-employee-name">-</span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Financial Summary Tile -->
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin-bottom: 1rem;">
+                        <div class="card" style="padding: 0.75rem; text-align: center;">
+                            <div style="font-size: 0.72rem; color: var(--text-muted);">Ընդհանուր Գումար</div>
+                            <div style="font-size: 1.15rem; font-weight: 800; color: var(--text-heading);" class="font-mono" id="od-fin-total">0 ֏</div>
+                        </div>
+                        <div class="card" style="padding: 0.75rem; text-align: center; background: #ECFDF5; border-color: #A7F3D0;">
+                            <div style="font-size: 0.72rem; color: #065F46;">Վճարված Գումար</div>
+                            <div style="font-size: 1.15rem; font-weight: 800; color: #059669;" class="font-mono" id="od-fin-paid">0 ֏</div>
+                        </div>
+                        <div class="card" style="padding: 0.75rem; text-align: center; background: #FEF2F2; border-color: #FECACA;">
+                            <div style="font-size: 0.72rem; color: #991B1B;">Մնացորդ Վճարման</div>
+                            <div style="font-size: 1.15rem; font-weight: 800; color: #DC2626;" class="font-mono" id="od-fin-balance">0 ֏</div>
+                        </div>
+                        <div class="card" style="padding: 0.75rem; text-align: center;">
+                            <div style="font-size: 0.72rem; color: var(--text-muted);">Զեղչեր Ընդամենը</div>
+                            <div style="font-size: 1.15rem; font-weight: 800; color: #7C3AED;" class="font-mono" id="od-fin-discounts">0 ֏</div>
+                        </div>
+                    </div>
+
+                    <!-- Notes & Cancellation -->
+                    <div id="od-cancellation-box" style="display: none; background: #FEF2F2; border: 1px solid #F87171; border-radius: 6px; padding: 0.75rem; margin-bottom: 1rem;">
+                        <strong style="color: #991B1B;"><i class="fa-solid fa-ban"></i> Չեղարկման Պատճառ՝</strong>
+                        <span id="od-cancellation-reason" style="color: #7F1D1D;">-</span>
+                    </div>
+                </div>
+
+                <!-- Tab 2: Order Items -->
+                <div id="od-pane-items" style="display: none;">
+                    <div class="table-responsive" style="border: 1px solid #E2E8F0; border-radius: 6px;">
+                        <table class="table" style="font-size: 0.8rem; margin: 0;">
+                            <thead>
+                                <tr style="background: #F1F5F9;">
+                                    <th>Ապրանք / Կոդ</th>
+                                    <th>Քանակ & Միավոր</th>
+                                    <th>Միավորի Գին</th>
+                                    <th>Զեղչ</th>
+                                    <th>ԱԱՀ</th>
+                                    <th>Տողի Գումար</th>
+                                    <th>Ինքնարժեք</th>
+                                </tr>
+                            </thead>
+                            <tbody id="od-items-tbody">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Tab 3: Payments & Split Checkout -->
+                <div id="od-pane-payments" style="display: none;">
+                    <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 1rem; align-items: start;">
+                        <!-- Payment List -->
+                        <div>
+                            <h4 style="font-size: 0.9rem; font-weight: 800; margin-bottom: 0.5rem;">Գրանցված Վճարումներ & Վերադարձներ</h4>
+                            <div id="od-payments-list" style="display: flex; flex-direction: column; gap: 8px;">
+                                <!-- Dynamic payment cards -->
+                            </div>
+                        </div>
+
+                        <!-- Record Payment Form -->
+                        <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 1rem;">
+                            <h4 style="font-size: 0.88rem; font-weight: 800; color: var(--text-heading); margin-bottom: 0.75rem;">
+                                <i class="fa-solid fa-plus-circle" style="color: #059669; margin-right: 6px;"></i> Գրանցել Նոր Վճարում (Split Payment)
+                            </h4>
+                            <form onsubmit="ERP.orders.submitRecordPayment(event)">
+                                <div class="form-group" style="margin-bottom: 0.5rem;">
+                                    <label class="form-label">Վճարման Եղանակ *</label>
+                                    <select class="select" id="od-pay-method" required>
+                                        <option value="cash">Կանխիկ (Cash)</option>
+                                        <option value="card">Բանկային Քարտ (Card POS)</option>
+                                        <option value="arca">ArCa Պրոցեսինգ</option>
+                                        <option value="idram">Idram QR</option>
+                                        <option value="telcell">Telcell Wallet</option>
+                                        <option value="ameria">Ameria vPOS</option>
+                                        <option value="stripe">Stripe</option>
+                                        <option value="bank_transfer">Բանկային Փոխանցում</option>
+                                    </select>
+                                </div>
+                                <div class="form-group" style="margin-bottom: 0.5rem;">
+                                    <label class="form-label">Գումար (֏) *</label>
+                                    <input type="number" step="any" class="form-control font-mono" id="od-pay-amount" required placeholder="0">
+                                </div>
+                                <div class="form-group" style="margin-bottom: 0.75rem;">
+                                    <label class="form-label">Գործարքի / Չեկի Ref ID</label>
+                                    <input type="text" class="form-control font-mono" id="od-pay-ref" placeholder="Օր. TXN-998241">
+                                </div>
+                                <button type="submit" class="btn btn-primary btn-sm" style="width: 100%;">
+                                    <i class="fa-solid fa-check"></i> Կատարել Վճարում
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 4: Documents & Print -->
+                <div id="od-pane-docs" style="display: none;">
+                    <div style="display: flex; gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap;">
+                        <button type="button" class="btn btn-primary btn-sm" onclick="ERP.orders.printCurrentOrderReceipt()">
+                            <i class="fa-solid fa-receipt"></i> Տպել Չեկ (Receipt 80mm/58mm)
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="ERP.orders.printCurrentOrderA4()">
+                            <i class="fa-solid fa-print"></i> Տպել A4 / A5 Պատվեր
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm" style="background: #7C3AED; color: white; border-color: #6D28D9;" onclick="ERP.orders.openGenerateDeliveryNoteForCurrent()">
+                            <i class="fa-solid fa-file-invoice"></i> Ստեղծել B2B Բեռնագիր (Накладная)
+                        </button>
+                    </div>
+
+                    <h4 style="font-size: 0.88rem; font-weight: 800; margin-bottom: 0.5rem;">Կից B2B Բեռնագրեր</h4>
+                    <div id="od-attached-delivery-notes" style="margin-bottom: 1rem;">
+                        <!-- Dynamic delivery notes -->
+                    </div>
+
+                    <h4 style="font-size: 0.88rem; font-weight: 800; margin-bottom: 0.5rem;">Տպագրության Աշխատանքներ (Print Jobs Queue)</h4>
+                    <div id="od-attached-print-jobs">
+                        <!-- Dynamic print jobs -->
+                    </div>
+                </div>
+
+                <!-- Tab 5: Audit Log -->
+                <div id="od-pane-audit" style="display: none;">
+                    <div id="od-audit-timeline" style="display: flex; flex-direction: column; gap: 8px;">
+                        <!-- Dynamic audit events -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer" style="padding: 0.85rem 1.5rem; background: #F8FAFC; border-top: 1px solid #E2E8F0; display: flex; justify-content: space-between;">
+                <button type="button" class="btn btn-secondary" onclick="ERP.orders.closeDetailsModal()">Փակել</button>
+                <div style="display: flex; gap: 6px;">
+                    <button type="button" class="btn btn-outline-danger btn-sm" id="btn-cancel-order" onclick="ERP.orders.promptCancelOrder()" style="color: #DC2626; border-color: #F87171;">
+                        <i class="fa-solid fa-ban"></i> Չեղարկել Պատվերը
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==============================================================
+         PHASE 5 MODAL: RESCHEDULE ORDER MODAL
+         ============================================================== -->
+    <div class="modal-backdrop" id="reschedule-order-modal">
+        <div class="modal-container" style="max-width: 500px;">
+            <div class="modal-header">
+                <div>
+                    <h3><i class="fa-solid fa-calendar-days" style="color: var(--color-primary); margin-right: 6px;"></i> Վերապլանավորել Պատվերը</h3>
+                    <p style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">
+                        Պատվերի սկզբնական ստեղծման ժամկետը (placed_at) երբեք չի փոփոխվում:
+                    </p>
+                </div>
+                <button type="button" onclick="document.getElementById('reschedule-order-modal').classList.remove('active')" style="font-size: 1.25rem; color: var(--text-muted); cursor: pointer; background: none; border: none;">&times;</button>
+            </div>
+            <form onsubmit="ERP.orders.submitReschedule(event)">
+                <div class="modal-body">
+                    <div class="form-group" style="margin-bottom: 1rem;">
+                        <label class="form-label">Նոր Կատարման Ամսաթիվ & Ժամ *</label>
+                        <input type="datetime-local" class="form-control" id="reschedule-target-date" required>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 1rem;">
+                        <label class="form-label">Պատճառ / Հիմնավորում</label>
+                        <input type="text" class="form-control" id="reschedule-note" placeholder="Օր.՝ Հաճախորդի խնդրանքով տեղափոխվել է">
+                    </div>
+                </div>
+                <div class="modal-footer" style="display: flex; justify-content: space-between;">
+                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('reschedule-order-modal').classList.remove('active')">Չեղարկել</button>
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Հաստատել Փոփոխությունը</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==============================================================
+         PHASE 5 MODAL: GENERATE B2B DELIVERY NOTE MODAL
+         ============================================================== -->
+    <div class="modal-backdrop" id="generate-delivery-note-modal">
+        <div class="modal-container" style="max-width: 650px;">
+            <div class="modal-header">
+                <div>
+                    <h3><i class="fa-solid fa-file-invoice" style="color: #7C3AED; margin-right: 6px;"></i> Ձևավորել B2B Բեռնագիր (Накладная)</h3>
+                    <p style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">Պաշտոնական ապրանքային բեռնագիր հաջորդական համարակալմամբ:</p>
+                </div>
+                <button type="button" onclick="ERP.deliveryNotes.closeGenerateModal()" style="font-size: 1.25rem; color: var(--text-muted); cursor: pointer; background: none; border: none;">&times;</button>
+            </div>
+            <form onsubmit="ERP.deliveryNotes.submitGenerate(event)">
+                <input type="hidden" id="dn-gen-order-id" value="">
+                <div class="modal-body">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
+                        <div class="form-group">
+                            <label class="form-label">Ստացող Ընկերություն (Legal Name) *</label>
+                            <input type="text" class="form-control" id="dn-recipient-name" required placeholder="«ՍՊԸ» կամ «ԱՁ»">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Ստացողի ՀՎՀՀ (TIN / Tax ID)</label>
+                            <input type="text" class="form-control font-mono" id="dn-recipient-tax-id" placeholder="8-նիշ ՀՎՀՀ">
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0.75rem;">
+                        <label class="form-label">Առաքման / Նշանակման Հասցե</label>
+                        <input type="text" class="form-control" id="dn-delivery-address" placeholder="Երևան, ...">
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
+                        <div class="form-group">
+                            <label class="form-label">Հանձնեց (Delivered By)</label>
+                            <input type="text" class="form-control" id="dn-delivered-by" placeholder="Առաքիչ / Պատասխանատու">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Ընդունեց (Received By)</label>
+                            <input type="text" class="form-control" id="dn-received-by" placeholder="Ստացող անձ">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Նշումներ / Ծանոթագրություն</label>
+                        <textarea class="form-control" id="dn-notes" rows="2" placeholder="Լրացուցիչ պայմաններ կամ պայմանագրի համար..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer" style="display: flex; justify-content: space-between;">
+                    <button type="button" class="btn btn-secondary" onclick="ERP.deliveryNotes.closeGenerateModal()">Չեղարկել</button>
+                    <button type="submit" class="btn btn-primary" style="background: #7C3AED; border-color: #6D28D9;">
+                        <i class="fa-solid fa-check"></i> Ստեղծել Բեռնագիր
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==============================================================
+         PHASE 5 MODAL: VIEW & PRINT B2B DELIVERY NOTE MODAL
+         ============================================================== -->
+    <div class="modal-backdrop" id="view-delivery-note-modal">
+        <div class="modal-container" style="max-width: 900px; max-height: 92vh; display: flex; flex-direction: column;">
+            <div class="modal-header">
+                <div>
+                    <h3 id="vdn-title"><i class="fa-solid fa-file-invoice" style="color: #7C3AED; margin-right: 6px;"></i> Բեռնագիր #<span id="vdn-doc-number">-</span></h3>
+                    <p style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">Պաշտոնական B2B ապրանքագիր</p>
+                </div>
+                <button type="button" onclick="document.getElementById('view-delivery-note-modal').classList.remove('active')" style="font-size: 1.25rem; color: var(--text-muted); cursor: pointer; background: none; border: none;">&times;</button>
+            </div>
+            <div class="modal-body" style="overflow-y: auto; padding: 1.25rem 1.5rem; flex: 1; background: #E2E8F0;">
+                <div id="vdn-preview-sheet" style="background: white; padding: 2rem; border-radius: 4px; box-shadow: 0 4px 6px rgba(0,0,0,0.07); min-height: 700px; font-family: 'Inter', -apple-system, sans-serif; color: #1E293B;">
+                    <!-- Rendered A4 Document with watermark if reprint -->
+                </div>
+            </div>
+            <div class="modal-footer" style="padding: 0.85rem 1.5rem; background: #F8FAFC; border-top: 1px solid #E2E8F0; display: flex; justify-content: space-between;">
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('view-delivery-note-modal').classList.remove('active')">Փակել</button>
+                <div style="display: flex; gap: 8px;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="ERP.deliveryNotes.printWindow()">
+                        <i class="fa-solid fa-print"></i> Տպել (A4 Browser)
+                    </button>
+                    <button type="button" class="btn btn-primary btn-sm" onclick="ERP.deliveryNotes.triggerReprintJob()">
+                        <i class="fa-solid fa-repeat"></i> Ուղարկել Տպիչին (Reprint)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==============================================================
+         PHASE 5 MODAL: ADD PRINTER MODAL
+         ============================================================== -->
+    <div class="modal-backdrop" id="add-printer-modal">
+        <div class="modal-container" style="max-width: 580px;">
+            <div class="modal-header">
+                <div>
+                    <h3><i class="fa-solid fa-print" style="color: var(--color-primary); margin-right: 6px;"></i> Գրանցել Նոր Տպիչ</h3>
+                    <p style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">Թերմալ չեկային (ESC/POS) կամ գրասենյակային (A4/A5) տպիչ:</p>
+                </div>
+                <button type="button" onclick="ERP.printing.closeAddPrinterModal()" style="font-size: 1.25rem; color: var(--text-muted); cursor: pointer; background: none; border: none;">&times;</button>
+            </div>
+            <form onsubmit="ERP.printing.submitPrinter(event)">
+                <div class="modal-body">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
+                        <div class="form-group">
+                            <label class="form-label">Տպիչի Անվանում *</label>
+                            <input type="text" class="form-control" id="ptr-name" required placeholder="Օր. Cash Desk 1 - Thermal 80mm">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Մասնաճյուղ *</label>
+                            <select class="select" id="ptr-branch-id" required>
+                                @foreach($branches as $b)
+                                    <option value="{{ $b->id }}">{{ $b->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
+                        <div class="form-group">
+                            <label class="form-label">Միացման Ինտերֆեյս *</label>
+                            <select class="select" id="ptr-interface" required onchange="ERP.printing.onInterfaceChange()">
+                                <option value="network">Network (TCP/IP RAW)</option>
+                                <option value="usb">USB Bridge</option>
+                                <option value="browser">Browser Native Print</option>
+                                <option value="system_driver">OS System Driver / CUPS</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Թղթի Լայնություն / Չափս *</label>
+                            <select class="select" id="ptr-paper-width" required>
+                                <option value="80mm">80 mm (Standard Thermal)</option>
+                                <option value="58mm">58 mm (Compact Thermal)</option>
+                                <option value="A4">A4 (Office Sheet)</option>
+                                <option value="A5">A5 (Half Sheet)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
+                        <div class="form-group">
+                            <label class="form-label">IP Հասցե / Սարքի Ուղի</label>
+                            <input type="text" class="form-control font-mono" id="ptr-ip" placeholder="192.168.1.200 կամ /dev/usb/lp0">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Port</label>
+                            <input type="number" class="form-control font-mono" id="ptr-port" value="9100">
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0.75rem;">
+                        <label class="form-label">Պրոտոկոլ</label>
+                        <select class="select" id="ptr-protocol">
+                            <option value="esc_pos">ESC/POS (Epson/Star/Xprinter)</option>
+                            <option value="html">HTML / CSS Layout</option>
+                            <option value="postscript">PostScript / PDF</option>
+                        </select>
+                    </div>
+                    <div style="display: flex; gap: 1rem; align-items: center; margin-top: 0.5rem;">
+                        <label style="display: flex; align-items: center; gap: 6px; font-size: 0.8rem; cursor: pointer;">
+                            <input type="checkbox" id="ptr-cut-paper" checked> Ավտոմատ Թղթի Կտրում (Auto Cut)
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 6px; font-size: 0.8rem; cursor: pointer;">
+                            <input type="checkbox" id="ptr-cash-drawer" checked> Բացել Դրամարկղը (Kick Drawer)
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 6px; font-size: 0.8rem; cursor: pointer;">
+                            <input type="checkbox" id="ptr-is-default"> Լռելյայն Տպիչ
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer" style="display: flex; justify-content: space-between;">
+                    <button type="button" class="btn btn-secondary" onclick="ERP.printing.closeAddPrinterModal()">Չեղարկել</button>
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Պահպանել Տպիչը</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==============================================================
+         PHASE 5 MODAL: TEMPLATE PLACEHOLDERS GUIDE MODAL
+         ============================================================== -->
+    <div class="modal-backdrop" id="designer-placeholders-modal">
+        <div class="modal-container" style="max-width: 750px; max-height: 85vh; display: flex; flex-direction: column;">
+            <div class="modal-header">
+                <div>
+                    <h3><i class="fa-solid fa-code" style="color: var(--color-primary); margin-right: 6px;"></i> Հասանելի Փոխարինիչներ (Placeholders)</h3>
+                    <p style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">
+                        Անվտանգ տիպիզացված փոխարինիչներ, որոնք ավտոմատ լրացվում են տպագրության պահին:
+                    </p>
+                </div>
+                <button type="button" onclick="ERP.designer.closePlaceholdersModal()" style="font-size: 1.25rem; color: var(--text-muted); cursor: pointer; background: none; border: none;">&times;</button>
+            </div>
+            <div class="modal-body" style="overflow-y: auto; padding: 1.25rem 1.5rem; flex: 1;">
+                <div class="table-responsive">
+                    <table class="table" style="font-size: 0.8rem;">
+                        <thead>
+                            <tr style="background: #F1F5F9;">
+                                <th style="width: 240px;">Փոխարինիչ (Placeholder)</th>
+                                <th>Նկարագրություն</th>
+                                <th style="width: 70px;">Գործողություն</th>
+                            </tr>
+                        </thead>
+                        <tbody id="designer-placeholders-tbody">
+                            <!-- Populated dynamically via API / placeholder registry -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="ERP.designer.closePlaceholdersModal()">Փակել</button>
             </div>
         </div>
     </div>

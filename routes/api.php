@@ -26,11 +26,16 @@ use App\Http\Controllers\Api\V1\Tenant\POS\PosCheckoutController;
 use App\Http\Controllers\Api\V1\Tenant\POS\PosRefundController;
 use App\Http\Controllers\Api\V1\Tenant\POS\PosSessionController;
 use App\Http\Controllers\Api\V1\Tenant\POS\PosTerminalController;
+use App\Http\Controllers\Api\V1\Tenant\Printing\DocumentTemplateController;
+use App\Http\Controllers\Api\V1\Tenant\Printing\PrinterController;
+use App\Http\Controllers\Api\V1\Tenant\Printing\PrintJobController;
 use App\Http\Controllers\Api\V1\Tenant\Procurement\PurchaseOrderController;
 use App\Http\Controllers\Api\V1\Tenant\Procurement\SupplierController;
 use App\Http\Controllers\Api\V1\Tenant\Quality\QualityInspectionController;
 use App\Http\Controllers\Api\V1\Tenant\RoleController;
+use App\Http\Controllers\Api\V1\Tenant\Sales\B2bDeliveryNoteController;
 use App\Http\Controllers\Api\V1\Tenant\Sales\OrderController;
+use App\Http\Controllers\Api\V1\Tenant\Sales\XmlImportController;
 use App\Http\Controllers\Api\V1\Tenant\SubscriptionController;
 use App\Http\Controllers\Api\V1\Tenant\TenantAuthController;
 use App\Http\Controllers\Api\V1\Tenant\UserController;
@@ -195,9 +200,64 @@ Route::prefix('v1')->group(function () {
             Route::apiResource('quality-inspections', QualityInspectionController::class)->only(['index', 'store', 'show']);
 
             // Sales & Orders
+            Route::post('/orders/calculate-pricing', [OrderController::class, 'calculatePricing']);
             Route::apiResource('orders', OrderController::class)->only(['index', 'store', 'show']);
-            Route::post('/orders/{id}/status', [OrderController::class, 'transitionStatus']);
+            Route::match(['post', 'patch'], '/orders/{id}/status', [OrderController::class, 'transitionStatus']);
             Route::post('/orders/{id}/cancel', [OrderController::class, 'cancel']);
+            Route::match(['post', 'patch'], '/orders/{id}/reschedule', [OrderController::class, 'reschedule']);
+            Route::post('/orders/{id}/print/{documentType}', [PrintJobController::class, 'printOrder']);
+            Route::post('/orders/{id}/delivery-notes', [B2bDeliveryNoteController::class, 'generateFromOrder']);
+
+            // XML Import Center
+            Route::post('/orders/xml-import/preview', [XmlImportController::class, 'preview']);
+            Route::post('/orders/xml-import/confirm', [XmlImportController::class, 'confirm']);
+            Route::get('/orders/xml-import/history', [XmlImportController::class, 'index']);
+            Route::get('/orders/xml-import/{id}', [XmlImportController::class, 'show']);
+            Route::post('/orders/xml-imports/preview', [XmlImportController::class, 'preview']);
+            Route::post('/orders/xml-imports/confirm', [XmlImportController::class, 'confirm']);
+            Route::get('/orders/xml-imports', [XmlImportController::class, 'index']);
+            Route::get('/orders/xml-imports/{id}', [XmlImportController::class, 'show']);
+            Route::post('/sales/xml-imports/preview', [XmlImportController::class, 'preview']);
+            Route::post('/sales/xml-imports/confirm', [XmlImportController::class, 'confirm']);
+            Route::get('/sales/xml-imports', [XmlImportController::class, 'index']);
+            Route::get('/sales/xml-imports/{id}', [XmlImportController::class, 'show']);
+
+            // B2B Delivery Notes / Накладная
+            Route::get('/delivery-notes', [B2bDeliveryNoteController::class, 'index']);
+            Route::post('/delivery-notes/generate', [B2bDeliveryNoteController::class, 'generateFromOrder']);
+            Route::get('/delivery-notes/{id}', [B2bDeliveryNoteController::class, 'show']);
+            Route::post('/delivery-notes/{id}/reprint', [B2bDeliveryNoteController::class, 'reprint']);
+            Route::post('/delivery-notes/{id}/cancel', [B2bDeliveryNoteController::class, 'cancel']);
+            Route::get('/delivery-notes/{id}/print', [B2bDeliveryNoteController::class, 'print']);
+
+            Route::post('/sales/orders/{id}/delivery-notes', [B2bDeliveryNoteController::class, 'generateFromOrder']);
+            Route::get('/sales/delivery-notes', [B2bDeliveryNoteController::class, 'index']);
+            Route::post('/sales/delivery-notes/generate', [B2bDeliveryNoteController::class, 'generateFromOrder']);
+            Route::get('/sales/delivery-notes/{id}', [B2bDeliveryNoteController::class, 'show']);
+            Route::post('/sales/delivery-notes/{id}/reprint', [B2bDeliveryNoteController::class, 'reprint']);
+            Route::post('/sales/delivery-notes/{id}/cancel', [B2bDeliveryNoteController::class, 'cancel']);
+            Route::get('/sales/delivery-notes/{id}/print', [B2bDeliveryNoteController::class, 'print']);
+
+            // Print Management & Document Designer
+            Route::post('/printers/{id}/test-print', [PrinterController::class, 'testPrint']);
+            Route::apiResource('printers', PrinterController::class);
+            Route::post('/printing/printers/{id}/test-print', [PrinterController::class, 'testPrint']);
+            Route::apiResource('printing/printers', PrinterController::class);
+
+            Route::get('/document-templates/placeholders', [DocumentTemplateController::class, 'placeholders']);
+            Route::post('/document-templates/{id}/publish', [DocumentTemplateController::class, 'publish']);
+            Route::post('/document-templates/{id}/duplicate', [DocumentTemplateController::class, 'duplicate']);
+            Route::post('/document-templates/{id}/preview', [DocumentTemplateController::class, 'preview']);
+            Route::apiResource('document-templates', DocumentTemplateController::class);
+            Route::post('/printing/templates/{id}/publish', [DocumentTemplateController::class, 'publish']);
+            Route::post('/printing/templates/{id}/duplicate', [DocumentTemplateController::class, 'duplicate']);
+            Route::post('/printing/templates/{id}/preview', [DocumentTemplateController::class, 'preview']);
+            Route::apiResource('printing/templates', DocumentTemplateController::class);
+
+            Route::get('/print-jobs', [PrintJobController::class, 'index']);
+            Route::post('/print-jobs', [PrintJobController::class, 'store']);
+            Route::get('/print-jobs/{id}', [PrintJobController::class, 'show']);
+            Route::post('/print-jobs/{id}/reprint', [PrintJobController::class, 'reprint']);
 
             // Subscription & Entitlements
             Route::get('/subscription', [SubscriptionController::class, 'show']);
@@ -237,9 +297,13 @@ Route::prefix('v1')->group(function () {
             Route::post('/delivery/cod-settlements/{id}/settle', [CodSettlementController::class, 'settle']);
 
             // Order Payments & Transactions
-            Route::post('/orders/{id}/payments', [OrderPaymentController::class, 'initiate']);
+            Route::post('/orders/{id}/payments', [OrderPaymentController::class, 'recordOrInitiate']);
+            Route::post('/sales/orders/{id}/payments', [OrderPaymentController::class, 'recordOrInitiate']);
             Route::get('/orders/{id}/payments', [OrderPaymentController::class, 'transactions']);
+            Route::get('/sales/orders/{id}/payments', [OrderPaymentController::class, 'transactions']);
             Route::post('/payments/{id}/refund', [OrderPaymentController::class, 'refund']);
+            Route::post('/sales/orders/{orderId}/payments/{id}/refund', [OrderPaymentController::class, 'refund']);
+            Route::post('/orders/{orderId}/payments/{id}/refund', [OrderPaymentController::class, 'refund']);
             Route::post('/payments/{id}/reconcile', [OrderPaymentController::class, 'reconcile']);
 
             // Phase 5: Integrations & External Ecosystem

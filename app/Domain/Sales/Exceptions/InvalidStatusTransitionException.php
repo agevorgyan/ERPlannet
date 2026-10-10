@@ -14,4 +14,14 @@ class InvalidStatusTransitionException extends Exception
         $message = $message ?: "Cannot transition order status from '{$fromStatus}' to '{$toStatus}'.";
         parent::__construct($message, 422);
     }
+
+    public function render($request)
+    {
+        return response()->json([
+            'message' => $this->getMessage(),
+            'errors' => [
+                'status' => [$this->getMessage()],
+            ],
+        ], 422);
+    }
 }
