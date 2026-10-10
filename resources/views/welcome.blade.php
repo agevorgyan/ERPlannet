@@ -62,9 +62,11 @@
 <body>
 
     <div class="app-wrapper">
+        <!-- Mobile Sidebar Backdrop Overlay -->
+        <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="ERP.closeSidebar()"></div>
 
         <!-- ==================================================================
-             Sidebar Navigation (Matching Image 1: SoftFire ERP)
+             Sidebar Navigation (Enterprise ERP Layout)
              ================================================================== -->
         <aside class="app-sidebar" id="app-sidebar">
             <div class="sidebar-header">
@@ -90,7 +92,7 @@
                     <li>
                         <a href="#dashboard" class="nav-item-link active" data-view="dashboard" onclick="ERP.navigateTo('dashboard')">
                             <span class="nav-icon"><i class="fa-solid fa-chart-pie"></i></span>
-                            <span data-i18n="dashboard">Overview</span>
+                            <span data-i18n="dashboard">Վահանակ</span>
                         </a>
                     </li>
                     <!-- Directory Section (Տեղեկագիր) -->
@@ -135,13 +137,13 @@
                     <li>
                         <a href="#procurement" class="nav-item-link" data-view="procurement" onclick="ERP.navigateTo('procurement')">
                             <span class="nav-icon"><i class="fa-solid fa-file-invoice"></i></span>
-                            <span>Procurement</span>
+                            <span data-i18n="procurement">Գնումներ</span>
                             <span class="nav-pill">{{ count($purchaseOrders) }}</span>
                         </a>
                     </li>
                     <!-- Sales & Orders Section -->
                     <li style="margin-top: 0.5rem; padding: 0.35rem 0.85rem 0.15rem; font-size: 0.68rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-subtle);">
-                        <i class="fa-solid fa-cart-shopping" style="margin-right: 4px; color: var(--color-primary);"></i> Վաճառք & Պատվերներ
+                        <i class="fa-solid fa-cart-shopping" style="margin-right: 4px; color: var(--color-primary);"></i> Վաճառք &amp; Պատվերներ
                     </li>
                     <li>
                         <a href="#orders" class="nav-item-link" data-view="orders" onclick="ERP.navigateTo('orders')">
@@ -166,12 +168,12 @@
                     </li>
                     <!-- Printing & Hardware Section -->
                     <li style="margin-top: 0.5rem; padding: 0.35rem 0.85rem 0.15rem; font-size: 0.68rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-subtle);">
-                        <i class="fa-solid fa-print" style="margin-right: 4px; color: var(--color-primary);"></i> Տպում & Դիզայներ
+                        <i class="fa-solid fa-print" style="margin-right: 4px; color: var(--color-primary);"></i> Տպում &amp; Դիզայներ
                     </li>
                     <li>
                         <a href="#print-management" class="nav-item-link" data-view="print-management" onclick="ERP.navigateTo('print-management')">
                             <span class="nav-icon"><i class="fa-solid fa-print"></i></span>
-                            <span>Տպիչներ & Հերթ</span>
+                            <span>Տպիչներ &amp; Հերթ</span>
                             <span class="nav-pill">{{ count($printers) }}</span>
                         </a>
                     </li>
@@ -192,57 +194,57 @@
                     <li>
                         <a href="#inventory" class="nav-item-link" data-view="inventory" onclick="ERP.navigateTo('inventory')">
                             <span class="nav-icon"><i class="fa-solid fa-boxes-stacked"></i></span>
-                            <span data-i18n="inventory">Inventory</span>
+                            <span data-i18n="inventory">Պահեստներ</span>
                             <span class="nav-pill">{{ count($batches) }}</span>
                         </a>
                     </li>
                     <li>
                         <a href="#manufacturing" class="nav-item-link" data-view="manufacturing" onclick="ERP.navigateTo('manufacturing')">
                             <span class="nav-icon"><i class="fa-solid fa-industry"></i></span>
-                            <span data-i18n="manufacturing">Operations &amp; BOM</span>
+                            <span data-i18n="manufacturing">Արտադրություն</span>
                             <span class="nav-pill">{{ count($recipes) }}</span>
                         </a>
                     </li>
                     <li>
                         <a href="#quality" class="nav-item-link" data-view="quality" onclick="ERP.navigateTo('quality')">
                             <span class="nav-icon"><i class="fa-solid fa-shield-halved"></i></span>
-                            <span data-i18n="quality">Quality (QA)</span>
+                            <span data-i18n="quality">Որակ (QA)</span>
                         </a>
                     </li>
                     <li>
                         <a href="#delivery" class="nav-item-link" data-view="delivery" onclick="ERP.navigateTo('delivery')">
                             <span class="nav-icon"><i class="fa-solid fa-truck-fast"></i></span>
-                            <span data-i18n="delivery">Fleet Dispatch</span>
+                            <span data-i18n="delivery">Առաքման Պարկ</span>
                         </a>
                     </li>
                     <li>
                         <a href="#users" class="nav-item-link" data-view="users" onclick="ERP.navigateTo('users')">
                             <span class="nav-icon"><i class="fa-solid fa-users"></i></span>
-                            <span data-i18n="users">HR &amp; Team</span>
+                            <span data-i18n="users">Աշխատակիցներ</span>
                         </a>
                     </li>
                     <li>
                         <a href="#roles" class="nav-item-link" data-view="roles" onclick="ERP.navigateTo('roles')">
                             <span class="nav-icon"><i class="fa-solid fa-user-shield"></i></span>
-                            <span data-i18n="roles">Roles &amp; RBAC</span>
+                            <span data-i18n="roles">Դերեր (RBAC)</span>
                         </a>
                     </li>
                     <li>
                         <a href="#billing" class="nav-item-link" data-view="billing" onclick="ERP.navigateTo('billing')">
                             <span class="nav-icon"><i class="fa-solid fa-credit-card"></i></span>
-                            <span data-i18n="billing">Finance &amp; Plans</span>
+                            <span data-i18n="billing">Ֆինանսներ</span>
                         </a>
                     </li>
                     <li>
                         <a href="#settings" class="nav-item-link" data-view="settings" onclick="ERP.navigateTo('settings')">
                             <span class="nav-icon"><i class="fa-solid fa-sliders"></i></span>
-                            <span data-i18n="settings">Settings</span>
+                            <span data-i18n="settings">Կարգավորումներ</span>
                         </a>
                     </li>
                     <li>
                         <a href="#api-console" class="nav-item-link" data-view="api-console" onclick="ERP.navigateTo('api-console')">
                             <span class="nav-icon"><i class="fa-solid fa-bolt"></i></span>
-                            <span data-i18n="api_console">API Console</span>
+                            <span data-i18n="api_console">API Կոնսոլ</span>
                         </a>
                     </li>
                 </ul>
@@ -293,7 +295,7 @@
             <!-- Top Header Bar (Matching Image 1 & 2) -->
             <header class="app-header">
                 <div class="header-left">
-                    <button class="mobile-menu-btn" id="mobile-menu-toggle"><i class="fa-solid fa-bars"></i></button>
+                    <button class="mobile-menu-btn" id="mobile-menu-toggle" onclick="ERP.toggleSidebar()" aria-label="Toggle Navigation"><i class="fa-solid fa-bars"></i></button>
 
                     <!-- Active Tenant Selector -->
                     <div class="header-tenant-selector" onclick="ERP.toast('Tenant context: {{ request()->getHost() }}', 'info')">
@@ -304,15 +306,15 @@
 
                     <!-- Global Search Bar -->
                     <div class="header-search">
-                        <input type="text" placeholder="Search operations, teams, and workflows..." data-i18n-placeholder="search_placeholder" onkeyup="if(event.key === 'Enter') ERP.toast('Search: ' + this.value, 'info')">
+                        <input type="text" placeholder="Որոնել ամենուր... (⌘K)" data-i18n-placeholder="search_placeholder" onkeyup="if(event.key === 'Enter') ERP.toast('Որոնում՝ ' + this.value, 'info')">
                         <span class="search-shortcut">⌘K</span>
                     </div>
                 </div>
 
                 <div class="header-right">
-                    <!-- Environment Pill -->
-                    <div style="font-size: 0.72rem; font-family: var(--font-mono); font-weight: 700; color: var(--color-primary); background: var(--color-primary-light); padding: 5px 10px; border-radius: var(--radius-full); border: 1px solid var(--color-primary-border);">
-                        PostgreSQL 18 &bull; Port 8000
+                    <!-- Environment Pill (Compact Enterprise Badge) -->
+                    <div class="header-env-pill" style="font-size: 0.72rem; font-family: var(--font-mono); font-weight: 700; color: var(--color-primary); background: var(--color-primary-light); padding: 5px 10px; border-radius: var(--radius-full); border: 1px solid var(--color-primary-border); display: flex; align-items: center; gap: 4px;">
+                        <i class="fa-solid fa-database" style="font-size: 0.68rem;"></i> <span>PG18 Live</span>
                     </div>
 
                     <!-- Date Range Pill (Image 1 style) -->
@@ -323,14 +325,14 @@
                     </div>
 
                     <!-- Notification Bell -->
-                    <button class="header-icon-btn" onclick="ERP.toast('3 unread system alerts', 'info')">
+                    <button class="header-icon-btn" onclick="ERP.toast('3 unread system alerts', 'info')" aria-label="Notifications">
                         <i class="fa-regular fa-bell"></i>
                         <span class="badge-dot"></span>
                     </button>
 
                     <!-- Language Switcher -->
                     <div style="position: relative;">
-                        <button class="lang-selector-btn" onclick="document.getElementById('lang-dropdown').classList.toggle('active')">
+                        <button class="lang-selector-btn" onclick="event.stopPropagation(); document.getElementById('lang-dropdown').classList.toggle('active')" aria-label="Language Selector">
                             <span id="current-lang-label">🇦🇲 Հայ</span>
                             <i class="fa-solid fa-chevron-down" style="font-size: 0.65rem; color: var(--text-muted);"></i>
                         </button>
@@ -343,7 +345,7 @@
 
                     <!-- User Profile Dropdown Pill -->
                     <div style="position: relative;">
-                        <div class="header-user-profile" onclick="document.getElementById('user-menu-dropdown').classList.toggle('active')" style="cursor: pointer;">
+                        <div class="header-user-profile" onclick="event.stopPropagation(); document.getElementById('user-menu-dropdown').classList.toggle('active')" style="cursor: pointer;">
                             <div class="user-avatar" style="width: 28px; height: 28px; font-size: 0.72rem;">{{ auth()->check() ? mb_substr(auth()->user()->name, 0, 2) : 'EJ' }}</div>
                             <span style="font-size: 0.82rem; font-weight: 700; color: var(--text-heading);" id="header-user-name">{{ auth()->check() ? auth()->user()->name : 'Emily Johnson' }}</span>
                             <span style="font-size: 0.65rem; color: var(--text-muted);">{{ auth()->check() && auth()->user()->is_owner ? 'Owner' : 'Admin' }} <i class="fa-solid fa-chevron-down" style="font-size: 0.6rem;"></i></span>
@@ -383,34 +385,34 @@
                     <div class="welcome-banner">
                         <div>
                             <h2 class="welcome-title">
-                                <span>Welcome back, <span id="welcome-user-name">Emily</span>!</span>
+                                <span>Բարի գալուստ, <span id="welcome-user-name">{{ auth()->check() ? auth()->user()->name : 'Էմիլի' }}</span>!</span>
                                 <span class="animate-wave"><i class="fa-solid fa-hand" style="color: #f59e0b; font-size: 1.2rem;"></i></span>
                             </h2>
-                            <p class="welcome-subtitle">Here's what's happening in your business today.</p>
+                            <p class="welcome-subtitle">Ահա ձեր բիզնեսի այսօրվա գործառնական ամփոփագիրը:</p>
                         </div>
                         <div style="display: flex; gap: 0.6rem;">
-                            <button class="btn btn-secondary btn-sm" onclick="ERP.toast('Dashboard data refreshed', 'success')">
-                                <i class="fa-solid fa-arrows-rotate"></i> Refresh
+                            <button class="btn btn-secondary btn-sm" onclick="ERP.toast('Տվյալները թարմացված են:', 'success')">
+                                <i class="fa-solid fa-arrows-rotate"></i> Թարմացնել
                             </button>
                             <button class="btn btn-primary btn-sm" onclick="ERP.navigateTo('pos')">
-                                <i class="fa-solid fa-cash-register"></i> Open POS Cashier
+                                <i class="fa-solid fa-cash-register"></i> Բացել POS Դրամարկղը
                             </button>
                         </div>
                     </div>
 
-                    <!-- 5 Top KPI Cards (Matching Image 1) -->
+                    <!-- 5 Top KPI Cards (Enterprise Financial Overview) -->
                     <div class="kpi-grid-5">
                         <!-- 1. Total Revenue -->
                         <div class="kpi-card">
                             <div class="kpi-card-header">
                                 <div class="kpi-icon-badge kpi-icon-green"><i class="fa-solid fa-sack-dollar"></i></div>
-                                <span class="kpi-title" data-i18n="revenue">Total Revenue</span>
+                                <span class="kpi-title" data-i18n="revenue">Ընդհանուր Հասույթ</span>
                             </div>
-                            <div class="kpi-value" style="color: var(--color-success);">
-                                ${{ number_format($stats['total_revenue'] > 0 ? $stats['total_revenue'] : 1246800, 0) }}
+                            <div class="kpi-value font-mono" style="color: var(--color-success);">
+                                {{ number_format($stats['total_revenue'] > 0 ? $stats['total_revenue'] : 1246800, 0) }} ֏
                             </div>
                             <div class="kpi-trend trend-green">
-                                ↑ 12.6% <span style="color: var(--text-muted); font-weight: 500;">vs last month</span>
+                                ↑ 12.6% <span style="color: var(--text-muted); font-weight: 500;">նախորդ ամսվա համեմատ</span>
                             </div>
                         </div>
 
@@ -418,11 +420,11 @@
                         <div class="kpi-card">
                             <div class="kpi-card-header">
                                 <div class="kpi-icon-badge kpi-icon-orange"><i class="fa-solid fa-boxes-packing"></i></div>
-                                <span class="kpi-title">Total Expenses</span>
+                                <span class="kpi-title" data-i18n="expenses">Ընդհանուր Ծախսեր</span>
                             </div>
-                            <div class="kpi-value">$834,250</div>
+                            <div class="kpi-value font-mono">834,250 ֏</div>
                             <div class="kpi-trend trend-green">
-                                ↑ 8.4% <span style="color: var(--text-muted); font-weight: 500;">vs last month</span>
+                                ↑ 8.4% <span style="color: var(--text-muted); font-weight: 500;">նախորդ ամսվա համեմատ</span>
                             </div>
                         </div>
 
@@ -430,11 +432,11 @@
                         <div class="kpi-card">
                             <div class="kpi-card-header">
                                 <div class="kpi-icon-badge kpi-icon-blue"><i class="fa-solid fa-chart-line"></i></div>
-                                <span class="kpi-title">Net Profit</span>
+                                <span class="kpi-title" data-i18n="net_profit">Զուտ Շահույթ</span>
                             </div>
-                            <div class="kpi-value" style="color: var(--color-primary);">$412,550</div>
+                            <div class="kpi-value font-mono" style="color: var(--color-primary);">412,550 ֏</div>
                             <div class="kpi-trend trend-green">
-                                ↑ 15.3% <span style="color: var(--text-muted); font-weight: 500;">vs last month</span>
+                                ↑ 15.3% <span style="color: var(--text-muted); font-weight: 500;">նախորդ ամսվա համեմատ</span>
                             </div>
                         </div>
 
@@ -442,11 +444,11 @@
                         <div class="kpi-card">
                             <div class="kpi-card-header">
                                 <div class="kpi-icon-badge kpi-icon-purple"><i class="fa-solid fa-clipboard-list"></i></div>
-                                <span class="kpi-title">Open Projects</span>
+                                <span class="kpi-title" data-i18n="open_projects">Գործող Պատվերներ</span>
                             </div>
-                            <div class="kpi-value">{{ $stats['orders_count'] > 0 ? $stats['orders_count'] : 24 }}</div>
+                            <div class="kpi-value font-mono">{{ $stats['orders_count'] > 0 ? $stats['orders_count'] : 24 }}</div>
                             <div class="kpi-trend trend-green">
-                                ↑ 9% <span style="color: var(--text-muted); font-weight: 500;">vs last month</span>
+                                ↑ 9% <span style="color: var(--text-muted); font-weight: 500;">նախորդ ամսվա համեմատ</span>
                             </div>
                         </div>
 
@@ -454,11 +456,11 @@
                         <div class="kpi-card">
                             <div class="kpi-card-header">
                                 <div class="kpi-icon-badge kpi-icon-cyan"><i class="fa-solid fa-users"></i></div>
-                                <span class="kpi-title">Active Employees</span>
+                                <span class="kpi-title" data-i18n="active_employees">Ակտիվ Աշխատակիցներ</span>
                             </div>
-                            <div class="kpi-value">128</div>
+                            <div class="kpi-value font-mono">{{ count($users) > 0 ? count($users) : 12 }}</div>
                             <div class="kpi-trend trend-green">
-                                ↑ 6% <span style="color: var(--text-muted); font-weight: 500;">vs last month</span>
+                                ↑ 6% <span style="color: var(--text-muted); font-weight: 500;">նախորդ ամսվա համեմատ</span>
                             </div>
                         </div>
                     </div>
