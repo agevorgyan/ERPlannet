@@ -15,7 +15,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
     <!-- SoftFire / EduNova Pure Vanilla CSS Design System -->
-    <link rel="stylesheet" href="/css/app.css">
+    <link rel="stylesheet" href="/css/app.css?v={{ filemtime(public_path('css/app.css')) }}">
 
     <!-- Server Initial State Hydration -->
     <script>
@@ -249,21 +249,21 @@
                     </li>
                 </ul>
 
-                <!-- Quick Actions Sidebar Box (Exact Image 1) -->
+                <!-- Quick Actions Sidebar Box (Enterprise Localized) -->
                 <div class="sidebar-quick-actions">
-                    <div class="quick-actions-title">Quick Actions</div>
+                    <div class="quick-actions-title" data-i18n="quick_actions">Արագ Գործողություններ</div>
                     <div class="quick-actions-list">
                         <button class="quick-action-btn" onclick="ERP.procurement.openCreatePurchaseModal()">
-                            <span style="width: 16px; text-align: center; color: var(--color-primary);"><i class="fa-solid fa-file-invoice-dollar"></i></span> <span>Create Purchase</span>
+                            <span style="width: 16px; text-align: center; color: var(--color-primary);"><i class="fa-solid fa-file-invoice-dollar"></i></span> <span data-i18n="create_purchase">Գնման Պատվեր</span>
                         </button>
                         <button class="quick-action-btn" onclick="ERP.catalog.openCreateProductModal()">
-                            <span style="width: 16px; text-align: center; color: var(--color-primary);"><i class="fa-solid fa-circle-plus"></i></span> <span>Add Product</span>
+                            <span style="width: 16px; text-align: center; color: var(--color-primary);"><i class="fa-solid fa-circle-plus"></i></span> <span data-i18n="add_product">Ավելացնել Ապրանք</span>
                         </button>
                         <button class="quick-action-btn" onclick="ERP.inventory.openAdjustStockModal()">
-                            <span style="width: 16px; text-align: center; color: var(--color-primary);"><i class="fa-solid fa-scale-balanced"></i></span> <span>Adjust / Scrap</span>
+                            <span style="width: 16px; text-align: center; color: var(--color-primary);"><i class="fa-solid fa-scale-balanced"></i></span> <span data-i18n="adjust_stock">Ճշգրտում / Դուրսգրում</span>
                         </button>
                         <button class="quick-action-btn" onclick="ERP.manufacturing.openCreateRecipeModal()">
-                            <span style="width: 16px; text-align: center; color: var(--color-primary);"><i class="fa-solid fa-scroll"></i></span> <span>New BOM Recipe</span>
+                            <span style="width: 16px; text-align: center; color: var(--color-primary);"><i class="fa-solid fa-scroll"></i></span> <span data-i18n="new_bom_recipe">Նոր BOM Բաղադրատոմս</span>
                         </button>
                     </div>
                 </div>
@@ -2163,7 +2163,7 @@
                         <div>
                             <h2 style="font-size: 1.4rem; font-weight: 800; color: var(--text-heading); display: flex; align-items: center; gap: 0.5rem;">
                                 <i class="fa-solid fa-file-signature" style="color: var(--color-primary);"></i>
-                                <span>Բեռնագրեր / B2B Накладная</span>
+                                <span data-i18n="b2b_delivery_notes">B2B Ապրանքային Բեռնագրեր</span>
                             </h2>
                             <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.2rem;">
                                 Պաշտոնական առաքման և հանձնման-ընդունման փաստաթղթեր (A4 ձևաչափ, վերատպման աուդիտ)
@@ -2693,14 +2693,14 @@
                         <!-- Left Catalog -->
                         <div class="pos-catalog">
                             <div style="display: flex; gap: 0.75rem;">
-                                <input type="text" class="input" id="pos-search-input" placeholder="Search products or scan barcode..." oninput="
+                                <input type="text" class="input" id="pos-search-input" placeholder="Փնտրել ապրանք կամ սկանավորել շտրիխ-կոդը..." oninput="
                                     const val = this.value.toLowerCase();
                                     document.querySelectorAll('.pos-product-card').forEach(c => {
                                         const text = c.innerText.toLowerCase();
                                         c.style.display = text.includes(val) ? 'flex' : 'none';
                                     });
                                 ">
-                                <button class="btn btn-secondary" onclick="document.getElementById('pos-search-input').value=''; ERP.pos.render();">Clear</button>
+                                <button class="btn btn-secondary" onclick="document.getElementById('pos-search-input').value=''; ERP.pos.render();" data-i18n="clear">Մաքրել</button>
                             </div>
                             <div class="pos-products-grid" id="pos-product-grid">
                                 <!-- Populated dynamically by ERP.pos.render() -->
@@ -2711,10 +2711,10 @@
                         <div class="pos-cart-panel">
                             <div style="padding: 1rem 1.25rem; border-bottom: 1px solid var(--border-card); display: flex; justify-content: space-between; align-items: center;">
                                 <div>
-                                    <h3 style="font-size: 1rem; font-weight: 800; color: var(--text-heading);">Shopping Cart</h3>
+                                    <h3 style="font-size: 1rem; font-weight: 800; color: var(--text-heading);" data-i18n="shopping_cart">Զամբյուղ</h3>
                                     <span style="font-size: 0.72rem; color: var(--text-muted);">Terminal #POS-01</span>
                                 </div>
-                                <button class="btn btn-sm btn-secondary" onclick="ERP.pos.clearCart()">Clear</button>
+                                <button class="btn btn-sm btn-secondary" onclick="ERP.pos.clearCart()" data-i18n="clear">Մաքրել</button>
                             </div>
 
                             <div class="cart-items-list" id="pos-cart-list">
@@ -2723,19 +2723,19 @@
 
                             <div class="cart-totals">
                                 <div style="display: flex; justify-content: space-between; font-size: 0.82rem; color: var(--text-muted);">
-                                    <span>Subtotal:</span>
+                                    <span data-i18n="subtotal">Միջանկյալ՝</span>
                                     <span id="pos-subtotal" class="font-mono">0 ֏</span>
                                 </div>
                                 <div style="display: flex; justify-content: space-between; font-size: 0.82rem; color: var(--text-muted);">
-                                    <span>Tax (20% VAT):</span>
+                                    <span data-i18n="vat_included">ԱԱՀ (20% Ներառյալ)՝</span>
                                     <span id="pos-tax" class="font-mono">0 ֏</span>
                                 </div>
                                 <div style="display: flex; justify-content: space-between; font-size: 1.15rem; font-weight: 800; color: var(--text-heading); border-top: 1px solid var(--border-card); padding-top: 0.6rem;">
-                                    <span>Total:</span>
+                                    <span data-i18n="grand_total">Ընդամենը՝</span>
                                     <span id="pos-total" class="font-mono" style="color: var(--color-primary);">0 ֏</span>
                                 </div>
                                 <button class="btn btn-primary btn-lg" id="pos-checkout-btn" disabled onclick="ERP.pos.openCheckoutModal()" style="margin-top: 0.5rem;">
-                                    <i class="fa-solid fa-credit-card"></i> Checkout &amp; Pay
+                                    <i class="fa-solid fa-credit-card"></i> <span data-i18n="checkout_pay">Վճարել</span>
                                 </button>
                             </div>
                         </div>
@@ -3266,43 +3266,61 @@
                     <div class="welcome-banner">
                         <div>
                             <h2 class="welcome-title">Interactive API Console (Same Port 8000)</h2>
-                            <p class="welcome-subtitle">Direct browser requests to Laravel API endpoints without CORS.</p>
+                            <p class="welcome-subtitle">Direct browser requests to Laravel API endpoints with request copy and cURL generation.</p>
                         </div>
                         <span id="api-console-status" class="badge badge-emerald">Ready</span>
                     </div>
 
-                    <div style="display: grid; grid-template-columns: 280px 1fr; gap: 1.25rem;">
-                        <div class="card" style="display: flex; flex-direction: column; gap: 0.5rem;">
-                            <div style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); margin-bottom: 0.25rem;">ENDPOINTS</div>
-                            <button class="btn btn-sm btn-secondary" style="justify-content: flex-start;" onclick="ERP.apiConsole.run('GET', '/health')">
-                                GET /health
+                    <div style="display: grid; grid-template-columns: 300px 1fr; gap: 1.25rem;">
+                        <div class="card" style="display: flex; flex-direction: column; gap: 0.5rem; padding: 1rem;">
+                            <div style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); margin-bottom: 0.25rem; text-transform: uppercase;">Endpoints</div>
+                            <button class="btn btn-sm btn-secondary" style="justify-content: flex-start; gap: 0.5rem;" onclick="ERP.apiConsole.run('GET', '/health')">
+                                <span class="badge badge-emerald font-mono" style="font-size: 0.65rem; padding: 2px 6px;">GET</span> <span>/health</span>
                             </button>
-                            <button class="btn btn-sm btn-secondary" style="justify-content: flex-start;" onclick="ERP.apiConsole.run('GET', '/warehouses')">
-                                GET /warehouses
+                            <button class="btn btn-sm btn-secondary" style="justify-content: flex-start; gap: 0.5rem;" onclick="ERP.apiConsole.run('GET', '/warehouses')">
+                                <span class="badge badge-emerald font-mono" style="font-size: 0.65rem; padding: 2px 6px;">GET</span> <span>/warehouses</span>
                             </button>
-                            <button class="btn btn-sm btn-secondary" style="justify-content: flex-start;" onclick="ERP.apiConsole.run('GET', '/inventory/batches')">
-                                GET /inventory/batches
+                            <button class="btn btn-sm btn-secondary" style="justify-content: flex-start; gap: 0.5rem;" onclick="ERP.apiConsole.run('GET', '/inventory/batches')">
+                                <span class="badge badge-emerald font-mono" style="font-size: 0.65rem; padding: 2px 6px;">GET</span> <span>/inventory/batches</span>
                             </button>
-                            <button class="btn btn-sm btn-secondary" style="justify-content: flex-start;" onclick="ERP.apiConsole.run('GET', '/recipes')">
-                                GET /recipes
+                            <button class="btn btn-sm btn-secondary" style="justify-content: flex-start; gap: 0.5rem;" onclick="ERP.apiConsole.run('GET', '/recipes')">
+                                <span class="badge badge-emerald font-mono" style="font-size: 0.65rem; padding: 2px 6px;">GET</span> <span>/recipes</span>
                             </button>
-                            <button class="btn btn-sm btn-secondary" style="justify-content: flex-start;" onclick="ERP.apiConsole.run('GET', '/production-orders')">
-                                GET /production-orders
+                            <button class="btn btn-sm btn-secondary" style="justify-content: flex-start; gap: 0.5rem;" onclick="ERP.apiConsole.run('GET', '/production-orders')">
+                                <span class="badge badge-emerald font-mono" style="font-size: 0.65rem; padding: 2px 6px;">GET</span> <span>/production-orders</span>
                             </button>
-                            <button class="btn btn-sm btn-secondary" style="justify-content: flex-start;" onclick="ERP.apiConsole.run('GET', '/quality-inspections')">
-                                GET /quality-inspections
+                            <button class="btn btn-sm btn-secondary" style="justify-content: flex-start; gap: 0.5rem;" onclick="ERP.apiConsole.run('GET', '/quality-inspections')">
+                                <span class="badge badge-emerald font-mono" style="font-size: 0.65rem; padding: 2px 6px;">GET</span> <span>/quality-inspections</span>
                             </button>
-                            <button class="btn btn-sm btn-secondary" style="justify-content: flex-start;" onclick="ERP.apiConsole.run('GET', '/users')">
-                                GET /users
+                            <button class="btn btn-sm btn-secondary" style="justify-content: flex-start; gap: 0.5rem;" onclick="ERP.apiConsole.run('GET', '/users')">
+                                <span class="badge badge-emerald font-mono" style="font-size: 0.65rem; padding: 2px 6px;">GET</span> <span>/users</span>
                             </button>
-                            <button class="btn btn-sm btn-secondary" style="justify-content: flex-start;" onclick="ERP.apiConsole.run('GET', '/roles')">
-                                GET /roles
+                            <button class="btn btn-sm btn-secondary" style="justify-content: flex-start; gap: 0.5rem;" onclick="ERP.apiConsole.run('GET', '/roles')">
+                                <span class="badge badge-emerald font-mono" style="font-size: 0.65rem; padding: 2px 6px;">GET</span> <span>/roles</span>
+                            </button>
+                            <button class="btn btn-sm btn-secondary" style="justify-content: flex-start; gap: 0.5rem;" onclick="ERP.apiConsole.run('GET', '/sales/orders')">
+                                <span class="badge badge-emerald font-mono" style="font-size: 0.65rem; padding: 2px 6px;">GET</span> <span>/sales/orders</span>
+                            </button>
+                            <button class="btn btn-sm btn-secondary" style="justify-content: flex-start; gap: 0.5rem;" onclick="ERP.apiConsole.run('GET', '/print/devices')">
+                                <span class="badge badge-emerald font-mono" style="font-size: 0.65rem; padding: 2px 6px;">GET</span> <span>/print/devices</span>
                             </button>
                         </div>
 
-                        <div class="card" style="padding: 1rem;">
-                            <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.5rem; font-family: var(--font-mono);">RESPONSE VIEWER:</div>
-                            <pre class="api-runner-box" id="api-console-output">// Select an endpoint on the left to execute API request...</pre>
+                        <div class="card" style="padding: 1rem; display: flex; flex-direction: column;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; border-bottom: 1px solid var(--border-card); padding-bottom: 0.5rem;">
+                                <div id="api-console-request-meta" class="font-mono" style="font-size: 0.78rem; font-weight: 600; color: var(--text-heading);">
+                                    // Select an endpoint on the left to execute API request...
+                                </div>
+                                <div style="display: flex; gap: 0.5rem;">
+                                    <button class="btn btn-xs btn-secondary" onclick="ERP.apiConsole.copyCurl()" title="Copy cURL to clipboard">
+                                        <i class="fa-solid fa-terminal"></i> Copy cURL
+                                    </button>
+                                    <button class="btn btn-xs btn-secondary" onclick="ERP.apiConsole.copyResponse()" title="Copy JSON response to clipboard">
+                                        <i class="fa-solid fa-copy"></i> Copy JSON
+                                    </button>
+                                </div>
+                            </div>
+                            <pre class="api-runner-box" id="api-console-output" style="max-height: 520px; overflow-y: auto; background: #0f172a; color: #f8fafc; padding: 1rem; border-radius: 6px; font-family: var(--font-mono); font-size: 0.8rem; line-height: 1.5;">// Response will appear here in formatted JSON...</pre>
                         </div>
                     </div>
                 </section>
@@ -4419,14 +4437,14 @@
 
     <!-- Directory Modal 0: Category Create / Edit (Կատեգորիաների ավելացում / փոփոխում) -->
     <div class="modal-backdrop" id="directory-category-modal">
-        <div class="modal-container" style="max-width: 650px; max-height: 90vh; overflow-y: auto;">
+        <div class="modal-container" style="max-width: 650px; max-height: calc(100dvh - 2.5rem); display: flex; flex-direction: column; overflow: hidden;">
             <div class="modal-header">
                 <h3 id="category-modal-title"><i class="fa-solid fa-folder-plus"></i> Ավելացնել Կատեգորիա</h3>
                 <button type="button" onclick="ERP.directory.categories.closeModal()" style="font-size: 1.25rem; color: var(--text-muted); cursor: pointer; border: none; background: none;">&times;</button>
             </div>
-            <form id="category-master-form" onsubmit="ERP.directory.categories.submitForm(event)">
+            <form id="category-master-form" onsubmit="ERP.directory.categories.submitForm(event)" style="display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; overflow: hidden;">
                 <input type="hidden" id="cat-id" value="">
-                <div class="modal-body" style="padding: 1.25rem 1.5rem;">
+                <div class="modal-body" style="padding: 1.25rem 1.5rem; overflow-y: auto; flex: 1 1 auto; min-height: 0;">
                     <!-- Category Type Selector: Product vs Ingredient -->
                     <div class="form-group" style="margin-bottom: 0.85rem;">
                         <label class="form-label">Կատեգորիայի Տեսակ *</label>
@@ -4554,14 +4572,14 @@
 
     <!-- Directory Modal 1: Supplier Create / Edit -->
     <div class="modal-backdrop" id="directory-supplier-modal">
-        <div class="modal-container" style="max-width: 760px; max-height: 90vh; overflow-y: auto;">
+        <div class="modal-container" style="max-width: 760px; max-height: calc(100dvh - 2.5rem); display: flex; flex-direction: column; overflow: hidden;">
             <div class="modal-header">
                 <h3 id="directory-supplier-modal-title"><i class="fa-solid fa-truck-field"></i> Ավելացնել Մատակարար</h3>
                 <button type="button" onclick="ERP.directory.suppliers.closeModal()" style="font-size: 1.25rem; color: var(--text-muted); cursor: pointer;">&times;</button>
             </div>
-            <form onsubmit="ERP.directory.suppliers.submitForm(event)">
+            <form onsubmit="ERP.directory.suppliers.submitForm(event)" style="display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; overflow: hidden;">
                 <input type="hidden" id="sup-id">
-                <div class="modal-body">
+                <div class="modal-body" style="overflow-y: auto; flex: 1 1 auto; min-height: 0;">
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
                         <div class="form-group">
                             <label class="form-label">Անվանում (Company Name) *</label>
@@ -4653,14 +4671,14 @@
 
     <!-- Directory Modal 2: Ingredient Create / Edit (Ձեռքով Մուտքագրում) -->
     <div class="modal-backdrop" id="directory-ingredient-modal">
-        <div class="modal-container" style="max-width: 820px; max-height: 90vh; overflow-y: auto;">
+        <div class="modal-container" style="max-width: 820px; max-height: calc(100dvh - 2.5rem); display: flex; flex-direction: column; overflow: hidden;">
             <div class="modal-header">
                 <h3 id="directory-ingredient-modal-title"><i class="fa-solid fa-mortar-pestle"></i> Բաղադրիչի Մուտքագրում (Ձեռքով)</h3>
                 <button type="button" onclick="ERP.directory.ingredients.closeModal()" style="font-size: 1.25rem; color: var(--text-muted); cursor: pointer;">&times;</button>
             </div>
-            <form onsubmit="ERP.directory.ingredients.submitForm(event)">
+            <form onsubmit="ERP.directory.ingredients.submitForm(event)" style="display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; overflow: hidden;">
                 <input type="hidden" id="ing-id">
-                <div class="modal-body">
+                <div class="modal-body" style="overflow-y: auto; flex: 1 1 auto; min-height: 0;">
                     <!-- Categorization -->
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
                         <div class="form-group">
@@ -4942,18 +4960,16 @@
         </div>
     </div>
 
-    <!-- ==============================================================
-         DIRECTORY MODAL: CREATE / EDIT CUSTOMER
-         ============================================================== -->
+    <!-- DIRECTORY MODAL: CREATE / EDIT CUSTOMER -->
     <div class="modal-backdrop" id="directory-customer-modal">
-        <div class="modal-container" style="max-width: 820px;">
+        <div class="modal-container" style="max-width: 820px; max-height: calc(100dvh - 2.5rem); display: flex; flex-direction: column; overflow: hidden;">
             <div class="modal-header">
                 <h3 id="customer-modal-title"><i class="fa-solid fa-user-plus" style="color: var(--color-primary);"></i> Նոր Հաճախորդ</h3>
-                <button type="button" onclick="document.getElementById('directory-customer-modal').classList.remove('active')" style="font-size: 1.25rem; color: var(--text-muted); cursor: pointer;">&times;</button>
+                <button type="button" onclick="document.getElementById('directory-customer-modal').classList.remove('active')" style="font-size: 1.25rem; color: var(--text-muted); cursor: pointer; border: none; background: none;">&times;</button>
             </div>
-            <form id="directory-customer-form" onsubmit="ERP.directory.customers.saveCustomer(event)">
+            <form id="directory-customer-form" onsubmit="ERP.directory.customers.saveCustomer(event)" style="display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; overflow: hidden;">
                 <input type="hidden" id="cust-form-id" value="">
-                <div class="modal-body" style="max-height: 75vh; overflow-y: auto;">
+                <div class="modal-body" style="overflow-y: auto; flex: 1 1 auto; min-height: 0; padding: 1.25rem 1.5rem;">
                     <!-- Type Selector Buttons -->
                     <div style="display: flex; gap: 0.5rem; margin-bottom: 1.25rem;">
                         <button type="button" class="btn btn-sm" id="cust-type-btn-indiv" style="flex: 1; border: 2px solid var(--color-primary); background: #EFF6FF; color: var(--color-primary); font-weight: 700;" onclick="ERP.directory.customers.setFormType('individual')">
@@ -5741,8 +5757,9 @@
 
                         <!-- Live Calculation Summary Box -->
                         <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 1rem;">
-                            <div style="font-size: 0.82rem; font-weight: 800; color: var(--text-heading); margin-bottom: 0.75rem; border-bottom: 1px solid #E2E8F0; padding-bottom: 0.35rem;">
-                                Հաշվարկված Գումարներ (Exact Precision)
+                            <div style="font-size: 0.82rem; font-weight: 800; color: var(--text-heading); margin-bottom: 0.75rem; border-bottom: 1px solid #E2E8F0; padding-bottom: 0.35rem; display: flex; justify-content: space-between; align-items: center;">
+                                <span>Հաշվարկված Գումարներ (Exact Precision)</span>
+                                <span id="order-calc-sync" class="badge badge-xs badge-slate" style="font-weight: 500; font-size: 0.68rem;">Live Preview</span>
                             </div>
                             <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 6px;">
                                 <span style="color: var(--text-muted);">Ապրանքների Ենթագումար՝</span>
@@ -5778,7 +5795,7 @@
 
                 <div class="modal-footer" style="padding: 0.85rem 1.5rem; background: #F8FAFC; border-top: 1px solid #E2E8F0; display: flex; justify-content: space-between; align-items: center;">
                     <button type="button" class="btn btn-secondary" onclick="ERP.orders.closeCreateModal()">Չեղարկել</button>
-                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Ստեղծել Պատվերը</button>
+                    <button type="submit" class="btn btn-primary" id="btn-submit-create-order"><i class="fa-solid fa-check"></i> Ստեղծել Պատվերը</button>
                 </div>
             </form>
         </div>

@@ -990,10 +990,18 @@ button {
     text-transform: uppercase;
     font-size: 0.72rem;
     letter-spacing: 0.05em;
-    color: #475569; /* Slate 600 - High contrast WCAG 2.2 AA compliant */
-    border-bottom: 1px solid #cbd5e1;
+    color: #334155; /* Slate 700 - High contrast WCAG 2.2 AA compliant (>7:1) */
+    border-bottom: 2px solid #cbd5e1;
     background: #f8fafc;
     white-space: nowrap;
+}
+
+.table-sticky thead th {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: #f8fafc;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
 }
 
 .table td {
@@ -1001,6 +1009,12 @@ button {
     border-bottom: 1px solid var(--border-subtle);
     color: var(--text-main);
     vertical-align: middle;
+}
+
+.table td.text-right, .table th.text-right,
+.table td.table-num, .table th.table-num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
 }
 
 .table tbody tr:hover {
@@ -1017,14 +1031,18 @@ button {
 .badge-status-delivery { background: #cffafe; color: #0e7490; border: 1px solid #a5f3fc; }
 .badge-status-delivered, .badge-status-completed { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
 .badge-status-cancelled { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
+.badge-status-returned { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
 
 .badge-payment-paid { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
 .badge-payment-partial, .badge-payment-partially_paid { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
 .badge-payment-unpaid, .badge-payment-pending { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
+.badge-payment-refunded { background: #f3e8ff; color: #7e22ce; border: 1px solid #d8b4fe; }
 
 .badge-source-pos { background: #e0e7ff; color: #3730a3; border: 1px solid #c7d2fe; }
-.badge-source-manual { background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; }
-.badge-source-xml { background: #ede9fe; color: #6b21a8; border: 1px solid #ddd6fe; }
+.badge-source-manual, .badge-source-manual_backoffice { background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; }
+.badge-source-xml, .badge-source-xml_import { background: #ede9fe; color: #6b21a8; border: 1px solid #ddd6fe; }
+.badge-source-direct, .badge-source-web, .badge-source-online_store { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+.badge-source-integration, .badge-source-external_integration { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
 
 /* Forms */
 .form-group {
@@ -1042,6 +1060,7 @@ button {
 
 .form-control, .input, .select {
     width: 100%;
+    min-width: 0;
     background: #ffffff;
     border: 1px solid var(--border-card);
     border-radius: var(--radius-md);
@@ -1059,10 +1078,55 @@ button {
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
 
+.form-control.is-invalid, .input.is-invalid, .select.is-invalid {
+    border-color: var(--color-danger);
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+}
+
+.form-error-feedback {
+    font-size: 0.75rem;
+    color: var(--color-danger);
+    margin-top: 0.25rem;
+}
+
 .form-row {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 1rem;
+}
+
+/* Accessible focus visible outlines across interactive controls */
+:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
+/* Empty State Component */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 1.5rem;
+    text-align: center;
+    color: var(--text-muted);
+}
+.empty-state-icon {
+    font-size: 2.5rem;
+    color: #94a3b8;
+    margin-bottom: 0.75rem;
+}
+.empty-state-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-heading);
+    margin-bottom: 0.35rem;
+}
+.empty-state-text {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    max-width: 420px;
+    margin-bottom: 1rem;
 }
 
 /* ==========================================================================
@@ -1081,6 +1145,7 @@ button {
     opacity: 0;
     visibility: hidden;
     transition: opacity var(--transition-fast);
+    padding: 1rem;
 }
 
 .modal-backdrop.active {
@@ -1088,27 +1153,39 @@ button {
     visibility: visible;
 }
 
-.modal-container {
+.modal-container, .modal-dialog {
     background: var(--bg-surface);
     border: 1px solid var(--border-card);
     border-radius: var(--radius-xl);
     width: 90%;
     max-width: 580px;
-    max-height: 90vh;
+    max-height: calc(100dvh - 2.5rem);
+    min-height: 0;
     display: flex;
     flex-direction: column;
     overflow: hidden;
     box-shadow: var(--shadow-lg);
     transform: scale(0.97);
     transition: transform var(--transition-fast);
+    position: relative;
 }
 
-.modal-backdrop.active .modal-container {
+/* Any form directly inside modal-container must inherit flex-column constraints */
+.modal-container > form {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.modal-backdrop.active .modal-container,
+.modal-backdrop.active .modal-dialog {
     transform: scale(1);
 }
 
 .modal-header {
-    flex-shrink: 0;
+    flex: 0 0 auto;
     padding: 1.25rem 1.5rem;
     display: flex;
     align-items: center;
@@ -1125,16 +1202,17 @@ button {
 
 .modal-body {
     flex: 1 1 auto;
+    min-height: 0;
     overflow-y: auto;
     padding: 1.5rem;
-    max-height: calc(90vh - 130px);
 }
 
 .modal-footer {
-    flex-shrink: 0;
+    flex: 0 0 auto;
     padding: 1rem 1.5rem;
     display: flex;
     justify-content: flex-end;
+    align-items: center;
     gap: 0.75rem;
     border-top: 1px solid var(--border-card);
     background: var(--bg-surface-subtle);
@@ -1432,11 +1510,15 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 
 @media (max-width: 768px) {
     .app-header {
-        padding: 0 1rem;
-        height: 60px;
+        padding: 0 0.85rem;
+        height: 58px;
+        overflow-x: clip;
+    }
+    .header-env-pill {
+        display: none !important;
     }
     .header-tenant-selector span:not(.tenant-dot) {
-        max-width: 120px;
+        max-width: 110px;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -1444,35 +1526,50 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
     .kpi-grid-5 {
         grid-template-columns: 1fr;
     }
-    .modal-container {
-        width: 96%;
-        max-height: 94vh;
+    .modal-container, .modal-dialog {
+        width: 95%;
+        max-height: calc(100dvh - 1.5rem);
         border-radius: var(--radius-lg);
     }
     .modal-header {
-        padding: 1rem 1.25rem;
+        padding: 0.9rem 1.15rem;
     }
     .modal-body {
-        padding: 1rem 1.25rem;
+        padding: 1rem 1.15rem;
     }
     .modal-footer {
-        padding: 0.75rem 1.25rem;
+        padding: 0.75rem 1.15rem;
         flex-direction: column-reverse;
+        gap: 0.5rem;
     }
     .modal-footer .btn {
         width: 100%;
+        justify-content: center;
     }
 }
 
 @media (max-width: 480px) {
     .header-tenant-selector span:nth-child(3) {
-        display: none; /* Hide IP address */
+        display: none !important; /* Hide host/domain info */
     }
     .header-right {
-        gap: 0.4rem;
+        gap: 0.35rem;
     }
     .header-user-profile span {
         display: none;
+    }
+    .header-user-profile {
+        padding: 2px;
+        background: transparent;
+        border: none;
+    }
+    .app-content {
+        padding: 1rem 0.75rem;
+    }
+    /* Auto-collapse inline grid layouts inside forms and modals on narrow viewports */
+    .modal-body [style*="grid-template-columns"],
+    .form-row {
+        grid-template-columns: 1fr !important;
     }
 }
 

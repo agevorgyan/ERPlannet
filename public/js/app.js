@@ -29,6 +29,20 @@
             operational_tasks: "Գործառնական խնդիրներ",
             search_placeholder: "Որոնել ամենուր... (⌘K)",
             revenue: "Հասույթ",
+            expenses: "Ընդհանուր Ծախսեր",
+            net_profit: "Զուտ Շահույթ",
+            open_projects: "Գործող Պատվերներ",
+            active_employees: "Ակտիվ Աշխատակիցներ",
+            procurement: "Գնումներ",
+            delivery_notes: "Բեռնագրեր (B2B)",
+            xml_import: "XML Ներմուծում",
+            print_management: "Տպիչներ & Հերթ",
+            document_designer: "Կտրոնի Դիզայներ",
+            quick_create_purchase: "Գնման Պատվեր",
+            quick_add_product: "Ավելացնել Ապրանք",
+            quick_adjust_stock: "Գույքագրում / Դուրսգրում",
+            quick_new_recipe: "Նոր BOM Բաղադրատոմս",
+            b2b_delivery_note: "B2B Ապրանքային Բեռնագիր",
             orders: "Պատվերներ",
             warehouses: "Պահեստներ",
             products: "Ապրանքներ",
@@ -87,6 +101,20 @@
             operational_tasks: "Operational Tasks",
             search_placeholder: "Search everywhere... (⌘K)",
             revenue: "Revenue",
+            expenses: "Total Expenses",
+            net_profit: "Net Profit",
+            open_projects: "Open Orders",
+            active_employees: "Active Employees",
+            procurement: "Procurement",
+            delivery_notes: "B2B Delivery Notes",
+            xml_import: "XML Import Center",
+            print_management: "Printers & Queue",
+            document_designer: "Receipt Designer",
+            quick_create_purchase: "Create Purchase",
+            quick_add_product: "Add Product",
+            quick_adjust_stock: "Adjust / Scrap",
+            quick_new_recipe: "New BOM Recipe",
+            b2b_delivery_note: "B2B Delivery Note",
             orders: "Orders",
             warehouses: "Warehouses",
             products: "Products",
@@ -145,6 +173,20 @@
             operational_tasks: "Операционные задачи",
             search_placeholder: "Поиск по системе... (⌘K)",
             revenue: "Выручка",
+            expenses: "Общие расходы",
+            net_profit: "Чистая прибыль",
+            open_projects: "Активные заказы",
+            active_employees: "Сотрудники",
+            procurement: "Закупки",
+            delivery_notes: "Накладные B2B",
+            xml_import: "Импорт XML",
+            print_management: "Принтеры и Очередь",
+            document_designer: "Дизайнер чеков",
+            quick_create_purchase: "Заказ на закупку",
+            quick_add_product: "Добавить товар",
+            quick_adjust_stock: "Коррекция / Списание",
+            quick_new_recipe: "Новая рецептура BOM",
+            b2b_delivery_note: "Товарная накладная B2B",
             orders: "Заказы",
             warehouses: "Склады",
             products: "Товары",
@@ -356,6 +398,129 @@
             if (viewName === 'xml-import') ERP.xmlImport.load();
             if (viewName === 'print-management') ERP.printing.load();
             if (viewName === 'document-designer') ERP.designer.load();
+        },
+
+        // =====================================================================
+        // 2.4 Modal Architecture & Accessibility Manager (WCAG 2.2 AA)
+        // =====================================================================
+        modal: {
+            activeModals: [],
+            lastFocusedElement: null,
+
+            open: function (modalId) {
+                const modal = typeof modalId === 'string' ? document.getElementById(modalId) : modalId;
+                if (!modal) return;
+                this.lastFocusedElement = document.activeElement;
+                modal.classList.add('active');
+                if (!this.activeModals.includes(modal)) {
+                    this.activeModals.push(modal);
+                }
+                document.body.style.overflow = 'hidden';
+                modal.setAttribute('role', 'dialog');
+                modal.setAttribute('aria-modal', 'true');
+                const focusable = modal.querySelector('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])');
+                if (focusable) {
+                    setTimeout(() => focusable.focus(), 60);
+                }
+            },
+
+            close: function (modalId) {
+                const modal = typeof modalId === 'string' ? document.getElementById(modalId) : modalId;
+                if (!modal) return;
+                modal.classList.remove('active');
+                this.activeModals = this.activeModals.filter(m => m !== modal);
+                if (this.activeModals.length === 0) {
+                    document.body.style.overflow = '';
+                }
+                if (this.lastFocusedElement && typeof this.lastFocusedElement.focus === 'function') {
+                    try { this.lastFocusedElement.focus(); } catch (e) {}
+                    this.lastFocusedElement = null;
+                }
+            },
+
+            closeTop: function () {
+                const active = Array.from(document.querySelectorAll('.modal-backdrop.active'));
+                if (active.length > 0) {
+                    const top = active[active.length - 1];
+                    this.close(top);
+                    return true;
+                }
+                return false;
+            },
+
+            init: function () {
+                // Global backdrop click dismissal
+                document.querySelectorAll('.modal-backdrop').forEach(backdrop => {
+                    backdrop.addEventListener('click', (e) => {
+                        if (e.target === backdrop) {
+                            ERP.modal.close(backdrop);
+                        }
+                    });
+                });
+
+                // Prevent inside clicks from closing backdrop
+                document.querySelectorAll('.modal-container, .modal-dialog').forEach(container => {
+                    container.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                    });
+                });
+            }
+        },
+
+        // =====================================================================
+        // 2.45 Centralized Status Badge Formatter (Enterprise Grade)
+        // =====================================================================
+        formatStatusBadge: function (status, category = 'status') {
+            const s = String(status || '').toLowerCase().trim();
+            const locale = ERP.state.locale || 'hy';
+
+            if (category === 'payment') {
+                const map = {
+                    paid: { hy: 'Վճարված', en: 'Paid', ru: 'Оплачен', cls: 'badge-payment-paid', icon: 'fa-check' },
+                    partially_paid: { hy: 'Մասնակի', en: 'Partially Paid', ru: 'Частично', cls: 'badge-payment-partial', icon: 'fa-circle-half-stroke' },
+                    partial: { hy: 'Մասնակի', en: 'Partially Paid', ru: 'Частично', cls: 'badge-payment-partial', icon: 'fa-circle-half-stroke' },
+                    unpaid: { hy: 'Չվճարված', en: 'Unpaid', ru: 'Не оплачен', cls: 'badge-payment-unpaid', icon: 'fa-xmark' },
+                    pending: { hy: 'Սպասվում է', en: 'Pending', ru: 'В ожидании', cls: 'badge-payment-unpaid', icon: 'fa-clock' },
+                    refunded: { hy: 'Վերադարձված', en: 'Refunded', ru: 'Возвращен', cls: 'badge-payment-refunded', icon: 'fa-rotate-left' }
+                };
+                const item = map[s] || { hy: s, en: s, ru: s, cls: 'badge-status-draft', icon: 'fa-circle' };
+                const label = item[locale] || item.hy || s;
+                return `<span class="badge ${item.cls}"><i class="fa-solid ${item.icon}"></i> ${label}</span>`;
+            }
+
+            if (category === 'source') {
+                const map = {
+                    manual: { hy: 'Back-Office', en: 'Manual', ru: 'Вручную', cls: 'badge-source-manual', icon: 'fa-keyboard' },
+                    manual_backoffice: { hy: 'Back-Office', en: 'Manual', ru: 'Вручную', cls: 'badge-source-manual', icon: 'fa-keyboard' },
+                    pos: { hy: 'POS Դրամարկղ', en: 'POS Terminal', ru: 'POS Касса', cls: 'badge-source-pos', icon: 'fa-cash-register' },
+                    direct: { hy: 'Ուղիղ', en: 'Direct', ru: 'Прямой', cls: 'badge-source-direct', icon: 'fa-store' },
+                    web: { hy: 'Առցանց', en: 'Storefront', ru: 'Онлайн', cls: 'badge-source-web', icon: 'fa-globe' },
+                    online_store: { hy: 'Առցանց', en: 'Storefront', ru: 'Онлайн', cls: 'badge-source-web', icon: 'fa-globe' },
+                    xml_import: { hy: 'XML Ներմուծում', en: 'XML Import', ru: 'XML Импорт', cls: 'badge-source-xml', icon: 'fa-file-code' },
+                    external_integration: { hy: 'Ինտեգրացիա', en: 'Integration', ru: 'Интеграция', cls: 'badge-source-integration', icon: 'fa-plug' }
+                };
+                const item = map[s] || { hy: s.replace(/_/g, ' '), en: s.replace(/_/g, ' '), ru: s.replace(/_/g, ' '), cls: 'badge-source-manual', icon: 'fa-tag' };
+                const label = item[locale] || item.hy || s;
+                return `<span class="badge ${item.cls}"><i class="fa-solid ${item.icon}"></i> ${label}</span>`;
+            }
+
+            // Default: Order / lifecycle status
+            const map = {
+                draft: { hy: 'Սևագիր', en: 'Draft', ru: 'Черновик', cls: 'badge-status-draft', icon: 'fa-file' },
+                new: { hy: 'Նոր', en: 'New', ru: 'Новый', cls: 'badge-status-new', icon: 'fa-sparkles' },
+                confirmed: { hy: 'Հաստատված', en: 'Confirmed', ru: 'Подтвержден', cls: 'badge-status-confirmed', icon: 'fa-thumbs-up' },
+                processing: { hy: 'Պատրաստվում է', en: 'Processing', ru: 'В обработке', cls: 'badge-status-processing', icon: 'fa-spinner fa-spin' },
+                in_progress: { hy: 'Ընթացքի մեջ', en: 'In Progress', ru: 'В процессе', cls: 'badge-status-processing', icon: 'fa-gears' },
+                packed: { hy: 'Փաթեթավորված', en: 'Packed', ru: 'Упакован', cls: 'badge-status-packed', icon: 'fa-box' },
+                ready: { hy: 'Պատրաստ է', en: 'Ready', ru: 'Готов', cls: 'badge-status-ready', icon: 'fa-circle-check' },
+                delivery: { hy: 'Առաքման մեջ', en: 'In Delivery', ru: 'В доставке', cls: 'badge-status-delivery', icon: 'fa-truck-fast' },
+                delivered: { hy: 'Առաքված', en: 'Delivered', ru: 'Доставлен', cls: 'badge-status-delivered', icon: 'fa-house-circle-check' },
+                completed: { hy: 'Ավարտված', en: 'Completed', ru: 'Завершен', cls: 'badge-status-completed', icon: 'fa-check-double' },
+                cancelled: { hy: 'Չեղարկված', en: 'Cancelled', ru: 'Отменен', cls: 'badge-status-cancelled', icon: 'fa-ban' }
+            };
+            const item = map[s] || { hy: s.replace(/_/g, ' '), en: s.replace(/_/g, ' '), ru: s.replace(/_/g, ' '), cls: 'badge-status-draft', icon: 'fa-circle-dot' };
+            const label = item[locale] || item.hy || s;
+            return `<span class="badge ${item.cls}"><i class="fa-solid ${item.icon}"></i> ${label}</span>`;
         },
 
         // =====================================================================
@@ -587,7 +752,8 @@
                     `;
                 }).join('');
 
-                const tax = Math.round(subtotal * 0.20);
+                // Armenian standard tax-inclusive 20% VAT: tax = subtotal * (20 / 120)
+                const tax = Math.round(subtotal * (20 / 120));
                 const total = subtotal;
 
                 if (subtotalEl) subtotalEl.innerText = `${(subtotal - tax).toLocaleString()} ֏`;
@@ -2238,15 +2404,26 @@
         },
 
         // =====================================================================
-        // 8. API Console Runner
+        // 8. API Console Runner (Enterprise P3-02)
         // =====================================================================
         apiConsole: {
+            lastRequest: null,
+            lastResponse: null,
+
             run: async function (method, path, body = null) {
                 const output = document.getElementById('api-console-output');
                 const statusBadge = document.getElementById('api-console-status');
+                const reqMeta = document.getElementById('api-console-request-meta');
 
+                this.lastRequest = { method, path, body, timestamp: new Date() };
+                this.lastResponse = null;
+
+                if (reqMeta) reqMeta.textContent = `${method} /api/v1${path}`;
                 if (output) output.innerText = `Calling [${method} /api/v1${path}] ...`;
-                if (statusBadge) statusBadge.innerText = 'FETCHING...';
+                if (statusBadge) {
+                    statusBadge.innerText = 'FETCHING...';
+                    statusBadge.className = 'badge badge-slate';
+                }
 
                 const start = performance.now();
                 try {
@@ -2256,6 +2433,7 @@
                     });
 
                     const elapsed = Math.round(performance.now() - start);
+                    this.lastResponse = res;
                     if (output) output.innerText = JSON.stringify(res, null, 2);
                     if (statusBadge) {
                         statusBadge.innerText = `200 OK (${elapsed}ms)`;
@@ -2263,12 +2441,44 @@
                     }
                 } catch (err) {
                     const elapsed = Math.round(performance.now() - start);
+                    this.lastResponse = { error: err.message };
                     if (output) output.innerText = `Error: ${err.message}`;
                     if (statusBadge) {
                         statusBadge.innerText = `ERROR (${elapsed}ms)`;
                         statusBadge.className = 'badge badge-rose';
                     }
                 }
+            },
+
+            copyCurl: function () {
+                if (!this.lastRequest) {
+                    ERP.toast('Նախ ընտրեք API endpoint կանչելու համար:', 'warning');
+                    return;
+                }
+                const token = ERP.state.token || localStorage.getItem('erplannet_token') || '';
+                const authHeader = token ? ` -H "Authorization: Bearer ${token}"` : '';
+                const bodyPart = this.lastRequest.body ? ` -H "Content-Type: application/json" -d '${JSON.stringify(this.lastRequest.body)}'` : '';
+                const origin = window.location.origin || 'http://127.0.0.1:8000';
+                const curl = `curl -X ${this.lastRequest.method} "${origin}/api/v1${this.lastRequest.path}" -H "Accept: application/json"${authHeader}${bodyPart}`;
+                
+                navigator.clipboard.writeText(curl).then(() => {
+                    ERP.toast('cURL հրամանը պատճենվեց clipboard-ում:', 'success');
+                }).catch(() => {
+                    ERP.toast('Չհաջողվեց պատճենել cURL:', 'error');
+                });
+            },
+
+            copyResponse: function () {
+                if (!this.lastResponse) {
+                    ERP.toast('Պատասխան դեռ չկա պատճենելու համար:', 'warning');
+                    return;
+                }
+                const json = JSON.stringify(this.lastResponse, null, 2);
+                navigator.clipboard.writeText(json).then(() => {
+                    ERP.toast('API պատասխանը (JSON) պատճենվեց clipboard-ում:', 'success');
+                }).catch(() => {
+                    ERP.toast('Չհաջողվեց պատճենել պատասխանը:', 'error');
+                });
             }
         },
 
@@ -4830,38 +5040,9 @@
                 }
 
                 tbody.innerHTML = orders.map(o => {
-                    const statusBadgeMap = {
-                        new: '<span class="badge badge-amber">Նոր (New)</span>',
-                        confirmed: '<span class="badge badge-blue">Հաստատված</span>',
-                        processing: '<span class="badge badge-indigo">Պատրաստվում է</span>',
-                        in_progress: '<span class="badge badge-indigo">Ընթացքի մեջ</span>',
-                        packed: '<span class="badge badge-teal">Փաթեթավորված</span>',
-                        ready: '<span class="badge badge-teal">Պատրաստ է</span>',
-                        delivery: '<span class="badge badge-purple">Առաքվում է</span>',
-                        delivered: '<span class="badge badge-green">Առաքված</span>',
-                        completed: '<span class="badge badge-green">Ավարտված</span>',
-                        cancelled: '<span class="badge badge-slate" style="text-decoration: line-through;">Չեղարկված</span>'
-                    };
-                    const statusBadge = statusBadgeMap[o.status] || `<span class="badge badge-slate">${o.status}</span>`;
-
-                    const paymentBadgeMap = {
-                        paid: '<span class="badge badge-green"><i class="fa-solid fa-check"></i> Վճարված</span>',
-                        partially_paid: '<span class="badge badge-amber"><i class="fa-solid fa-circle-half-stroke"></i> Մասնակի</span>',
-                        partial: '<span class="badge badge-amber"><i class="fa-solid fa-circle-half-stroke"></i> Մասնակի</span>',
-                        refunded: '<span class="badge badge-purple"><i class="fa-solid fa-rotate-left"></i> Վերադարձ</span>'
-                    };
-                    const paymentBadge = paymentBadgeMap[o.payment_status] || '<span class="badge badge-rose"><i class="fa-solid fa-xmark"></i> Չվճարված</span>';
-
-                    const sourceLabels = {
-                        pos: '<span class="badge badge-slate font-mono" style="background: #E0E7FF; color: #3730A3;"><i class="fa-solid fa-cash-register"></i> POS</span>',
-                        online_store: '<span class="badge badge-slate font-mono" style="background: #ECFDF5; color: #065F46;"><i class="fa-solid fa-globe"></i> WEB</span>',
-                        web: '<span class="badge badge-slate font-mono" style="background: #ECFDF5; color: #065F46;"><i class="fa-solid fa-globe"></i> WEB</span>',
-                        xml_import: '<span class="badge badge-slate font-mono" style="background: #FEF3C7; color: #92400E;"><i class="fa-solid fa-file-code"></i> XML</span>',
-                        manual_backoffice: '<span class="badge badge-slate font-mono">MANUAL</span>',
-                        manual: '<span class="badge badge-slate font-mono">MANUAL</span>',
-                        external_integration: '<span class="badge badge-slate font-mono" style="background: #F3E8FF; color: #6B21A8;"><i class="fa-solid fa-plug"></i> API</span>'
-                    };
-                    const sourceBadge = sourceLabels[o.source] || `<span class="badge badge-slate font-mono">${(o.source || 'DIRECT').toUpperCase()}</span>`;
+                    const statusBadge = ERP.formatStatusBadge(o.status, 'status');
+                    const paymentBadge = ERP.formatStatusBadge(o.payment_status, 'payment');
+                    const sourceBadge = ERP.formatStatusBadge(o.source, 'source');
 
                     const customerName = o.customer_snapshot?.name || (o.customer ? (o.customer.first_name + (o.customer.last_name ? ' ' + o.customer.last_name : '')) : (o.customer_id ? 'Հաճախորդ' : 'Retail Customer'));
                     const customerTin = o.customer_snapshot?.tax_id || o.customer?.tax_id || '';
@@ -4996,25 +5177,46 @@
                 this.recalculateLivePricing();
             },
 
+            _pricingDebounceTimer: null,
+
             recalculateLivePricing: function () {
                 const rows = document.querySelectorAll('.order-item-row');
                 let subtotal = 0;
                 let itemDiscountsTotal = 0;
+                let totalTax = 0;
+                const itemsPayload = [];
 
                 rows.forEach(r => {
+                    const productId = r.querySelector('.item-product-select')?.value;
                     const qty = parseFloat(r.querySelector('.item-qty-input')?.value || 0);
                     const price = parseFloat(r.querySelector('.item-price-input')?.value || 0);
                     const discPct = parseFloat(r.querySelector('.item-discount-input')?.value || 0);
+                    const taxPct = parseFloat(r.querySelector('.item-tax-input')?.value || 20);
 
                     const gross = qty * price;
-                    const discAmt = gross * (discPct / 100);
-                    const lineTotal = Math.max(0, gross - discAmt);
+                    const discAmt = discPct > 0 ? (gross * (discPct / 100)) : 0;
+                    const lineNet = Math.max(0, gross - discAmt);
+                    // Standard Armenian VAT 20% is tax-inclusive: lineNet * (taxRate / (100 + taxRate))
+                    const lineTax = taxPct > 0 ? Math.round(lineNet * (taxPct / (100 + taxPct)) * 100) / 100 : 0;
+                    const lineTotal = lineNet;
 
                     subtotal += gross;
                     itemDiscountsTotal += discAmt;
+                    totalTax += lineTax;
 
                     const lineSubEl = r.querySelector('.item-line-subtotal');
                     if (lineSubEl) lineSubEl.textContent = lineTotal.toFixed(2) + ' ֏';
+
+                    if (productId && qty > 0) {
+                        itemsPayload.push({
+                            product_id: productId,
+                            quantity: qty,
+                            unit_price: price,
+                            discount_type: discPct > 0 ? 'percent' : 'none',
+                            discount_rate: discPct,
+                            tax_rate: taxPct
+                        });
+                    }
                 });
 
                 const orderDiscVal = parseFloat(document.getElementById('order-discount-value')?.value || 0);
@@ -5022,20 +5224,20 @@
                 let orderDiscount = 0;
                 const afterItemDisc = Math.max(0, subtotal - itemDiscountsTotal);
                 if (orderDiscType === 'percent') {
-                    orderDiscount = afterItemDisc * (orderDiscVal / 100);
+                    orderDiscount = Math.round(afterItemDisc * (orderDiscVal / 100) * 100) / 100;
                 } else {
                     orderDiscount = Math.min(afterItemDisc, orderDiscVal);
                 }
 
                 const promoCode = document.getElementById('order-promo-code')?.value.trim().toUpperCase() || '';
                 let promoDiscount = 0;
-                if (promoCode === 'SAVE10') promoDiscount = Math.max(0, afterItemDisc - orderDiscount) * 0.10;
-                if (promoCode === 'MINUS1000') promoDiscount = Math.min(1000, Math.max(0, afterItemDisc - orderDiscount));
+                const taxableBase = Math.max(0, afterItemDisc - orderDiscount);
+                if (promoCode === 'SAVE10') promoDiscount = Math.round(taxableBase * 0.10 * 100) / 100;
+                if (promoCode === 'MINUS1000') promoDiscount = Math.min(1000, taxableBase);
 
                 const deliveryFee = parseFloat(document.getElementById('order-delivery-fee')?.value || 0);
-                const taxableBase = Math.max(0, afterItemDisc - orderDiscount - promoDiscount);
-                const taxTotal = taxableBase * 0.20;
-                const grandTotal = Math.round((taxableBase + deliveryFee) * 100) / 100;
+                // Grand total is gross sum minus discounts plus delivery fee (tax is already included in prices)
+                const grandTotal = Math.max(0, Math.round((subtotal - itemDiscountsTotal - orderDiscount - promoDiscount + deliveryFee) * 100) / 100);
 
                 const setTxt = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
                 setTxt('order-sum-subtotal', subtotal.toFixed(2) + ' ֏');
@@ -5043,12 +5245,54 @@
                 setTxt('order-sum-order-discount', '-' + orderDiscount.toFixed(2) + ' ֏');
                 setTxt('order-sum-promo-discount', '-' + promoDiscount.toFixed(2) + ' ֏');
                 setTxt('order-sum-delivery', deliveryFee.toFixed(2) + ' ֏');
-                setTxt('order-sum-tax', taxTotal.toFixed(2) + ' ֏');
+                setTxt('order-sum-tax', totalTax.toFixed(2) + ' ֏');
                 setTxt('order-sum-grand-total', grandTotal.toLocaleString('hy-AM') + ' ֏');
+
+                // Debounced authoritative server-side calculation verification
+                clearTimeout(this._pricingDebounceTimer);
+                if (itemsPayload.length > 0) {
+                    this._pricingDebounceTimer = setTimeout(async () => {
+                        try {
+                            const fulfillmentMethod = document.getElementById('order-fulfillment-method')?.value || 'pickup';
+                            const calcRes = await ERP.api('/sales/orders/calculate-pricing', {
+                                method: 'POST',
+                                body: JSON.stringify({
+                                    items: itemsPayload,
+                                    order_discount: orderDiscount,
+                                    promo_code: promoCode || null,
+                                    delivery_fee: deliveryFee,
+                                    delivery_type: fulfillmentMethod === 'delivery' ? 'delivery' : 'pickup'
+                                })
+                            });
+
+                            if (calcRes && calcRes.data) {
+                                const d = calcRes.data;
+                                setTxt('order-sum-subtotal', Number(d.subtotal || 0).toFixed(2) + ' ֏');
+                                setTxt('order-sum-item-discounts', '-' + Number(d.item_discounts_total || 0).toFixed(2) + ' ֏');
+                                setTxt('order-sum-order-discount', '-' + Number(d.order_discount || 0).toFixed(2) + ' ֏');
+                                setTxt('order-sum-promo-discount', '-' + Number(d.promo_discount || 0).toFixed(2) + ' ֏');
+                                setTxt('order-sum-delivery', Number(d.delivery_fee || 0).toFixed(2) + ' ֏');
+                                setTxt('order-sum-tax', Number(d.tax || 0).toFixed(2) + ' ֏');
+                                setTxt('order-sum-grand-total', Number(d.total || 0).toLocaleString('hy-AM') + ' ֏');
+
+                                const syncBadge = document.getElementById('order-calc-sync');
+                                if (syncBadge) {
+                                    syncBadge.className = 'badge badge-xs badge-emerald';
+                                    syncBadge.innerHTML = '<i class="fa-solid fa-check"></i> Սերվերը Հաստատել է';
+                                }
+                            }
+                        } catch (calcErr) {
+                            // Non-blocking: keep client preview if server check encounters validation
+                        }
+                    }, 250);
+                }
             },
 
             submitCreate: async function (e) {
                 e.preventDefault();
+                const submitBtn = document.getElementById('btn-submit-create-order');
+                const origBtnHtml = submitBtn ? submitBtn.innerHTML : '';
+
                 const branchId = document.getElementById('order-branch-id')?.value;
                 const warehouseId = document.getElementById('order-warehouse-id')?.value;
                 const customerId = document.getElementById('order-customer-id')?.value || null;
@@ -5108,6 +5352,11 @@
                     promo_code: promoCode
                 };
 
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Պահպանվում է...';
+                }
+
                 try {
                     const res = await ERP.api('/sales/orders', {
                         method: 'POST',
@@ -5118,6 +5367,11 @@
                     this.load();
                 } catch (err) {
                     ERP.toast(err.message || 'Պատվերի ստեղծումը ձախողվեց:', 'error');
+                } finally {
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = origBtnHtml || '<i class="fa-solid fa-check"></i> Ստեղծել Պատվերը';
+                    }
                 }
             },
 
@@ -5134,19 +5388,17 @@
 
                     const statusBadge = document.getElementById('od-badge-status');
                     if (statusBadge) {
-                        statusBadge.textContent = o.status;
-                        statusBadge.className = `badge badge-${o.status === 'completed' ? 'green' : o.status === 'cancelled' ? 'red' : 'blue'}`;
+                        statusBadge.outerHTML = `<span id="od-badge-status">${ERP.formatStatusBadge(o.status, 'status')}</span>`;
                     }
 
                     const paymentBadge = document.getElementById('od-badge-payment');
                     if (paymentBadge) {
-                        paymentBadge.textContent = o.payment_status;
-                        paymentBadge.className = `badge badge-${o.payment_status === 'paid' ? 'green' : 'yellow'}`;
+                        paymentBadge.outerHTML = `<span id="od-badge-payment">${ERP.formatStatusBadge(o.payment_status, 'payment')}</span>`;
                     }
 
                     const sourceBadge = document.getElementById('od-badge-source');
                     if (sourceBadge) {
-                        sourceBadge.textContent = o.source;
+                        sourceBadge.outerHTML = `<span id="od-badge-source">${ERP.formatStatusBadge(o.source, 'source')}</span>`;
                     }
 
                     const cust = o.customer_snapshot || o.customer || {};
@@ -5203,13 +5455,23 @@
                             cancelled: 'Չեղարկել'
                         };
 
-                        transitions.forEach(target => {
-                            const btn = document.createElement('button');
-                            btn.className = `btn btn-xs ${target === 'completed' ? 'btn-primary' : target === 'cancelled' ? 'btn-outline-danger' : 'btn-secondary'}`;
-                            btn.innerHTML = `${target === 'completed' ? '<i class="fa-solid fa-check"></i> ' : ''}${statusLabelsHy[target] || target}`;
-                            btn.onclick = () => ERP.orders.transitionStatus(target);
-                            actionsDiv.appendChild(btn);
-                        });
+                        if (transitions.length === 0) {
+                            if (o.status === 'completed') {
+                                actionsDiv.innerHTML = '<span class="badge badge-status-completed" style="padding: 0.35rem 0.75rem;"><i class="fa-solid fa-check-double"></i> Պատվերն ավարտված է (Գործողություններ հասանելի չեն)</span>';
+                            } else if (o.status === 'cancelled') {
+                                actionsDiv.innerHTML = '<span class="badge badge-status-cancelled" style="padding: 0.35rem 0.75rem;"><i class="fa-solid fa-ban"></i> Պատվերը չեղարկված է</span>';
+                            } else {
+                                actionsDiv.innerHTML = '<span class="badge badge-status-draft" style="padding: 0.35rem 0.75rem;"><i class="fa-solid fa-lock"></i> Ընթացիկ փուլում այլ անցումներ հասանելի չեն</span>';
+                            }
+                        } else {
+                            transitions.forEach(target => {
+                                const btn = document.createElement('button');
+                                btn.className = `btn btn-xs ${target === 'completed' ? 'btn-primary' : target === 'cancelled' ? 'btn-outline-danger' : 'btn-secondary'}`;
+                                btn.innerHTML = `${target === 'completed' ? '<i class="fa-solid fa-check"></i> ' : ''}${statusLabelsHy[target] || target}`;
+                                btn.onclick = () => ERP.orders.transitionStatus(target);
+                                actionsDiv.appendChild(btn);
+                            });
+                        }
                     }
 
                     const itemsTbody = document.getElementById('od-items-tbody');
@@ -6400,14 +6662,54 @@
             // Initialize locale
             ERP.setLocale(ERP.state.locale);
 
-            // Bind mobile menu toggle
-            const mobileBtn = document.getElementById('mobile-menu-toggle');
-            const sidebar = document.getElementById('app-sidebar');
-            if (mobileBtn && sidebar) {
-                mobileBtn.addEventListener('click', () => {
-                    sidebar.classList.toggle('open');
-                });
-            }
+            // Initialize Modal manager
+            ERP.modal.init();
+
+            // Global outside-click listener for header dropdowns
+            document.addEventListener('click', (e) => {
+                const langDrop = document.getElementById('lang-dropdown');
+                const userDrop = document.getElementById('user-menu-dropdown');
+                if (langDrop && langDrop.classList.contains('active')) {
+                    if (!e.target.closest('#lang-dropdown') && !e.target.closest('.lang-selector-btn')) {
+                        langDrop.classList.remove('active');
+                    }
+                }
+                if (userDrop && userDrop.classList.contains('active')) {
+                    if (!e.target.closest('#user-menu-dropdown') && !e.target.closest('.header-user-profile')) {
+                        userDrop.classList.remove('active');
+                    }
+                }
+            });
+
+            // Global keyboard shortcut dispatcher (Escape & Cmd+K / Ctrl+K)
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    const langDrop = document.getElementById('lang-dropdown');
+                    const userDrop = document.getElementById('user-menu-dropdown');
+                    let closedMenu = false;
+                    if (langDrop && langDrop.classList.contains('active')) {
+                        langDrop.classList.remove('active');
+                        closedMenu = true;
+                    }
+                    if (userDrop && userDrop.classList.contains('active')) {
+                        userDrop.classList.remove('active');
+                        closedMenu = true;
+                    }
+                    if (closedMenu) return;
+
+                    ERP.modal.closeTop();
+                }
+
+                // Global Search Shortcut: Cmd+K (Mac) / Ctrl+K (Windows/Linux)
+                if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
+                    const searchInput = document.querySelector('.header-search input');
+                    if (searchInput) {
+                        e.preventDefault();
+                        searchInput.focus();
+                        searchInput.select();
+                    }
+                }
+            });
 
             console.log('[ERPlannet] SaaS ERP Frontend Initialized on same port!');
         }
